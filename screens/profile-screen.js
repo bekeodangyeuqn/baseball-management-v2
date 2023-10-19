@@ -140,7 +140,12 @@ const ProfileScreen = () => {
       {renderProfilePicture()}
       <View style={styles.profileInfo}>
         <Text style={styles.name}>Lê Duy Thái</Text>
-        <Text style={{ fontSize: 24, textAlign: "center" }}>Player-coach</Text>
+        <Text style={{ fontSize: 24, textAlign: "center" }}>
+          Team: HUST Red Owls
+        </Text>
+        <Text style={{ fontSize: 24, textAlign: "center" }}>
+          Role: Player-coach
+        </Text>
         <View style={styles.profileRow}>
           <Text style={{ marginRight: 8 }}>Chiều cao</Text>
           <Text style={{ marginRight: 8 }}>Cân nặng</Text>
@@ -194,6 +199,7 @@ const styles = StyleSheet.create({
     display: "flex",
     flexDirection: "row",
     justifyContent: "space-around",
+    marginTop: 10,
   },
 });
 

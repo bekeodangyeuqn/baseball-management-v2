@@ -3,9 +3,11 @@ import { Text, View, Image, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import PieChart from "../component/PieChart";
 import PieChartComponent from "../component/PieChart";
+import { useNavigation } from "@react-navigation/native";
 
 const TeamScreen = () => {
   const size = 50;
+  const navigation = useNavigation();
   return (
     <ScrollView>
       <View style={{ flex: 1, marginTop: 10 }}>
@@ -18,7 +20,11 @@ const TeamScreen = () => {
             <Text style={{ fontSize: 16 }}>Giải đấu</Text>
           </View>
           <View style={{ flex: 1, padding: 10, alignItems: "center" }}>
-            <Ionicons name="baseball" size={size} />
+            <Ionicons
+              name="baseball"
+              size={size}
+              onPress={() => navigation.navigate("Games")}
+            />
             <Text style={{ fontSize: 16 }}>Trận đấu</Text>
           </View>
           <View style={{ flex: 1, padding: 10, alignItems: "center" }}>

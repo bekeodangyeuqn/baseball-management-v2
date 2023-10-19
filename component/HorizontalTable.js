@@ -14,6 +14,7 @@ const HorizontalTable = ({ data }) => {
               widthArr={data.widthArr}
               style={styles.head}
               textStyle={styles.headText}
+              stickyHeaderIndices={[0]}
             />
           </Table>
           <ScrollView>
@@ -25,6 +26,7 @@ const HorizontalTable = ({ data }) => {
                   widthArr={data.widthArr}
                   style={styles.rowSection}
                   textStyle={styles.text}
+                  stickyHeaderIndices={[0]}
                 />
               ))}
             </Table>
