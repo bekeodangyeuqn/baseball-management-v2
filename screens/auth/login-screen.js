@@ -1,18 +1,27 @@
 import React from "react";
-import { View, Text, StyleSheet, TextInput, Button } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Button,
+  ActivityIndicator,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { Formik, Field, Form } from "formik";
 import * as Yup from "yup";
 import { useToast } from "react-native-toast-notifications";
-import axios from "axios";
+import axiosInstance from "../../lib/axiosClient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const LoginScreen = () => {
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
   const validationSchema = Yup.object().shape({
-    email: Yup.string().email().required("Email is required"),
+    username: Yup.string().required("Username is required"),
     password: Yup.string()
       .min(6, "Password must be at least 6 characters long")
       .required("Password is required"),
@@ -20,19 +29,41 @@ const LoginScreen = () => {
   const toast = useToast();
   const handleLogin = async (values) => {
     try {
-      const { data } = await axios.post("http://localhost:8000/api/login/", {
+      //event.preventDefault();
+      setIsLoading(true);
+      const response = await axiosInstance.post("/token/obtain/", {
         username: values.username,
         password: values.password,
       });
-
-      const token = data.token;
-
-      await AsyncStorage.setItem("token", token);
-
+      axiosInstance.defaults.headers["Authorization"] =
+        "JWT " + response.data.access;
+      AsyncStorage.setItem("access_token", response.data.access, (error) => {
+        if (error) {
+          console.error(error);
+        } else {
+          console.log("Data stored successfully.");
+        }
+      });
+      AsyncStorage.setItem("access_refresh", response.data.refresh, (error) => {
+        if (error) {
+          console.error(error);
+        } else {
+          console.log("Data stored successfully.");
+        }
+      });
+      setIsLoading(false);
+      toast.show("Login successfully", {
+        type: "success",
+        placement: "bottom",
+        duration: 4000,
+        offset: 30,
+        animationType: "zoom-in",
+      });
       navigation.navigate("Home");
-      return token;
+      return response;
     } catch (error) {
       // Toast.show(error.message);
+      setIsLoading(false);
       toast.show(error.message, {
         type: "danger",
         placement: "bottom",
@@ -86,7 +117,10 @@ const LoginScreen = () => {
     //   </View>
     // </View>
     <Formik
-      initialValues={{ username: "", password: "" }}
+      initialValues={{
+        username: "",
+        password: "",
+      }}
       validationSchema={validationSchema}
       onSubmit={(values) => {
         handleLogin(values);
@@ -121,23 +155,26 @@ const LoginScreen = () => {
             {formik.errors.password && (
               <Text style={{ color: "red" }}>{formik.errors.password}</Text>
             )}
-            <Button title="Đăng nhập" onPress={handleLogin} />
+            <Button title="Đăng nhập" onPress={formik.handleSubmit} />
             {error && <Text style={{ color: "red" }}>{error}</Text>}
-            <View>
-              <Text>
-                Bạn chưa có mật khẩu?
-                <Text
-                  style={{
-                    textDecorationLine: "underline",
-                    textDecorationColor: "blue",
-                  }}
-                  onPress={changeToSignUp}
-                >
-                  {" "}
-                  Đăng ký ngay
-                </Text>
+            <Text>
+              Bạn chưa có tài khoản?
+              <Text
+                style={{
+                  textDecorationLine: "underline",
+                  textDecorationColor: "blue",
+                }}
+                onPress={changeToSignUp}
+              >
+                {" "}
+                Đăng ký ngay
               </Text>
-            </View>
+            </Text>
+            {isLoading && (
+              <View style={styles.loadingOverlay}>
+                <ActivityIndicator size="large" color="#0000ff" />
+              </View>
+            )}
           </View>
         );
       }}
@@ -180,6 +217,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 20,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

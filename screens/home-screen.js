@@ -11,12 +11,26 @@ import {
 } from "react-native";
 import Header from "../component/header";
 import { useNavigation } from "@react-navigation/native";
+import jwtDecode from "jwt-decode";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const HomeScreen = () => {
   const [events, setEvents] = useState([]);
   const [selected, setSelected] = useState("");
   const navigaton = useNavigation();
+  const [username, setUsername] = useState("");
   useEffect(() => {
+    const getUsername = async () => {
+      try {
+        const token = await AsyncStorage.getItem("access_token");
+        const decoded = jwtDecode(token);
+        console.log(decoded.username);
+        setUsername(decoded.username);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    getUsername().catch((error) => console.error(error));
     setEvents([
       {
         id: 1,
@@ -38,12 +52,15 @@ const HomeScreen = () => {
   const handleAddEvent = () => {
     // Mở màn hình thêm sự kiện
   };
+  console.log(username);
   const renderEvents = () => {
     return events.map((event) => <Event key={event.id} event={event} />);
   };
   return (
     <View style={styles.container}>
-      <Header />
+      <View style={styles.header}>
+        <Text style={styles.title}>Xin chào {username}</Text>
+      </View>
       <Calendar
         onDayPress={(day) => {
           setSelected(day.dateString);

@@ -1,10 +1,10 @@
 import React from "react";
 import { StyleSheet, View, Text } from "react-native";
 
-const Header = () => {
+const Header = ({ username }) => {
   return (
     <View style={styles.header}>
-      <Text style={styles.title}>Xin chào Lê Duy Thái</Text>
+      <Text style={styles.title}>Xin chào {username}</Text>
     </View>
   );
 };

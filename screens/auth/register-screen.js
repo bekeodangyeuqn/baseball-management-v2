@@ -1,14 +1,26 @@
 import React from "react";
-import { View, Text, StyleSheet, TextInput, Button } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Button,
+  ActivityIndicator,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import * as Yup from "yup";
 import { Formik, Field, Form } from "formik";
+import { useToast } from "react-native-toast-notifications";
+import axiosInstance from "../../lib/axiosClient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const RegisterScreen = () => {
   const [error, setError] = useState("");
-
+  const [isLoading, setIsLoading] = useState(false);
+  const toast = useToast();
+  const navigation = useNavigation();
   const validationSchema = Yup.object().shape({
     username: Yup.string().required("Name is required"),
     email: Yup.string().email().required("Email is required"),
@@ -20,24 +32,59 @@ const RegisterScreen = () => {
       "Passwords must match"
     ),
   });
-  const navigation = useNavigation();
-  const handleSignUp = async () => {
+  const handleSignUp = async (values) => {
     try {
-      const { data } = await axios.post("http://localhost:8000/api/register/", {
-        username,
-        email,
-        password,
-        confirmPassword,
+      setIsLoading(true);
+      const response = await axiosInstance.post("/register/", {
+        username: values.username,
+        email: values.email,
+        password: values.password,
+        confirmPassword: values.confirmPassword,
       });
-
-      const token = data.token;
-
-      await AsyncStorage.setItem("token", token);
-
+      const response2 = await axiosInstance.post("/token/obtain/", {
+        username: values.username,
+        password: values.password,
+      });
+      axiosInstance.defaults.headers["Authorization"] =
+        "JWT " + response.data.access;
+      AsyncStorage.setItem("access_token", response2.data.access, (error) => {
+        if (error) {
+          console.error(error);
+        } else {
+          console.log("Data stored successfully.");
+        }
+      });
+      AsyncStorage.setItem(
+        "access_refresh",
+        response2.data.refresh,
+        (error) => {
+          if (error) {
+            console.error(error);
+          } else {
+            console.log("Data stored successfully.");
+          }
+        }
+      );
+      setIsLoading(false);
+      toast.show("Register successfully", {
+        type: "success",
+        placement: "bottom",
+        duration: 4000,
+        offset: 30,
+        animationType: "zoom-in",
+      });
       navigation.navigate("Home");
-      return token;
+      return response;
     } catch (error) {
       //Toast.show(error.message);
+      setIsLoading(false);
+      toast.show(error.message, {
+        type: "danger",
+        placement: "bottom",
+        duration: 4000,
+        offset: 30,
+        animationType: "zoom-in",
+      });
     }
   };
   const changeToLogin = () => {
@@ -104,7 +151,9 @@ const RegisterScreen = () => {
         confirmPassword: "",
       }}
       validationSchema={validationSchema}
-      onSubmit={handleSignUp}
+      onSubmit={(values) => {
+        handleSignUp(values);
+      }}
     >
       {(formik) => {
         return (
@@ -177,6 +226,11 @@ const RegisterScreen = () => {
                 Đăng nhập ngay
               </Text>
             </Text>
+            {isLoading && (
+              <View style={styles.loadingOverlay}>
+                <ActivityIndicator size="large" color="#0000ff" />
+              </View>
+            )}
           </View>
         );
       }}
@@ -219,6 +273,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 20,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 
