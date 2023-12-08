@@ -1,13 +1,29 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Text, View, Image, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import PieChart from "../component/PieChart";
 import PieChartComponent from "../component/PieChart";
 import { useNavigation } from "@react-navigation/native";
+import jwtDecode from "jwt-decode";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const TeamScreen = () => {
   const size = 50;
   const navigation = useNavigation();
+  const [teamId, setTeamId] = useState(null);
+  useEffect(() => {
+    const getInfo = async () => {
+      try {
+        const token = await AsyncStorage.getItem("access_token");
+        const decoded = jwtDecode(token);
+        setTeamId(decoded.teamid);
+        console.log(decoded.teamid, "getInfo");
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    getInfo().catch((error) => console.error(error));
+  }, []);
   return (
     <ScrollView>
       <View style={{ flex: 1, marginTop: 10 }}>
@@ -41,7 +57,13 @@ const TeamScreen = () => {
         </Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
           <View style={{ flex: 1, padding: 10, alignItems: "center" }}>
-            <Ionicons name="newspaper" size={size} />
+            <Ionicons
+              name="newspaper"
+              size={size}
+              onPress={() =>
+                navigation.navigate("PlayerList", { teamid: teamId })
+              }
+            />
             <Text style={{ fontSize: 16 }}>Quản lý nhân sự</Text>
           </View>
           <View style={{ flex: 1, padding: 10, alignItems: "center" }}>

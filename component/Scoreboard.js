@@ -1,30 +1,28 @@
 import React from "react";
-import { View, StyleSheet, Image, Text } from "react-native";
+import { View, StyleSheet, Image, Text, TouchableOpacity } from "react-native";
 
-const Scoreboard = ({ away, home, awayScore, homeScore }) => {
+const Scoreboard = ({ myTeam, oppTeam, myScore, oppScore }) => {
   return (
-    <View style={styles.container}>
+    <TouchableOpacity style={styles.container}>
       <View style={styles.row}>
         <View>
-          <Image source={{ uri: away.logo }}></Image>
-          <Text style={styles.text}>{away.name}</Text>
+          <Text style={styles.text}>{myTeam.name}</Text>
         </View>
-        <Text style={styles.text}>{awayScore}</Text>
+        <Text style={styles.text}>{myScore}</Text>
       </View>
       <View style={styles.row}>
         <View>
-          <Image source={{ uri: home.logo }}></Image>
-          <Text style={styles.text}>{home.name}</Text>
+          <Text style={styles.text}>{oppTeam.name}</Text>
         </View>
-        <Text style={styles.text}>{homeScore}</Text>
+        <Text style={styles.text}>{oppScore}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    // flex: 1,
     flexDirection: "column",
     justifyContent: "center",
     backgroundColor: "#ffffff",
@@ -34,7 +32,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 10,
     borderBottomRightRadius: 10,
     height: 100,
-    marginBottom: 10,
+    margin: 10,
   },
   row: {
     display: "flex",
@@ -44,6 +42,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 18,
     fontWeight: "bold",
+    color: "green",
   },
 });
 

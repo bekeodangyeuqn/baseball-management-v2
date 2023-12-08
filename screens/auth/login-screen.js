@@ -9,12 +9,12 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useState } from "react";
-import { Ionicons } from "@expo/vector-icons";
 import { Formik, Field, Form } from "formik";
 import * as Yup from "yup";
 import { useToast } from "react-native-toast-notifications";
 import axiosInstance from "../../lib/axiosClient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import jwtDecode from "jwt-decode";
 
 const LoginScreen = () => {
   const [error, setError] = useState("");
@@ -59,7 +59,10 @@ const LoginScreen = () => {
         offset: 30,
         animationType: "zoom-in",
       });
-      navigation.navigate("Home");
+      const token = await AsyncStorage.getItem("access_token");
+      const decoded = jwtDecode(token);
+      if (decoded.teamName) navigation.navigate("Home");
+      else navigation.navigate("CreateJoinTeam");
       return response;
     } catch (error) {
       // Toast.show(error.message);
@@ -77,45 +80,6 @@ const LoginScreen = () => {
     navigation.navigate("SignUp");
   };
   return (
-    // <View style={styles.container}>
-    //   <Text style={styles.title}>Đăng nhập</Text>
-    //   <TextInput
-    //     style={styles.input}
-    //     placeholder="Email"
-    //     value={email}
-    //     onChangeText={(email) => setEmail(email)}
-    //   />
-    //   <TextInput
-    //     style={styles.input}
-    //     placeholder="Mật khẩu"
-    //     value={password}
-    //     secureTextEntry={true}
-    //     onChangeText={(password) => setPassword(password)}
-    //   />
-    //   <Button style={styles.button} title="Đăng nhập" onPress={handleLogin} />
-    //   {/* {this.state.errorMessage && (
-    //     <Text style={styles.error}>{this.state.errorMessage}</Text>
-    //   )} */}
-    //   <View style={styles.social}>
-    //     <Ionicons name="logo-facebook" size={24} style={{ marginEnd: 10 }} />
-    //     <Ionicons name="logo-google" size={24} />
-    //   </View>
-    //   <View>
-    //     <Text>
-    //       Bạn chưa có mật khẩu?
-    //       <Text
-    //         style={{
-    //           textDecorationLine: "underline",
-    //           textDecorationColor: "blue",
-    //         }}
-    //         onPress={changeToSignUp}
-    //       >
-    //         {" "}
-    //         Đăng ký ngay
-    //       </Text>
-    //     </Text>
-    //   </View>
-    // </View>
     <Formik
       initialValues={{
         username: "",

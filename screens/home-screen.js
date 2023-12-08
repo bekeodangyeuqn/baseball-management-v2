@@ -19,18 +19,19 @@ const HomeScreen = () => {
   const [selected, setSelected] = useState("");
   const navigaton = useNavigation();
   const [username, setUsername] = useState("");
+  const [teamName, setTeamName] = useState("");
   useEffect(() => {
-    const getUsername = async () => {
+    const getInfo = async () => {
       try {
         const token = await AsyncStorage.getItem("access_token");
         const decoded = jwtDecode(token);
-        console.log(decoded.username);
         setUsername(decoded.username);
+        setTeamName(decoded.teamName);
       } catch (error) {
         console.log(error);
       }
     };
-    getUsername().catch((error) => console.error(error));
+    getInfo().catch((error) => console.error(error));
     setEvents([
       {
         id: 1,
@@ -60,6 +61,7 @@ const HomeScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Xin chào {username}</Text>
+        <Text style={styles.title}>Đội bóng của bạn: {teamName}</Text>
       </View>
       <Calendar
         onDayPress={(day) => {
@@ -82,13 +84,13 @@ const Event = ({ event }) => {
   const { id, title, start, end, location } = event;
 
   return (
-    <View style={styles.event}>
+    <TouchableOpacity style={styles.event}>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.time}>
         {start.toLocaleString()} - {end.toLocaleString()}
       </Text>
       <Text style={styles.location}>{location}</Text>
-    </View>
+    </TouchableOpacity>
   );
 };
 

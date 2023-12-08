@@ -17,8 +17,8 @@ import axiosInstance from "../../lib/axiosClient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const RegisterScreen = () => {
-  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const toast = useToast();
   const navigation = useNavigation();
   const validationSchema = Yup.object().shape({
@@ -73,7 +73,7 @@ const RegisterScreen = () => {
         offset: 30,
         animationType: "zoom-in",
       });
-      navigation.navigate("Home");
+      navigation.navigate("CreateManager");
       return response;
     } catch (error) {
       //Toast.show(error.message);
@@ -91,58 +91,6 @@ const RegisterScreen = () => {
     navigation.navigate("Login");
   };
   return (
-    // <View style={styles.container}>
-    //   <Text style={styles.title}>Đăng ký</Text>
-    //   <TextInput
-    //     style={styles.input}
-    //     placeholder="Username"
-    //     value={username}
-    //     onChangeText={(username) => setUsername(username)}
-    //   />
-    //   <TextInput
-    //     style={styles.input}
-    //     placeholder="Email"
-    //     value={email}
-    //     onChangeText={(email) => setEmail(email)}
-    //   />
-    //   <TextInput
-    //     style={styles.input}
-    //     placeholder="Mật khẩu"
-    //     value={password}
-    //     secureTextEntry={true}
-    //     onChangeText={(password) => setPassword(password)}
-    //   />
-    //   <TextInput
-    //     style={styles.input}
-    //     placeholder="Nhập lại mật khẩu"
-    //     value={password2}
-    //     secureTextEntry={true}
-    //     onChangeText={(password2) => setPassword2(password2)}
-    //   />
-    //   <Button style={styles.button} title="Đăng nhập" onPress={handleSignUp} />
-    //   {/* {this.state.errorMessage && (
-    //     <Text style={styles.error}>{this.state.errorMessage}</Text>
-    //   )} */}
-    //   <View style={styles.social}>
-    //     <Ionicons name="logo-facebook" size={24} style={{ marginEnd: 10 }} />
-    //     <Ionicons name="logo-google" size={24} />
-    //   </View>
-    //   <View>
-    //     <Text>
-    //       Bạn đã có tài khoản?
-    //       <Text
-    //         style={{
-    //           textDecorationLine: "underline",
-    //           textDecorationColor: "blue",
-    //         }}
-    //         onPress={changeToLogin}
-    //       >
-    //         {" "}
-    //         Đăng nhập ngay
-    //       </Text>
-    //     </Text>
-    //   </View>
-    // </View>
     <Formik
       initialValues={{
         username: "",
