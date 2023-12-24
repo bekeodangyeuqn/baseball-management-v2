@@ -84,7 +84,10 @@ const PlayerListScreen = () => {
         >
           <Text style={styles.textButton}>Thêm player</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.button}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => navigation.navigate("ImportPlayer")}
+        >
           <Text style={styles.textButton}>Import excel</Text>
         </TouchableOpacity>
       </View>
@@ -101,6 +104,7 @@ const PlayerListScreen = () => {
                   }}
                 />
                 <Text>{player.lastName}</Text>
+                <Text>{player.jerseyNumber}</Text>
                 <Text>{position[player.firstPos]}</Text>
               </View>
             </Card>

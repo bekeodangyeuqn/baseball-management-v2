@@ -8,36 +8,10 @@ import {
 } from "react-native";
 import Scoreboard from "../../component/Scoreboard";
 import { useNavigation } from "@react-navigation/native";
-import jwtDecode from "jwt-decode";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const hro = {
-  name: "Red Owls",
-};
-
-const ulis = {
-  name: "Devil Bats",
-};
-
-const archers = {
-  name: "Archers",
-};
-
-const CompletedGameScreen = () => {
+const CompletedGameScreen = (props) => {
   const navigation = useNavigation();
-  const [teamid, setTeamId] = useState(null);
-  useEffect(() => {
-    const getInfo = async () => {
-      try {
-        const token = await AsyncStorage.getItem("access_token");
-        const decoded = jwtDecode(token);
-        setTeamId(decoded.teamid);
-      } catch (error) {
-        console.log(error);
-      }
-    };
-    getInfo().catch((error) => console.error(error));
-  });
+  const { games, teamName } = props;
   return (
     <View>
       <View style={styles.buttonHeader}>
@@ -49,8 +23,20 @@ const CompletedGameScreen = () => {
         </TouchableOpacity>
       </View>
       <View style={styles.container}>
-        <Scoreboard myTeam={hro} oppTeam={ulis} myScore={7} oppScore={6} />
-        <Scoreboard myTeam={hro} oppTeam={archers} myScore={4} oppScore={25} />
+        {games.map((game) => {
+          if (game.status === 1) {
+            return (
+              <Scoreboard
+                key={game.id}
+                myTeam={teamName}
+                oppTeam={game.oppTeam}
+                myScore={game.team_score}
+                oppScore={game.opp_score}
+                status={game.status}
+              />
+            );
+          }
+        })}
       </View>
     </View>
   );

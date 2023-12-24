@@ -6,9 +6,6 @@ import {
   TextInput,
   Button,
   ActivityIndicator,
-  Pressable,
-  Platform,
-  Image,
   TouchableOpacity,
   SafeAreaView,
 } from "react-native";
@@ -92,7 +89,7 @@ const CreateGameScreen = () => {
     showMode("time");
   };
 
-  const handleCreateTeam = async (values) => {
+  const handleCreateGame = async (values) => {
     try {
       setIsLoading(true);
       const response = await axiosInstance.post("/game/create/", {
@@ -142,7 +139,7 @@ const CreateGameScreen = () => {
       }}
       validationSchema={validationSchema}
       onSubmit={(values) => {
-        handleCreateTeam(values);
+        handleCreateGame(values);
       }}
     >
       {(formik) => {

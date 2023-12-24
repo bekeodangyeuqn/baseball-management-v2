@@ -17,6 +17,8 @@ import PlayerListScreen from "./screens/player-list-screen";
 import CreatePlayerScreen from "./screens/create-player-scrren";
 import UpdatePlayerAvaScreen from "./screens/update-player-ava-screen";
 import CreateGameScreen from "./screens/create-game-screen";
+import GameDetailScreen from "./screens/game-detail-screen";
+import ImportExcelPlayerScreen from "./screens/import-excel-player-screen";
 
 export default function App() {
   const Stack = createStackNavigator();
@@ -101,6 +103,16 @@ export default function App() {
             name="CreateGame"
             component={CreateGameScreen}
             options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="GameDetail"
+            component={GameDetailScreen}
+            options={{ title: "Chi tiết trận đấu" }}
+          />
+          <Stack.Screen
+            name="ImportPlayer"
+            component={ImportExcelPlayerScreen}
+            options={{ title: "Import cầu thủ" }}
           />
         </Stack.Navigator>
       </NavigationContainer>

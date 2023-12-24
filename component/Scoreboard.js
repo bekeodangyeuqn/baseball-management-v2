@@ -1,20 +1,34 @@
+import { useNavigation } from "@react-navigation/native";
 import React from "react";
 import { View, StyleSheet, Image, Text, TouchableOpacity } from "react-native";
 
-const Scoreboard = ({ myTeam, oppTeam, myScore, oppScore }) => {
+const Scoreboard = ({ myTeam, oppTeam, myScore, oppScore, status }) => {
+  const navigation = useNavigation();
   return (
-    <TouchableOpacity style={styles.container}>
+    <TouchableOpacity
+      style={styles.container}
+      onPress={() => navigation.navigate("GameDetail")}
+    >
       <View style={styles.row}>
         <View>
-          <Text style={styles.text}>{myTeam.name}</Text>
+          <Text style={styles.text}>{myTeam}</Text>
         </View>
         <Text style={styles.text}>{myScore}</Text>
       </View>
       <View style={styles.row}>
         <View>
-          <Text style={styles.text}>{oppTeam.name}</Text>
+          <Text style={styles.text}>{oppTeam}</Text>
         </View>
         <Text style={styles.text}>{oppScore}</Text>
+      </View>
+      <View style={styles.row}>
+        <Text style={styles.text}>
+          {status === -1
+            ? "Upcoming"
+            : status === 0
+            ? "In progress"
+            : "Completed"}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -43,6 +57,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     color: "green",
+    marginTop: 5,
   },
 });
 
