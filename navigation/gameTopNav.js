@@ -3,7 +3,7 @@ import { createMaterialTopTabNavigator } from "@react-navigation/material-top-ta
 import CompletedGameScreen from "../screens/game/completed-game-screen";
 import UpcomingGameScreen from "../screens/game/upcoming-game-screen";
 import InprogressGameScreen from "../screens/game/inprogress-game-screen";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { useToast } from "react-native-toast-notifications";
 import jwtDecode from "jwt-decode";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -13,20 +13,17 @@ const GameTopNav = () => {
   const Tab = createMaterialTopTabNavigator();
 
   const navigation = useNavigation();
-  const [teamid, setTeamId] = useState(null);
-  const [teamName, setTeamName] = useState("");
   const [games, setGames] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
+  const route = useRoute();
+  const teamid = route.params.teamid;
+  const teamName = route.params.teamName;
 
   useEffect(() => {
     const getInfo = async () => {
       setIsLoading(true);
       try {
-        const token = await AsyncStorage.getItem("access_token");
-        const decoded = jwtDecode(token);
-        setTeamId(decoded.teamid);
-        setTeamName(decoded.teamName);
         const storedGames = await AsyncStorage.getItem("games");
         if (storedGames) {
           setGames(JSON.parse(storedGames));
@@ -34,7 +31,7 @@ const GameTopNav = () => {
           setIsLoading(false);
           return;
         } else {
-          const { data } = await axiosInstance.get(`/games/${teamid}/`);
+          const { data } = await axiosInstance.get(`/games/team/${teamid}/`);
           console.log(data[0]);
           setGames(data);
           AsyncStorage.setItem("games", JSON.stringify(data), (error) => {
@@ -45,13 +42,12 @@ const GameTopNav = () => {
             }
           });
         }
-        console.log("Game top nav");
       } catch (error) {
         console.log(error);
       }
     };
     getInfo().catch((error) => console.error(error));
-  }, []);
+  }, [teamid]);
   return (
     <Tab.Navigator initialRouteName="Upcoming">
       <Tab.Screen

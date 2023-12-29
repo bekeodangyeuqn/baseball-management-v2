@@ -23,6 +23,7 @@ import axiosInstance from "../lib/axiosClient";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 function formatDateToISO(date) {
   const year = date.getFullYear();
@@ -88,6 +89,39 @@ const CreatePlayerScreen = () => {
         batHand: batHand,
         throwHand: throwHand,
       });
+      try {
+        const storedPlayers = await AsyncStorage.getItem("players");
+        if (storedPlayers) {
+          const storedPlayersArr = JSON.parse(storedPlayers);
+          const data = [...storedPlayersArr, response.data];
+          AsyncStorage.setItem("players", JSON.stringify(data), (error) => {
+            if (error) {
+              console.error(error);
+            } else {
+              console.log("Players stored successfully.");
+            }
+          });
+        } else {
+          const { data } = await axiosInstance.get(`/players/team/${teamid}/`);
+          AsyncStorage.setItem("players", JSON.stringify(data), (error) => {
+            if (error) {
+              console.error(error);
+            } else {
+              console.log("Players stored successfully.");
+            }
+          });
+        }
+        setIsLoading(false);
+      } catch (error) {
+        setIsLoading(false);
+        toast.show(error.message, {
+          type: "danger",
+          placement: "bottom",
+          duration: 4000,
+          offset: 30,
+          animationType: "zoom-in",
+        });
+      }
       setIsLoading(false);
       toast.show("Cập nhật thông tin thành công", {
         type: "success",

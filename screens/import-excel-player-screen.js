@@ -30,17 +30,12 @@ const ImportExcelPlayerScreen = () => {
       });
 
       console.log(
-        result.uri,
-        result.type, // mime type
-        result.name,
-        result.size
+        result[0].uri,
+        result[0].type, // mime type
+        result[0].name,
+        result[0].size
       );
-
-      if (result.name.endsWith(".xls") || result.name.endsWith(".xlsx")) {
-        setPickedDocument(result);
-      } else {
-        console.warn("Invalid file type. Please select a .xls or .xlsx file.");
-      }
+      setPickedDocument(result[0]);
     } catch (err) {
       if (DocumentPicker.isCancel(err)) {
         toast.show(
@@ -119,19 +114,14 @@ const ImportExcelPlayerScreen = () => {
         return (
           <View style={styles.container}>
             <Text style={styles.title}>Import các cầu thủ từ file excel</Text>
-            <TouchableOpacity onPress={pickDocument}>
+            <TouchableOpacity style={styles.button} onPress={pickDocument}>
               <Text>Pick a File</Text>
             </TouchableOpacity>
 
             {pickedDocument && (
               <View>
                 <Text>Selected File:</Text>
-                <Text>Name: {pickedDocument.name}</Text>
-                <Text>Size: {pickedDocument.size} bytes</Text>
-
-                <TouchableOpacity onPress={uploadDocument}>
-                  <Text>Upload File</Text>
-                </TouchableOpacity>
+                <Text>{pickedDocument.name}</Text>
               </View>
             )}
             {formik.errors.file && (
@@ -171,12 +161,17 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   button: {
-    width: 300,
-    height: 40,
-    backgroundColor: "#000",
-    color: "#fff",
-    borderRadius: 5,
-    marginTop: 20,
+    marginBottom: 5,
+    borderStyle: "solid",
+    borderColor: "black",
+    backgroundColor: "green",
+    padding: 4,
+    marginRight: 4,
+  },
+  textButton: {
+    marginLeft: 5,
+    fontSize: 16,
+    fontWeight: "bold",
   },
   error: {
     color: "#f00",

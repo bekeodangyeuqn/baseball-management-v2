@@ -104,6 +104,27 @@ const CreateGameScreen = () => {
         status: -1,
         timeEnd: null,
       });
+      const storedGames = await AsyncStorage.getItem("games");
+      if (storedGames) {
+        const storedGamesArr = JSON.parse(storedGames);
+        const data = [...storedGamesArr, response.data];
+        AsyncStorage.setItem("games", JSON.stringify(data), (error) => {
+          if (error) {
+            console.error(error);
+          } else {
+            console.log("Games stored successfully.");
+          }
+        });
+      } else {
+        const { data } = await axiosInstance.get(`/games/team/${teamid}/`);
+        AsyncStorage.setItem("games", JSON.stringify(data), (error) => {
+          if (error) {
+            console.error(error);
+          } else {
+            console.log("Games stored successfully.");
+          }
+        });
+      }
       setIsLoading(false);
       toast.show(" Tạo trận đấu thành công", {
         type: "success",
@@ -234,6 +255,7 @@ const CreateGameScreen = () => {
                 dropdownIconColor="#00fc08"
               >
                 <Picker.Item label="Chọn giải đấu" value={-1} />
+                <Picker.Item label="Giao hữu" value={1} />
               </Picker>
               <TouchableOpacity
                 style={styles.buttonShort}

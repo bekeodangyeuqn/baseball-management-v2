@@ -11,12 +11,14 @@ const TeamScreen = () => {
   const size = 50;
   const navigation = useNavigation();
   const [teamId, setTeamId] = useState(null);
+  const [teamName, setTeamName] = useState("");
   useEffect(() => {
     const getInfo = async () => {
       try {
         const token = await AsyncStorage.getItem("access_token");
         const decoded = jwtDecode(token);
         setTeamId(decoded.teamid);
+        setTeamName(decoded.teamName);
         console.log(decoded.teamid, "getInfo");
       } catch (error) {
         console.log(error);
@@ -39,7 +41,12 @@ const TeamScreen = () => {
             <Ionicons
               name="baseball"
               size={size}
-              onPress={() => navigation.navigate("Games")}
+              onPress={() =>
+                navigation.navigate("Games", {
+                  teamid: teamId,
+                  teamName: teamName,
+                })
+              }
             />
             <Text style={{ fontSize: 16 }}>Trận đấu</Text>
           </View>

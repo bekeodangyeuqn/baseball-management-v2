@@ -20,6 +20,9 @@ const GameDetailScreen = () => {
         <Text style={styles.resultText}>FINAL</Text>
         <Text style={styles.resultText}>ULIS 9</Text>
       </View>
+      <TouchableOpacity style={styles.button}>
+        <Text style={styles.textButton}>Play</Text>
+      </TouchableOpacity>
       <View style={{ borderTop: "1px solid green" }}>
         <HorizontalTable data={gameData} />
       </View>
@@ -84,6 +87,24 @@ const styles = StyleSheet.create({
   resultText: {
     fontSize: 20,
     textAlign: "center",
+    fontWeight: "bold",
+  },
+  button: {
+    marginBottom: 5,
+    marginTop: 5,
+    borderStyle: "solid",
+    borderColor: "black",
+    backgroundColor: "green",
+    padding: 4,
+    marginRight: 4,
+    alignItems: "center",
+    justifyContent: "center",
+    marginEnd: "auto",
+    marginStart: "auto",
+  },
+  textButton: {
+    padding: 4,
+    fontSize: 16,
     fontWeight: "bold",
   },
   title: {

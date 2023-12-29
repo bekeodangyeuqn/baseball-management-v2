@@ -16,6 +16,7 @@ import { Formik, Field, Form } from "formik";
 import { useToast } from "react-native-toast-notifications";
 import axiosInstance from "../lib/axiosClient";
 import * as ImagePicker from "expo-image-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const UpdatePlayerAvaScreen = () => {
   const [image, setImage] = useState({
@@ -32,16 +33,22 @@ const UpdatePlayerAvaScreen = () => {
   const handleUpdateAvatar = async (values) => {
     try {
       setIsLoading(true);
-      console.log(image.base64);
-      console.log(playerid);
       const response = await axiosInstance.patch(
-        `/player/update-avatar/${playerid}`,
+        `/player/update-avatar/${playerid}/`,
         {
           avatar_str: image.base64
             ? "data:image/jpeg;base64," + image.base64
             : null,
         }
       );
+      const { data } = await axiosInstance.get(`/players/team/${teamid}/`);
+      AsyncStorage.setItem("players", JSON.stringify(data), (error) => {
+        if (error) {
+          console.error(error);
+        } else {
+          console.log("Players stored successfully.");
+        }
+      });
       setIsLoading(false);
       toast.show("Cập nhật thông tin thành công", {
         type: "success",
