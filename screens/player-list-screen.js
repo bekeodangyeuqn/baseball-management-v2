@@ -15,6 +15,9 @@ import axiosInstance from "../lib/axiosClient";
 import { useToast } from "react-native-toast-notifications";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { filteredPlayers, playersAsyncSelector } from "../atom/Players";
+import { myGamePlayers } from "../atom/GamePlayers";
+import { useRecoilState, useRecoilValue } from "recoil";
 
 const { width } = Dimensions.get("window");
 const gap = 4;
@@ -24,49 +27,13 @@ const windowWidth = width;
 const childWidth = (windowWidth - totalGapSize) / itemPerRow;
 
 const PlayerListScreen = () => {
-  const [players, setPlayers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
   const position = ["DH", "P", "C", "1B", "2B", "3B", "SS", "OF", "None"];
   const route = useRoute();
   const teamid = route.params.teamid;
+  const players = useRecoilValue(filteredPlayers(teamid));
   const navigation = useNavigation();
-
-  useEffect(() => {
-    const fetchPlayers = async () => {
-      setIsLoading(true);
-      try {
-        const storedPlayers = await AsyncStorage.getItem("players");
-        if (storedPlayers) {
-          setPlayers(JSON.parse(storedPlayers));
-          setIsLoading(false);
-          return;
-        } else {
-          const { data } = await axiosInstance.get(`/players/team/${teamid}/`);
-          console.log(data[0]);
-          setPlayers(data);
-          AsyncStorage.setItem("players", JSON.stringify(data), (error) => {
-            if (error) {
-              console.error(error);
-            } else {
-              console.log("Players stored successfully.");
-            }
-          });
-        }
-        setIsLoading(false);
-      } catch (error) {
-        setIsLoading(false);
-        toast.show(error.message, {
-          type: "danger",
-          placement: "bottom",
-          duration: 4000,
-          offset: 30,
-          animationType: "zoom-in",
-        });
-      }
-    };
-    fetchPlayers();
-  }, []);
 
   const splitAvatarURI = (str) => {
     const arr = str.split("?");

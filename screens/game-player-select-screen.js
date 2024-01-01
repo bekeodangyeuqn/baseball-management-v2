@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   Pressable,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import field from "../assets/image/field.jpg";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -17,7 +18,7 @@ import { useToast } from "react-native-toast-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Filter from "../component/Filter";
 import { useRecoilState, useRecoilValue } from "recoil";
-import { filteredPlayers } from "../atom/Players";
+import { filteredPlayers, playersAsyncSelector } from "../atom/Players";
 import { myGamePlayers } from "../atom/GamePlayers";
 import ChoosePlayerItem from "../component/ChoosePlayerItem";
 const GamePlayerSelectScreen = () => {
@@ -26,6 +27,7 @@ const GamePlayerSelectScreen = () => {
     Outfield: [7, 8, 9],
     Infield: [5, 6, 4, 3],
     P: [1],
+    DH: [0],
     C: [2],
   };
 
@@ -55,12 +57,12 @@ const GamePlayerSelectScreen = () => {
   const toast = useToast();
   const route = useRoute();
   const teamid = route.params.teamid;
-
   const players = useRecoilValue(filteredPlayers(teamid));
+
   const [pos, setPos] = useState(null);
 
   const isSelected = (pos) => {
-    return myPlayers.some((obj) => obj.position === pos);
+    return myPlayers ? myPlayers.some((obj) => obj.position === pos) : false;
   };
   return (
     <SafeAreaView style={styles.container}>
@@ -83,23 +85,38 @@ const GamePlayerSelectScreen = () => {
             }}
             key={index}
           >
-            {playersPos[position].map((posNumber, index2) => (
+            {playersPos[position].map((posNumber) => (
               <TouchableOpacity
+                key={posNumber}
                 onPress={() => {
                   setPos(posNumber);
                   choosePlayerBottomSheet.current?.expand();
                 }}
-                style={{ alignItems: "center" }}
+                style={{
+                  alignItems: "center",
+                  marginLeft: posNumber === 0 ? 300 : 0,
+                  marginTop:
+                    posNumber !== 2
+                      ? posNumber === 3 || posNumber === 5
+                        ? 220
+                        : 180
+                      : 0,
+                  marginBottom:
+                    posNumber === 2 ? 120 : posNumber === 0 ? 120 : 0,
+                }}
               >
                 <FontAwesome5
                   name="tshirt"
                   size={35}
-                  color={isSelected(posNumber) ? "#d170db" : "#5c5c5cbb"}
+                  color={isSelected(posNumber) ? "green" : "white"}
                 ></FontAwesome5>
                 {myPlayers ? (
                   <Text
                     style={{
                       color: "white",
+                      backgroundColor: isSelected(posNumber)
+                        ? "#333333bb"
+                        : null,
                       padding: 2,
                       paddingHorizontal: 7,
                       fontWeight: "bold",
@@ -133,10 +150,38 @@ const GamePlayerSelectScreen = () => {
       </Pressable>
 
       <Pressable
-        onPress={() => navigation.navigate("BattingOrderSelect")}
-        style={styles.button}
+        onPress={() => {
+          if (myPlayers.length < 9) {
+            toast.show(
+              "Bạn phải chọn 9 cầu thủ cho đội hình không DH và 10 cầu thủ cho đội hình có DH",
+              {
+                type: "warning",
+                placement: "bottom",
+                duration: 3000,
+                offset: 30,
+                animationType: "zoom-in",
+              }
+            );
+          } else if (
+            myPlayers.length === 9 &&
+            myPlayers.some((obj) => obj.position === 0)
+          ) {
+            toast.show("Cả 9 vị trí phòng thủ cần phải được lựa chọn", {
+              type: "warning",
+              placement: "bottom",
+              duration: 3000,
+              offset: 30,
+              animationType: "zoom-in",
+            });
+          } else {
+            navigation.navigate("BattingOrderSelect");
+          }
+        }}
+        style={{ ...styles.button, backgroundColor: "green" }}
       >
-        <Text style={{ fontWeight: "bold" }}>Batting order</Text>
+        <Text style={{ fontWeight: "bold", color: "white" }}>
+          {"Batting order >"}
+        </Text>
       </Pressable>
 
       <BottomSheet
@@ -195,6 +240,12 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     alignItems: "center",
     marginTop: "auto",
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

@@ -12,7 +12,7 @@ import axiosInstance from "../lib/axiosClient";
 const position = ["DH", "P", "C", "1B", "2B", "3B", "SS", "OF", "None"];
 
 export const teamIdSelector = selector({
-  key: "teamIdSelector",
+  key: "TeamIdSelector",
   get: async () => {
     try {
       const token = await AsyncStorage.getItem("access_token");
@@ -24,38 +24,47 @@ export const teamIdSelector = selector({
   },
 });
 
+export const playersState = atom({
+  key: "PlayersState",
+  default: [],
+});
+
 export const playersAsyncSelector = selectorFamily({
-  key: "playersAsyncSelector",
-  get: (teamid) => async () => {
-    const storedPlayers = await AsyncStorage.getItem("players");
-    if (storedPlayers) {
-      const data = JSON.parse(storedPlayers);
-      return data;
-    } else {
-      const { data } = await axiosInstance.get(`/players/team/${teamid}/`);
-      AsyncStorage.setItem("players", JSON.stringify(data), (error) => {
-        if (error) {
-          console.error(error);
-        } else {
-          console.log("Players stored successfully.");
-        }
-      });
-    }
-  },
+  key: "PlayersAsyncSelector",
+  get:
+    (teamid) =>
+    async ({ get }) => {
+      const storedPlayers = await AsyncStorage.getItem("players");
+      if (storedPlayers) {
+        const data = JSON.parse(storedPlayers);
+        return data;
+      } else {
+        const { data } = await axiosInstance.get(`/players/team/${teamid}/`);
+        AsyncStorage.setItem("players", JSON.stringify(data), (error) => {
+          if (error) {
+            console.error(error);
+          } else {
+            console.log("Players stored successfully.");
+          }
+        });
+        return data;
+      }
+    },
 });
 
 export const positionFilterState = atom({
-  key: "positionFilterState",
+  key: "PositionFilterState",
   default: [],
 });
 
 export const filteredPlayers = selectorFamily({
-  key: "filteredPlayers",
+  key: "FilteredPlayers",
   get:
     (teamid) =>
     ({ get }) => {
       const players = get(playersAsyncSelector(teamid));
       const positionFilter = get(positionFilterState);
+      if (!players) return null;
       return players.filter((player) => {
         if (positionFilter.length === 0) return true;
         else {

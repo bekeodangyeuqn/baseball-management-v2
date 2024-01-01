@@ -13,7 +13,7 @@ const HorizontalTable = ({ data }) => {
               data={data.tableHead}
               widthArr={data.widthArr}
               style={styles.head}
-              textStyle={styles.headText}
+              textStyle={{ ...styles.headText }}
               stickyHeaderIndices={[0]}
             />
           </Table>

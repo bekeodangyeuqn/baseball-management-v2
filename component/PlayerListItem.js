@@ -26,10 +26,12 @@ const PlayerListItem = (props) => {
         }}
       />
 
-      <View style={{ flexGrow: 1 }}>
+      <View style={{ flexGrow: 1, width: "25%", marginEnd: 4 }}>
         <Text style={{ ...styles.title }}>Họ tên:</Text>
         <Text
           style={{ ...styles.content }}
+          numberOfLines={1}
+          ellipsizeMode="tail"
         >{`${player.firstName} ${player.lastName}`}</Text>
       </View>
 

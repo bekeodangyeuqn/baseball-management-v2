@@ -122,12 +122,12 @@ export default function App() {
               <Stack.Screen
                 name="GamePlayerSelect"
                 component={GamePlayerSelectScreen}
-                options={{ headerShown: false }}
+                options={{ title: "Fielder select" }}
               />
               <Stack.Screen
                 name="BattingOrderSelect"
                 component={BattingOrderSelectScreen}
-                options={{ headerShown: false }}
+                options={{ title: "Batting Order" }}
               />
             </Stack.Navigator>
           </NavigationContainer>

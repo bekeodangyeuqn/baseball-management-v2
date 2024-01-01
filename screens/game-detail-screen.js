@@ -10,8 +10,8 @@ const gameData = {
   tableHead: ["", "1", "2", "3", "4", "5", "6", "7", "8", "9", "R", "H", "E"],
   widthArr: [50, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25],
   tableData: [
-    ["HRO", "2", "6", "0", "1", "0", "", "", "", "", "9", "5", "5"],
-    ["ULIS", "3", "2", "0", "0", "4", "", "", "", "", "9", "10", "6"],
+    ["HRO", "", "", "", "", "", "", "", "", "", "", "", ""],
+    ["ULIS", "", "", "", "", "", "", "", "", "", "", "", ""],
   ],
 };
 
@@ -39,9 +39,9 @@ const GameDetailScreen = () => {
   return (
     <ScrollView>
       <View style={styles.result}>
-        <Text style={styles.resultText}>HRO 9</Text>
-        <Text style={styles.resultText}>FINAL</Text>
-        <Text style={styles.resultText}>ULIS 9</Text>
+        <Text style={styles.resultText}>HRO </Text>
+        <Text style={styles.resultText}>Upcoming</Text>
+        <Text style={styles.resultText}>ULIS </Text>
       </View>
       <TouchableOpacity
         style={styles.button}
@@ -76,28 +76,56 @@ const GameDetailScreen = () => {
         <Text style={styles.titleText}>Thông tin trận đấu</Text>
       </View>
       <View style={styles.row}>
-        <Text style={{ fontWeight: "bold", fontSize: 20, padding: 8 }}>
+        <Text
+          style={{
+            fontWeight: "bold",
+            fontSize: 20,
+            padding: 8,
+            color: "white",
+          }}
+        >
           Bắt đầu
         </Text>
-        <Text>2023-12-17 08:00</Text>
+        <Text style={{ color: "white" }}>2023-12-17 08:00</Text>
       </View>
       <View style={styles.row}>
-        <Text style={{ fontWeight: "bold", fontSize: 20, padding: 8 }}>
+        <Text
+          style={{
+            fontWeight: "bold",
+            fontSize: 20,
+            padding: 8,
+            color: "white",
+          }}
+        >
           Kết thúc
         </Text>
-        <Text>2023-12-17 11:00</Text>
+        <Text style={{ color: "white" }}>2023-12-17 11:00</Text>
       </View>
       <View style={styles.row}>
-        <Text style={{ fontWeight: "bold", fontSize: 20, padding: 8 }}>
+        <Text
+          style={{
+            fontWeight: "bold",
+            fontSize: 20,
+            padding: 8,
+            color: "white",
+          }}
+        >
           Sân vận động
         </Text>
-        <Text>Splendora stadium</Text>
+        <Text style={{ color: "white" }}>Splendora stadium</Text>
       </View>
       <View style={styles.row}>
-        <Text style={{ fontWeight: "bold", fontSize: 20, padding: 8 }}>
+        <Text
+          style={{
+            fontWeight: "bold",
+            fontSize: 20,
+            padding: 8,
+            color: "white",
+          }}
+        >
           Mô tả
         </Text>
-        <Text>Mùa đông không lạnh</Text>
+        <Text style={{ color: "white" }}>Mùa đông không lạnh</Text>
       </View>
     </ScrollView>
   );
@@ -134,6 +162,7 @@ const styles = StyleSheet.create({
     padding: 4,
     fontSize: 16,
     fontWeight: "bold",
+    color: "white",
   },
   title: {
     backgroundColor: "green",
