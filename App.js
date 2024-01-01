@@ -1,3 +1,4 @@
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { NavigationContainer } from "@react-navigation/native";
 import { StyleSheet, Text, View } from "react-native";
 import BottomNav from "./navigation/bottomNav";
@@ -19,7 +20,9 @@ import UpdatePlayerAvaScreen from "./screens/update-player-ava-screen";
 import CreateGameScreen from "./screens/create-game-screen";
 import GameDetailScreen from "./screens/game-detail-screen";
 import ImportExcelPlayerScreen from "./screens/import-excel-player-screen";
-
+import GamePlayerSelectScreen from "./screens/game-player-select-screen";
+import { RecoilRoot } from "recoil";
+import BattingOrderSelectScreen from "./screens/batting-order-select-screen";
 export default function App() {
   const Stack = createStackNavigator();
   const [token, setToken] = useState("");
@@ -41,81 +44,95 @@ export default function App() {
 
   LogBox.ignoreLogs(["Invalid prop textStyle of type array supplied to Cell"]);
   return (
-    <ToastProvider>
-      <NavigationContainer>
-        {/* <BottomNav /> */}
-        <Stack.Navigator
-          initialRouteName={
-            token ? (teamName ? "Home" : "CreateJoinTeam") : "Login"
-          }
-        >
-          <Stack.Screen
-            name="Login"
-            component={LoginScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="SignUp"
-            component={RegisterScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="CreateJoinTeam"
-            component={CreateOrJoinTeamScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="CreateTeam"
-            component={CreateTeamScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="CreateManager"
-            component={CreateManagerScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Home"
-            component={BottomNav}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Games"
-            component={GameTopNav}
-            options={{ title: "Trận đấu" }}
-          />
-          <Stack.Screen
-            name="PlayerList"
-            component={PlayerListScreen}
-            options={{ title: "Danh sách player" }}
-          />
-          <Stack.Screen
-            name="CreatePlayer"
-            component={CreatePlayerScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="UpdatePlayerAvatar"
-            component={UpdatePlayerAvaScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="CreateGame"
-            component={CreateGameScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="GameDetail"
-            component={GameDetailScreen}
-            options={{ title: "Chi tiết trận đấu" }}
-          />
-          <Stack.Screen
-            name="ImportPlayer"
-            component={ImportExcelPlayerScreen}
-            options={{ title: "Import cầu thủ" }}
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </ToastProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ToastProvider>
+        <RecoilRoot>
+          <NavigationContainer>
+            {/* <BottomNav /> */}
+            <Stack.Navigator
+              initialRouteName={
+                token ? (teamName ? "Home" : "CreateJoinTeam") : "Login"
+              }
+            >
+              <Stack.Screen
+                name="Login"
+                component={LoginScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="SignUp"
+                component={RegisterScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="CreateJoinTeam"
+                component={CreateOrJoinTeamScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="CreateTeam"
+                component={CreateTeamScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="CreateManager"
+                component={CreateManagerScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="Home"
+                component={BottomNav}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="Games"
+                component={GameTopNav}
+                options={{ title: "Trận đấu" }}
+              />
+              <Stack.Screen
+                name="PlayerList"
+                component={PlayerListScreen}
+                options={{ title: "Danh sách player" }}
+              />
+              <Stack.Screen
+                name="CreatePlayer"
+                component={CreatePlayerScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="UpdatePlayerAvatar"
+                component={UpdatePlayerAvaScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="CreateGame"
+                component={CreateGameScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="GameDetail"
+                component={GameDetailScreen}
+                options={{ title: "Chi tiết trận đấu" }}
+              />
+              <Stack.Screen
+                name="ImportPlayer"
+                component={ImportExcelPlayerScreen}
+                options={{ title: "Import cầu thủ" }}
+              />
+              <Stack.Screen
+                name="GamePlayerSelect"
+                component={GamePlayerSelectScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="BattingOrderSelect"
+                component={BattingOrderSelectScreen}
+                options={{ headerShown: false }}
+              />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </RecoilRoot>
+      </ToastProvider>
+    </GestureHandlerRootView>
   );
 }

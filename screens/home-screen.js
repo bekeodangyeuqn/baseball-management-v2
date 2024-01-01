@@ -101,7 +101,6 @@ const styles = StyleSheet.create({
   },
   header: {
     height: 50,
-    backgroundColor: "#000",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -114,6 +113,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     textAlign: "center",
     fontWeight: "bold",
+  },
+  time: {
+    marginStart: 4,
+  },
+  location: {
+    marginStart: 4,
+    marginBottom: 2,
   },
 });
 export default HomeScreen;

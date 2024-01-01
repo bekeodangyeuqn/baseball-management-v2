@@ -1,7 +1,10 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { ScrollView, View, StyleSheet, Text } from "react-native";
 import HorizontalTable from "../component/HorizontalTable";
 import { TouchableOpacity } from "react-native-gesture-handler";
+import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import jwtDecode from "jwt-decode";
 
 const gameData = {
   tableHead: ["", "1", "2", "3", "4", "5", "6", "7", "8", "9", "R", "H", "E"],
@@ -13,6 +16,26 @@ const gameData = {
 };
 
 const GameDetailScreen = () => {
+  const navigation = useNavigation();
+  const [teamid, setTeamId] = useState(null);
+  useEffect(() => {
+    const getInfo = async () => {
+      try {
+        const token = await AsyncStorage.getItem("access_token");
+        const decoded = jwtDecode(token);
+        setTeamId(decoded.teamid);
+      } catch (error) {
+        toast.show(error.message, {
+          type: "danger",
+          placement: "bottom",
+          duration: 4000,
+          offset: 30,
+          animationType: "zoom-in",
+        });
+      }
+    };
+    getInfo();
+  }, []);
   return (
     <ScrollView>
       <View style={styles.result}>
@@ -20,7 +43,12 @@ const GameDetailScreen = () => {
         <Text style={styles.resultText}>FINAL</Text>
         <Text style={styles.resultText}>ULIS 9</Text>
       </View>
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => {
+          navigation.navigate("GamePlayerSelect", { teamid: teamid });
+        }}
+      >
         <Text style={styles.textButton}>Play</Text>
       </TouchableOpacity>
       <View style={{ borderTop: "1px solid green" }}>

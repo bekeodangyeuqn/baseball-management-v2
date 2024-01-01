@@ -41,7 +41,7 @@ const CreatePlayerScreen = () => {
     uri: null,
     base64: "",
   });
-  const [dob, setDob] = useState("");
+  const [dob, setDob] = useState(null);
   const [error, setError] = useState("");
   const [id, setId] = useState(null);
   const [firstPos, setFirstPos] = useState(null);

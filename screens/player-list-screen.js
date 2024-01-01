@@ -18,7 +18,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width } = Dimensions.get("window");
 const gap = 4;
-const itemPerRow = 4;
+const itemPerRow = 3;
 const totalGapSize = (itemPerRow - 1) * gap;
 const windowWidth = width;
 const childWidth = (windowWidth - totalGapSize) / itemPerRow;
@@ -75,7 +75,7 @@ const PlayerListScreen = () => {
 
   return (
     <ScrollView>
-      <View style={styles.buttonHeader}>
+      <SafeAreaView style={styles.buttonHeader}>
         <TouchableOpacity
           style={styles.button}
           onPress={() =>
@@ -90,7 +90,7 @@ const PlayerListScreen = () => {
         >
           <Text style={styles.textButton}>Import excel</Text>
         </TouchableOpacity>
-      </View>
+      </SafeAreaView>
       <View style={styles.itemsWrap}>
         {players.map((player) => (
           <TouchableOpacity style={styles.singleItem} key={player.id}>
