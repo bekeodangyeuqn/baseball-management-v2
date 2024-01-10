@@ -15,9 +15,10 @@ const gameData = {
   ],
 };
 
-const GameDetailScreen = () => {
+const GameDetailScreen = (props) => {
   const navigation = useNavigation();
   const [teamid, setTeamId] = useState(null);
+  const { game } = props;
   useEffect(() => {
     const getInfo = async () => {
       try {
@@ -40,8 +41,14 @@ const GameDetailScreen = () => {
     <ScrollView>
       <View style={styles.result}>
         <Text style={styles.resultText}>HRO </Text>
-        <Text style={styles.resultText}>Upcoming</Text>
-        <Text style={styles.resultText}>ULIS </Text>
+        <Text style={styles.resultText}>
+          {game.status === -1
+            ? "Upcoming"
+            : game.status === 0
+            ? "In progess"
+            : "Completed"}
+        </Text>
+        <Text style={styles.resultText}>{game.oppTeamShort}</Text>
       </View>
       <TouchableOpacity
         style={styles.button}
@@ -49,7 +56,13 @@ const GameDetailScreen = () => {
           navigation.navigate("GamePlayerSelect", { teamid: teamid });
         }}
       >
-        <Text style={styles.textButton}>Play</Text>
+        <Text style={styles.textButton}>
+          {game.status === -1
+            ? "Play"
+            : game.status === 0
+            ? "Continue"
+            : "Show result"}
+        </Text>
       </TouchableOpacity>
       <View style={{ borderTop: "1px solid green" }}>
         <HorizontalTable data={gameData} />
@@ -86,7 +99,7 @@ const GameDetailScreen = () => {
         >
           Bắt đầu
         </Text>
-        <Text style={{ color: "white" }}>2023-12-17 08:00</Text>
+        <Text style={{ color: "white" }}>{game.timeStart}</Text>
       </View>
       <View style={styles.row}>
         <Text
@@ -99,7 +112,9 @@ const GameDetailScreen = () => {
         >
           Kết thúc
         </Text>
-        <Text style={{ color: "white" }}>2023-12-17 11:00</Text>
+        <Text style={{ color: "white" }}>
+          {game.timeEnd ? game.timeEnd : "Chưa có"}
+        </Text>
       </View>
       <View style={styles.row}>
         <Text
@@ -112,7 +127,7 @@ const GameDetailScreen = () => {
         >
           Sân vận động
         </Text>
-        <Text style={{ color: "white" }}>Splendora stadium</Text>
+        <Text style={{ color: "white" }}>{game.stadium}</Text>
       </View>
       <View style={styles.row}>
         <Text
@@ -125,7 +140,7 @@ const GameDetailScreen = () => {
         >
           Mô tả
         </Text>
-        <Text style={{ color: "white" }}>Mùa đông không lạnh</Text>
+        <Text style={{ color: "white" }}>{game.description}</Text>
       </View>
     </ScrollView>
   );

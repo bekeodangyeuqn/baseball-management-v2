@@ -19,7 +19,6 @@ const TeamScreen = () => {
         const decoded = jwtDecode(token);
         setTeamId(decoded.teamid);
         setTeamName(decoded.teamName);
-        console.log(decoded.teamid, "getInfo");
       } catch (error) {
         console.log(error);
       }
@@ -55,7 +54,16 @@ const TeamScreen = () => {
             <Text style={{ fontSize: 16 }}>Buổi tập</Text>
           </View>
           <View style={{ flex: 1, padding: 10, alignItems: "center" }}>
-            <Ionicons name="wine" size={size} />
+            <Ionicons
+              name="wine"
+              size={size}
+              onPress={() =>
+                navigation.navigate("Events", {
+                  teamid: teamId,
+                  teamName: teamName,
+                })
+              }
+            />
             <Text style={{ fontSize: 16 }}>Sự kiện thông thường</Text>
           </View>
         </View>

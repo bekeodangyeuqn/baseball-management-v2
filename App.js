@@ -23,6 +23,9 @@ import ImportExcelPlayerScreen from "./screens/import-excel-player-screen";
 import GamePlayerSelectScreen from "./screens/game-player-select-screen";
 import { RecoilRoot } from "recoil";
 import BattingOrderSelectScreen from "./screens/batting-order-select-screen";
+import EventTopNav from "./navigation/eventTopNav";
+import CreateEventScreen from "./screens/create-event-screen";
+import EventDetailScreen from "./screens/event-detail-screen";
 export default function App() {
   const Stack = createStackNavigator();
   const [token, setToken] = useState("");
@@ -90,6 +93,11 @@ export default function App() {
                 options={{ title: "Trận đấu" }}
               />
               <Stack.Screen
+                name="Events"
+                component={EventTopNav}
+                options={{ title: "Sự kiện" }}
+              />
+              <Stack.Screen
                 name="PlayerList"
                 component={PlayerListScreen}
                 options={{ title: "Danh sách player" }}
@@ -110,9 +118,19 @@ export default function App() {
                 options={{ headerShown: false }}
               />
               <Stack.Screen
+                name="CreateEvent"
+                component={CreateEventScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
                 name="GameDetail"
                 component={GameDetailScreen}
                 options={{ title: "Chi tiết trận đấu" }}
+              />
+              <Stack.Screen
+                name="EventDetail"
+                component={EventDetailScreen}
+                options={{ title: "Chi tiết sự kiện" }}
               />
               <Stack.Screen
                 name="ImportPlayer"

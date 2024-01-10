@@ -8,12 +8,24 @@ import { useToast } from "react-native-toast-notifications";
 import jwtDecode from "jwt-decode";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axiosInstance from "../lib/axiosClient";
+import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
+import {
+  gamesState,
+  gameByIdState,
+  addGameState,
+  deleteGameState,
+  fetchGamesState,
+} from "../atom/Games";
 
 const GameTopNav = () => {
   const Tab = createMaterialTopTabNavigator();
 
   const navigation = useNavigation();
-  const [games, setGames] = useState([]);
+  const [games, setGames] = useRecoilState(gamesState);
+  // const getGameById = useRecoilValue(gameByIdState);
+  // const addGame = useSetRecoilState(addGameState);
+  // const deleteGame = useSetRecoilState(deleteGameState);
+  const fetchGames = useSetRecoilState(fetchGamesState);
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
   const route = useRoute();
@@ -21,33 +33,10 @@ const GameTopNav = () => {
   const teamName = route.params.teamName;
 
   useEffect(() => {
-    const getInfo = async () => {
-      setIsLoading(true);
-      try {
-        const storedGames = await AsyncStorage.getItem("games");
-        if (storedGames) {
-          setGames(JSON.parse(storedGames));
-          console.log("Games stored successfully.");
-          setIsLoading(false);
-          return;
-        } else {
-          const { data } = await axiosInstance.get(`/games/team/${teamid}/`);
-          console.log(data[0]);
-          setGames(data);
-          AsyncStorage.setItem("games", JSON.stringify(data), (error) => {
-            if (error) {
-              console.error(error);
-            } else {
-              console.log("Games stored successfully.");
-            }
-          });
-        }
-      } catch (error) {
-        console.log(error);
-      }
-    };
-    getInfo().catch((error) => console.error(error));
-  }, [teamid]);
+    if (games.length === 0) {
+      fetchGames();
+    }
+  }, [games, fetchGames]);
   return (
     <Tab.Navigator initialRouteName="Upcoming">
       <Tab.Screen
