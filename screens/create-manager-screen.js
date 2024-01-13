@@ -54,8 +54,8 @@ const CreateManagerScreen = () => {
       try {
         const token = await AsyncStorage.getItem("access_token");
         const decoded = jwtDecode(token);
-        console.log(decoded.id);
-        setId(decoded.id);
+        console.log(decoded.userid);
+        setId(decoded.userid);
       } catch (error) {
         console.log(error);
       }
@@ -63,9 +63,9 @@ const CreateManagerScreen = () => {
     getUserId().catch((error) => console.error(error));
   }, []);
   const handleCreateManager = async (values) => {
+    console.log(id);
     try {
       setIsLoading(true);
-      console.log(image.base64, id);
       const response = await axiosInstance.post("/manager/create/", {
         firstName: values.firstName,
         lastName: values.lastName,
@@ -74,8 +74,12 @@ const CreateManagerScreen = () => {
           ? "data:image/jpeg;base64," + image.base64
           : null,
         user_id: id,
+        id: null,
         avatar: null,
-        user: null,
+        homeTown: values.homeTown,
+        jerseyNumber: values.jerseyNumber,
+        phoneNumber: values.phoneNumber,
+        email: values.email,
       });
       setIsLoading(false);
       toast.show("Cập nhật thông tin thành công", {
@@ -85,7 +89,9 @@ const CreateManagerScreen = () => {
         offset: 30,
         animationType: "zoom-in",
       });
-      navigation.navigate("CreateJoinTeam");
+      navigation.navigate("CreateJoinTeam", {
+        managerId: response.data.id,
+      });
       return response;
     } catch (error) {
       //Toast.show(error.message);
@@ -106,6 +112,10 @@ const CreateManagerScreen = () => {
         lastName: "",
         dateOfBirth: dob,
         avatar: image,
+        homeTown: "",
+        jerseyNumber: null,
+        phoneNumber: "",
+        email: "",
       }}
       validationSchema={validationSchema}
       onSubmit={(values) => {
@@ -193,6 +203,54 @@ const CreateManagerScreen = () => {
             )}
             {formik.errors.dateOfBirth && (
               <Text style={{ color: "red" }}>{formik.errors.dateOfBirth}</Text>
+            )}
+            <TextInput
+              style={styles.input}
+              name="homeTown"
+              placeholder="Quê quán"
+              autoCapitalize="none"
+              keyboardType="default"
+              onChangeText={formik.handleChange("homeTown")}
+              value={formik.values.homeTown}
+            />
+            {formik.errors.homeTown && (
+              <Text style={{ color: "red" }}>{formik.errors.homeTown}</Text>
+            )}
+            <TextInput
+              style={styles.input}
+              name="jerseyNumber"
+              placeholder="Số áo"
+              autoCapitalize="none"
+              keyboardType="numeric"
+              onChangeText={formik.handleChange("jerseyNumber")}
+              value={formik.values.jerseyNumber}
+            />
+            {formik.errors.jerseyNumber && (
+              <Text style={{ color: "red" }}>{formik.errors.jerseyNumber}</Text>
+            )}
+            <TextInput
+              style={styles.input}
+              name="phoneNumber"
+              placeholder="Số điện thoại"
+              autoCapitalize="none"
+              keyboardType="numeric"
+              onChangeText={formik.handleChange("phoneNumber")}
+              value={formik.values.phoneNumber}
+            />
+            {formik.errors.phoneNumber && (
+              <Text style={{ color: "red" }}>{formik.errors.phoneNumber}</Text>
+            )}
+            <TextInput
+              style={styles.input}
+              name="email"
+              placeholder="Email"
+              autoCapitalize="none"
+              keyboardType="default"
+              onChangeText={formik.handleChange("email")}
+              value={formik.values.email}
+            />
+            {formik.errors.email && (
+              <Text style={{ color: "red" }}>{formik.errors.email}</Text>
             )}
             <Button
               title="Chọn avatar"

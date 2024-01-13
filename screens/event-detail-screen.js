@@ -1,8 +1,10 @@
+import { useRoute } from "@react-navigation/native";
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Text } from "react-native";
 
-const EventDetailScreen = (props) => {
-  const { event } = props;
+const EventDetailScreen = () => {
+  const route = useRoute();
+  const event = route.params.event;
   return (
     <View style={styles.container}>
       <View style={styles.card}>
@@ -11,20 +13,24 @@ const EventDetailScreen = (props) => {
         </View>
         <View style={styles.cardBody}>
           <View style={styles.bodyComponent}>
-            <Text>Thời gian bắt đầu:</Text>
+            <Text style={{ fontSize: 18, fontWeight: "bold" }}>
+              Thời gian bắt đầu:
+            </Text>
             <Text>{event.timeStart}</Text>
           </View>
           <View>
-            <Text>Thời gian kết thúc:</Text>
-            <Text>{event.timeEnd}</Text>
+            <Text style={{ fontSize: 18, fontWeight: "bold" }}>
+              Thời gian kết thúc:
+            </Text>
+            <Text>{event.timeEnd ? event.timeEnd : "Chưa rõ"}</Text>
           </View>
           <View>
-            <Text>Địa điểm:</Text>
-            <Text>{event.timeStart}</Text>
+            <Text style={{ fontSize: 18, fontWeight: "bold" }}>Địa điểm:</Text>
+            <Text>{event.location}</Text>
           </View>
           <View>
-            <Text>Mô tả:</Text>
-            <Text>{event.timeStart}</Text>
+            <Text style={{ fontSize: 18, fontWeight: "bold" }}>Mô tả:</Text>
+            <Text>{event.description}</Text>
           </View>
         </View>
       </View>

@@ -19,6 +19,8 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import jwtDecode from "jwt-decode";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
+import { gamesState } from "../atom/Games";
+import { useRecoilState } from "recoil";
 
 function formatDateToISO(date) {
   const year = date.getFullYear();
@@ -37,8 +39,10 @@ const CreateGameScreen = () => {
 
   const [error, setError] = useState("");
   const [teamid, setTeamId] = useState(null);
+  const [teamName, setTeamName] = useState("");
   const [inningERA, setInningERA] = useState(-1);
   const [leagueId, setLeagueId] = useState(null);
+  const [games, setGames] = useRecoilState(gamesState);
   const toast = useToast();
   const navigation = useNavigation();
   const validationSchema = Yup.object().shape({
@@ -63,6 +67,7 @@ const CreateGameScreen = () => {
         const decoded = jwtDecode(token);
         console.log(decoded.id);
         setTeamId(decoded.teamid);
+        setTeamName(decoded.teamName);
       } catch (error) {
         console.log(error);
       }
@@ -104,6 +109,7 @@ const CreateGameScreen = () => {
         status: -1,
         timeEnd: null,
       });
+      setGames((oldGames) => [...oldGames, response.data]);
       const storedGames = await AsyncStorage.getItem("games");
       if (storedGames) {
         const storedGamesArr = JSON.parse(storedGames);
@@ -133,7 +139,10 @@ const CreateGameScreen = () => {
         offset: 30,
         animationType: "zoom-in",
       });
-      navigation.navigate("Games");
+      navigation.navigate("Games", {
+        teamid: teamid,
+        teamName: teamName,
+      });
       return response;
     } catch (error) {
       //Toast.show(error.message);

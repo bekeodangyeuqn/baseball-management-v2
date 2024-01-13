@@ -8,46 +8,48 @@ import axiosInstance from "../lib/axiosClient";
 import UpcomingEventScreen from "../screens/event/upcoming-event-screen";
 import InprogressEventScreen from "../screens/event/inprogress-event-screen";
 import CompletedEventScreen from "../screens/event/completed-event-screen";
+import { useRecoilState, useRecoilValueLoadable } from "recoil";
+import { eventsState, fetchEventsState } from "../atom/Events";
 
 const EventTopNav = () => {
   const Tab = createMaterialTopTabNavigator();
 
   const navigation = useNavigation();
-  const [events, setEvents] = useState([]);
+  const [events, setEvents] = useRecoilState(eventsState);
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
   const route = useRoute();
   const teamid = route.params.teamid;
   const teamName = route.params.teamName;
+  const fetchEvents = useRecoilValueLoadable(fetchEventsState(teamid));
 
   useEffect(() => {
-    const getInfo = async () => {
+    const fetchAndSetEvents = async () => {
       setIsLoading(true);
       try {
-        const storedEvents = await AsyncStorage.getItem("events");
-        if (storedEvents) {
-          setGames(JSON.parse(storedEvents));
-          console.log("Events stored successfully.");
-          setIsLoading(false);
-          return;
-        } else {
-          const { data } = await axiosInstance.get(`/events/team/${teamid}/`);
-          console.log(data[0]);
-          setEvents(data);
-          AsyncStorage.setItem("events", JSON.stringify(data), (error) => {
-            if (error) {
-              console.error(error);
-            } else {
-              console.log("Events stored successfully.");
-            }
-          });
+        console.log(fetchEvents.state);
+        if (fetchEvents.state === "hasValue") {
+          setEvents(fetchEvents.contents);
+          console.log("Load event successfully");
+        } else if (fetchEvents.state === "hasError") {
+          throw fetchEvents.contents; // Throw the error to be caught in the catch block
         }
       } catch (error) {
-        console.log(error);
+        toast.show(error.message, {
+          type: "danger",
+          placement: "bottom",
+          duration: 4000,
+          offset: 30,
+          animationType: "zoom-in",
+        });
+      } finally {
+        setIsLoading(false);
+        console.log("Load game completed");
       }
     };
-    getInfo().catch((error) => console.error(error));
-  }, [teamid]);
+
+    fetchAndSetEvents();
+  }, [fetchEvents, setEvents, toast]);
   return (
     <Tab.Navigator initialRouteName="Upcoming">
       <Tab.Screen

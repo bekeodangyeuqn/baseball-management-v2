@@ -32,7 +32,7 @@ const PlayerListScreen = () => {
   const position = ["DH", "P", "C", "1B", "2B", "3B", "SS", "OF", "None"];
   const route = useRoute();
   const teamid = route.params.teamid;
-  const players = useRecoilValue(filteredPlayers(teamid));
+  const players = useRecoilValue(playersAsyncSelector(teamid));
   const navigation = useNavigation();
 
   const splitAvatarURI = (str) => {
@@ -60,7 +60,13 @@ const PlayerListScreen = () => {
       </SafeAreaView>
       <View style={styles.itemsWrap}>
         {players.map((player) => (
-          <TouchableOpacity style={styles.singleItem} key={player.id}>
+          <TouchableOpacity
+            style={styles.singleItem}
+            key={player.id}
+            onPress={() => {
+              navigation.navigate("PlayerProfile", { id: player.id });
+            }}
+          >
             <Card>
               <View style={{ position: "relative", alignItems: "center" }}>
                 <Image
@@ -121,6 +127,7 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     fontSize: 16,
     fontWeight: "bold",
+    color: "white",
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,

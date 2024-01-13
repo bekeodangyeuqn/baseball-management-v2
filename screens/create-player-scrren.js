@@ -445,7 +445,9 @@ const CreatePlayerScreen = () => {
               onPress={formik.handleSubmit}
               style={styles.button}
             >
-              <Text style={{ fontWeight: "bold" }}>Thêm player</Text>
+              <Text style={{ fontWeight: "bold", color: "white" }}>
+                Thêm player
+              </Text>
             </TouchableOpacity>
             {error && <Text style={{ color: "red" }}>{error}</Text>}
             {isLoading && (
@@ -493,7 +495,6 @@ const styles = StyleSheet.create({
   button: {
     height: 40,
     backgroundColor: "#24a0ed",
-    color: "white",
     borderRadius: 5,
     marginTop: 20,
     alignItems: "center",

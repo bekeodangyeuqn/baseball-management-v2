@@ -26,10 +26,14 @@ import BattingOrderSelectScreen from "./screens/batting-order-select-screen";
 import EventTopNav from "./navigation/eventTopNav";
 import CreateEventScreen from "./screens/create-event-screen";
 import EventDetailScreen from "./screens/event-detail-screen";
+import PlayerProfileScreen from "./screens/player-profile-screen";
+import JoinTeamListScreen from "./screens/join-team-list-screen";
+import { Image } from "react-native";
 export default function App() {
   const Stack = createStackNavigator();
   const [token, setToken] = useState("");
   const [teamName, setTeamName] = useState("");
+  const [id, setId] = useState(null);
 
   useEffect(() => {
     const getInfo = async () => {
@@ -38,6 +42,7 @@ export default function App() {
         const decoded = jwtDecode(token);
         setToken(token);
         setTeamName(decoded.teamName);
+        setId(decoded.userid);
       } catch (error) {
         console.log(error);
       }
@@ -78,6 +83,11 @@ export default function App() {
                 options={{ headerShown: false }}
               />
               <Stack.Screen
+                name="JoinTeamList"
+                component={JoinTeamListScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
                 name="CreateManager"
                 component={CreateManagerScreen}
                 options={{ headerShown: false }}
@@ -86,6 +96,7 @@ export default function App() {
                 name="Home"
                 component={BottomNav}
                 options={{ headerShown: false }}
+                initialParams={{ id: id }}
               />
               <Stack.Screen
                 name="Games"
@@ -146,6 +157,11 @@ export default function App() {
                 name="BattingOrderSelect"
                 component={BattingOrderSelectScreen}
                 options={{ title: "Batting Order" }}
+              />
+              <Stack.Screen
+                name="PlayerProfile"
+                component={PlayerProfileScreen}
+                options={{ title: "Trận đấu" }}
               />
             </Stack.Navigator>
           </NavigationContainer>

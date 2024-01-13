@@ -8,7 +8,12 @@ import { useToast } from "react-native-toast-notifications";
 import jwtDecode from "jwt-decode";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axiosInstance from "../lib/axiosClient";
-import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
+import {
+  useRecoilState,
+  useRecoilValue,
+  useRecoilValueLoadable,
+  useSetRecoilState,
+} from "recoil";
 import {
   gamesState,
   gameByIdState,
@@ -25,18 +30,40 @@ const GameTopNav = () => {
   // const getGameById = useRecoilValue(gameByIdState);
   // const addGame = useSetRecoilState(addGameState);
   // const deleteGame = useSetRecoilState(deleteGameState);
-  const fetchGames = useSetRecoilState(fetchGamesState);
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
   const route = useRoute();
   const teamid = route.params.teamid;
   const teamName = route.params.teamName;
+  const fetchGames = useRecoilValueLoadable(fetchGamesState(teamid));
 
   useEffect(() => {
-    if (games.length === 0) {
-      fetchGames();
-    }
-  }, [games, fetchGames]);
+    const fetchAndSetGames = async () => {
+      setIsLoading(true);
+      try {
+        console.log(fetchGames.state);
+        if (fetchGames.state === "hasValue") {
+          setGames(fetchGames.contents);
+          console.log("Load game successfully");
+        } else if (fetchGames.state === "hasError") {
+          throw fetchGames.contents; // Throw the error to be caught in the catch block
+        }
+      } catch (error) {
+        toast.show(error.message, {
+          type: "danger",
+          placement: "bottom",
+          duration: 4000,
+          offset: 30,
+          animationType: "zoom-in",
+        });
+      } finally {
+        setIsLoading(false);
+        console.log("Load game completed");
+      }
+    };
+
+    fetchAndSetGames();
+  }, [fetchGames, setGames, toast]);
   return (
     <Tab.Navigator initialRouteName="Upcoming">
       <Tab.Screen

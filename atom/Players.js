@@ -76,3 +76,11 @@ export const filteredPlayers = selectorFamily({
       });
     },
 });
+
+export const playerByIdState = selector({
+  key: "playerByIdState",
+  get:
+    ({ get }) =>
+    (id) =>
+      get(playersState).find((player) => player.id === id),
+});

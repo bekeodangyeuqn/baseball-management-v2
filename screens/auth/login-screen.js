@@ -62,7 +62,11 @@ const LoginScreen = () => {
       const token = await AsyncStorage.getItem("access_token");
       const decoded = jwtDecode(token);
       if (decoded.teamName) navigation.navigate("Home");
-      else navigation.navigate("CreateJoinTeam");
+      else if (decoded.id)
+        navigation.navigate("CreateJoinTeam", {
+          id: decoded.id,
+        });
+      else navigation.navigate("CreateManager");
       return response;
     } catch (error) {
       // Toast.show(error.message);

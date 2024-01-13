@@ -18,6 +18,8 @@ import axiosInstance from "../lib/axiosClient";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import jwtDecode from "jwt-decode";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRecoilState } from "recoil";
+import { eventsState } from "../atom/Events";
 const CreateEventScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [date, setDate] = useState(new Date());
@@ -26,6 +28,8 @@ const CreateEventScreen = () => {
 
   const [error, setError] = useState("");
   const [teamid, setTeamId] = useState(null);
+  const [teamName, setTeamName] = useState("");
+  const [events, setEvents] = useRecoilState(eventsState);
 
   const toast = useToast();
   const navigation = useNavigation();
@@ -48,6 +52,7 @@ const CreateEventScreen = () => {
         const decoded = jwtDecode(token);
         console.log(decoded.id);
         setTeamId(decoded.teamid);
+        setTeamName(decoded.teamName);
       } catch (error) {
         console.log(error);
       }
@@ -83,11 +88,12 @@ const CreateEventScreen = () => {
         timeStart: values.timeStart,
         location: values.location,
         team_id: teamid,
-        status: -1,
         timeEnd: null,
+        status: -1,
       });
+      setEvents((oldEvents) => [...oldEvents, response.data]);
       const storedEvents = await AsyncStorage.getItem("events");
-      if (storedGames) {
+      if (storedEvents) {
         const storedEventsArr = JSON.parse(storedEvents);
         const data = [...storedEventsArr, response.data];
         AsyncStorage.setItem("events", JSON.stringify(data), (error) => {
@@ -115,7 +121,10 @@ const CreateEventScreen = () => {
         offset: 30,
         animationType: "zoom-in",
       });
-      navigation.navigate("Events");
+      navigation.navigate("Events", {
+        teamid: teamid,
+        teamName: teamName,
+      });
       return response;
     } catch (error) {
       //Toast.show(error.message);

@@ -2,23 +2,24 @@ import React, { useEffect, useState } from "react";
 import { ScrollView, View, StyleSheet, Text } from "react-native";
 import HorizontalTable from "../component/HorizontalTable";
 import { TouchableOpacity } from "react-native-gesture-handler";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import jwtDecode from "jwt-decode";
 
-const gameData = {
-  tableHead: ["", "1", "2", "3", "4", "5", "6", "7", "8", "9", "R", "H", "E"],
-  widthArr: [50, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25],
-  tableData: [
-    ["HRO", "", "", "", "", "", "", "", "", "", "", "", ""],
-    ["ULIS", "", "", "", "", "", "", "", "", "", "", "", ""],
-  ],
-};
-
-const GameDetailScreen = (props) => {
+const GameDetailScreen = () => {
   const navigation = useNavigation();
   const [teamid, setTeamId] = useState(null);
-  const { game } = props;
+  const route = useRoute();
+  const game = route.params.game;
+
+  const gameData = {
+    tableHead: ["", "1", "2", "3", "4", "5", "6", "7", "8", "9", "R", "H", "E"],
+    widthArr: [50, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25],
+    tableData: [
+      ["HRO", "", "", "", "", "", "", "", "", "", "", "", ""],
+      [`${game.oppTeamShort}`, "", "", "", "", "", "", "", "", "", "", "", ""],
+    ],
+  };
   useEffect(() => {
     const getInfo = async () => {
       try {

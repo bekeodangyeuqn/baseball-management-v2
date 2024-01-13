@@ -33,6 +33,7 @@ const CompletedGameScreen = (props) => {
                 myScore={game.team_score}
                 oppScore={game.opp_score}
                 status={game.status}
+                game={game}
               />
             );
           }
@@ -65,6 +66,7 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     fontSize: 16,
     fontWeight: "bold",
+    color: "white",
   },
 });
 

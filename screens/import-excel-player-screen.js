@@ -25,7 +25,7 @@ const ImportExcelPlayerScreen = () => {
 
   const pickDocument = async () => {
     try {
-      const result = await DocumentPicker.pick({
+      const result = await new DocumentPicker.pick({
         type: [DocumentPicker.types.xls, DocumentPicker.types.xlsx],
       });
 

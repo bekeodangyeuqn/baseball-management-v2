@@ -6,6 +6,8 @@ import EventInfo from "../../component/EventInfo";
 const UpcomingEventScreen = (props) => {
   const navigation = useNavigation();
   const { events, teamName } = props;
+
+  console.log(events[0]);
   return (
     <View>
       <View style={styles.buttonHeader}>
@@ -26,6 +28,7 @@ const UpcomingEventScreen = (props) => {
                 timeStart={event.timeStart}
                 timeEnd={event.timeEnd}
                 location={event.location}
+                event={event}
               />
             );
           }
@@ -58,6 +61,7 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     fontSize: 16,
     fontWeight: "bold",
+    color: "white",
   },
 });
 

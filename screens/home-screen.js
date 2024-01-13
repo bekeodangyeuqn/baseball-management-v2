@@ -36,15 +36,15 @@ const HomeScreen = () => {
       {
         id: 1,
         title: "Hust Red Owl - Ulis Devil Bats",
-        start: new Date(2023, 10, 5, 8, 25),
-        end: new Date(2023, 10, 5, 11, 5),
+        start: new Date(2024, 0, 13, 8, 25),
+        end: new Date(2024, 0, 13, 11, 5),
         location: "Sân Tân Mỹ",
       },
       {
         id: 2,
-        title: "Tổng kết cuối năm",
-        start: new Date(2023, 10, 5, 19, 15),
-        end: new Date(2023, 10, 5, 21, 45),
+        title: "Tổng kết đầu năm",
+        start: new Date(2024, 0, 13, 19, 15),
+        end: new Date(2024, 0, 13, 21, 45),
         location: "Quán lẩu gà lá é",
       },
     ]);

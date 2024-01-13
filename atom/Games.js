@@ -1,5 +1,6 @@
-import { atom, selector } from "recoil";
-import axios from "axios";
+import { atom, selector, selectorFamily } from "recoil";
+import axiosInstance from "../lib/axiosClient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Atom to store the games
 export const gamesState = atom({
@@ -17,41 +18,35 @@ export const gameByIdState = selector({
 });
 
 // Selector to add a game
-export const addGameState = selector({
-  key: "addGameState",
-  set: ({ set, get }, game) => set(gamesState, [...get(gamesState), game]),
-});
+// export const addGameState = selector({
+//   key: "addGameState",
+//   set: ({ set, get }, game) => set(gamesState, [...get(gamesState), game]),
+// });
 
 // Selector to delete a game
-export const deleteGameState = selector({
-  key: "deleteGameState",
-  set: ({ set, get }, id) =>
-    set(
-      gamesState,
-      get(gamesState).filter((game) => game.id !== id)
-    ),
-});
+// export const deleteGameState = selector({
+//   key: "deleteGameState",
+//   set: ({ set, get }, id) =>
+//     set(
+//       gamesState,
+//       get(gamesState).filter((game) => game.id !== id)
+//     ),
+// });
 
 // Selector to fetch games from API
 export const fetchGamesState = selectorFamily({
-  key: "PlayersAsyncSelector",
+  key: "GamesAsyncSelector",
   get:
     (teamid) =>
     async ({ get }) => {
-      const storedGames = await AsyncStorage.getItem("games");
-      if (storedPlayers) {
-        const data = JSON.parse(storedGames);
-        return data;
-      } else {
-        const { data } = await axiosInstance.get(`/games/team/${teamid}/`);
-        AsyncStorage.setItem("games", JSON.stringify(data), (error) => {
-          if (error) {
-            console.error(error);
-          } else {
-            console.log("Games stored successfully.");
-          }
-        });
-        return data;
-      }
+      const { data } = await axiosInstance.get(`/games/team/${teamid}/`);
+      AsyncStorage.setItem("games", JSON.stringify(data), (error) => {
+        if (error) {
+          console.error(error);
+        } else {
+          console.log("Games stored successfully.");
+        }
+      });
+      return data;
     },
 });

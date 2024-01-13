@@ -64,7 +64,6 @@ const CreateTeamScreen = () => {
   const handleCreateTeam = async (values) => {
     try {
       setIsLoading(true);
-      console.log(image.base64, id);
       const response = await axiosInstance.post("/team/create/", {
         name: values.name,
         shortName: values.shortName,

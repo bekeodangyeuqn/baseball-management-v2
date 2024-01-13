@@ -26,6 +26,7 @@ const CompletedEventScreen = (props) => {
                 timeStart={event.timeStart}
                 timeEnd={event.timeEnd}
                 location={event.location}
+                event={event}
               />
             );
           }
