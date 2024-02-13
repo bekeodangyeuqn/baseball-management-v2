@@ -15,6 +15,13 @@
     "preview": {
       "distribution": "internal"
     },
+    "staging": {
+      "releaseChannel": "staging",
+
+      "android": {
+        "buildType": "apk"
+      }
+    },
     "production": {}
   },
   "submit": {

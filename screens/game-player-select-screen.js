@@ -19,9 +19,16 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Filter from "../component/Filter";
 import { useRecoilState, useRecoilValue } from "recoil";
 import { filteredPlayers, playersAsyncSelector } from "../atom/Players";
-import { myGamePlayers } from "../atom/GamePlayers";
+import { myGamePlayers, myGamePlayersByGameId } from "../atom/GamePlayers";
 import ChoosePlayerItem from "../component/ChoosePlayerItem";
 const GamePlayerSelectScreen = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const toast = useToast();
+  const route = useRoute();
+  const teamid = route.params.teamid;
+  const gameid = route.params.gameid;
+  const players = useRecoilValue(filteredPlayers(teamid));
+
   const navigation = useNavigation();
   const playersPos = {
     Outfield: [7, 8, 9],
@@ -44,7 +51,7 @@ const GamePlayerSelectScreen = () => {
     "LF",
     "None",
   ];
-  const [myPlayers, setMyPlayers] = useRecoilState(myGamePlayers);
+  const myPlayers = useRecoilValue(myGamePlayersByGameId(gameid));
   const snapPoints = useMemo(() => ["50%"], []);
   const playersBottomSheet = useRef(null);
   const filterBottomSheet = useRef(null);
@@ -53,17 +60,16 @@ const GamePlayerSelectScreen = () => {
     playersBottomSheet.current?.expand();
   };
 
-  const [isLoading, setIsLoading] = useState(false);
-  const toast = useToast();
-  const route = useRoute();
-  const teamid = route.params.teamid;
-  const players = useRecoilValue(filteredPlayers(teamid));
-
   const [pos, setPos] = useState(null);
 
   const isSelected = (pos) => {
-    return myPlayers ? myPlayers.some((obj) => obj.position === pos) : false;
+    return myPlayers
+      ? myPlayers.some((obj) => {
+          return obj.position === pos && obj.gameid === gameid;
+        })
+      : false;
   };
+  console.log(myPlayers);
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
@@ -89,6 +95,29 @@ const GamePlayerSelectScreen = () => {
               <TouchableOpacity
                 key={posNumber}
                 onPress={() => {
+                  if (typeof setPos !== "function") {
+                    console.error("setPos is not a function");
+                    return;
+                  }
+
+                  if (
+                    !choosePlayerBottomSheet ||
+                    !choosePlayerBottomSheet.current
+                  ) {
+                    console.error(
+                      "choosePlayerBottomSheet or choosePlayerBottomSheet.current is undefined"
+                    );
+                    return;
+                  }
+
+                  if (
+                    typeof choosePlayerBottomSheet.current.expand !== "function"
+                  ) {
+                    console.error(
+                      "choosePlayerBottomSheet.current.expand is not a function"
+                    );
+                    return;
+                  }
                   setPos(posNumber);
                   choosePlayerBottomSheet.current?.expand();
                 }}
@@ -174,7 +203,7 @@ const GamePlayerSelectScreen = () => {
               animationType: "zoom-in",
             });
           } else {
-            navigation.navigate("BattingOrderSelect");
+            navigation.navigate("BattingOrderSelect", { gameid: gameid });
           }
         }}
         style={{ ...styles.button, backgroundColor: "green" }}
@@ -219,7 +248,7 @@ const GamePlayerSelectScreen = () => {
         <BottomSheetFlatList
           data={players}
           renderItem={({ item }) => (
-            <ChoosePlayerItem player={item} pos={pos} />
+            <ChoosePlayerItem player={item} pos={pos} gameid={gameid} />
           )}
         />
       </BottomSheet>

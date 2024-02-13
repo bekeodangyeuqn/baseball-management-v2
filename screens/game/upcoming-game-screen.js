@@ -5,6 +5,7 @@ import {
   View,
   TouchableOpacity,
   Text,
+  ActivityIndicator,
 } from "react-native";
 import Scoreboard from "../../component/Scoreboard";
 import { useNavigation } from "@react-navigation/native";
@@ -17,16 +18,21 @@ const UpcomingGameScreen = (props) => {
   const navigation = useNavigation();
   const { games, teamName } = props;
   return (
-    <View>
-      <View style={styles.buttonHeader}>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => navigation.navigate("CreateGame")}
-        >
-          <Text style={styles.textButton}>Thêm trận đấu</Text>
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      {games && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#0000ff" />
+        </View>
+      )}
       <View style={styles.container}>
+        <View style={styles.buttonHeader}>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => navigation.navigate("CreateGame")}
+          >
+            <Text style={styles.textButton}>Thêm trận đấu</Text>
+          </TouchableOpacity>
+        </View>
         {games.map((game) => {
           if (game.status === -1) {
             return (
@@ -50,7 +56,8 @@ const UpcomingGameScreen = (props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "white",
+    height: "100%",
   },
   buttonHeader: {
     display: "flex",
@@ -71,6 +78,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: "white",
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

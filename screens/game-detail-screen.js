@@ -54,7 +54,10 @@ const GameDetailScreen = () => {
       <TouchableOpacity
         style={styles.button}
         onPress={() => {
-          navigation.navigate("GamePlayerSelect", { teamid: teamid });
+          navigation.navigate("GamePlayerSelect", {
+            teamid: teamid,
+            gameid: game.id,
+          });
         }}
       >
         <Text style={styles.textButton}>

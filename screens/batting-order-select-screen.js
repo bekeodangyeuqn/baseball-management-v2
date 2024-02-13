@@ -1,13 +1,18 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { View, StyleSheet, SafeAreaView, Pressable } from "react-native";
-import { useRecoilState } from "recoil";
+import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 import { myBattingOrder, myGamePlayers } from "../atom/GamePlayers";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { Text } from "react-native";
 import BattingOrderItem from "../component/BattingOrderItem";
+import { useRoute } from "@react-navigation/native";
 
 const BattingOrderSelectScreen = () => {
-  const [myPlayers, setMyPlayers] = useRecoilState(myBattingOrder);
+  const route = useRoute();
+  const gameid = route.params.gameid;
+  const players = useRecoilValue(myBattingOrder(gameid));
+  const [myPlayers, setMyPlayers] = useState(players);
+  console.log(myPlayers);
   useEffect(() => {
     if (myPlayers.length === 10) {
       setMyPlayers((curPlayers) => {

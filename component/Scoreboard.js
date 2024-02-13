@@ -2,15 +2,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import React from "react";
 import { View, StyleSheet, Image, Text, TouchableOpacity } from "react-native";
 
-const Scoreboard = ({
-  key,
-  myTeam,
-  myScore,
-  oppTeam,
-  oppScore,
-  status,
-  game,
-}) => {
+const Scoreboard = ({ myTeam, myScore, oppTeam, oppScore, status, game }) => {
   const navigation = useNavigation();
   return (
     <TouchableOpacity
@@ -20,7 +12,6 @@ const Scoreboard = ({
           game: game,
         })
       }
-      key={key}
     >
       <View style={styles.row}>
         <View>

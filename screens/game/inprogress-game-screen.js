@@ -31,7 +31,6 @@ const InprogressGameScreen = (props) => {
           if (game.status === 0) {
             return (
               <Scoreboard
-                key={game.id}
                 myTeam={teamName}
                 oppTeam={game.oppTeam}
                 myScore={game.team_score}

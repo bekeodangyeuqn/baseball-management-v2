@@ -6,7 +6,7 @@ import { useRecoilState } from "recoil";
 import { myGamePlayers } from "../atom/GamePlayers";
 
 const ChoosePlayerItem = (props) => {
-  const { player, pos } = props;
+  const { player, pos, gameid } = props;
   const position = ["DH", "P", "C", "1B", "2B", "3B", "SS", "OF", "None"];
   const splitAvatarURI = (str) => {
     const arr = str.split("?");
@@ -19,16 +19,28 @@ const ChoosePlayerItem = (props) => {
       if (curPlayers.some((obj) => obj.player.id === player.id)) {
         return curPlayers.filter((obj) => obj.player.id !== player.id);
       }
-      if (curPlayers.some((obj) => obj.position === pos)) {
+      if (
+        curPlayers.some((obj) => {
+          return obj.position === pos && obj.gameid === gameid;
+        })
+      ) {
         return [
-          ...curPlayers.filter((obj) => obj.position !== pos),
-          { player, position: pos },
+          ...curPlayers.filter((obj) => {
+            if (obj.gameid !== gameid) return true;
+            else {
+              if (obj.position === pos) return false;
+              else return true;
+            }
+          }),
+          { player, position: pos, gameid: gameid },
         ];
       }
-      return [...curPlayers, { player, position: pos }];
+      return [...curPlayers, { player, position: pos, gameid: gameid }];
     });
   };
-  const isSelected = myPlayers.some((obj) => obj.player.id === player.id);
+  const isSelected = myPlayers.some((obj) => {
+    return obj.player.id === player.id && obj.gameid === gameid;
+  });
   return (
     <Pressable
       onPress={() => onPress(pos)}
