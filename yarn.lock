@@ -8530,10 +8530,10 @@ react-native-image-picker@^7.0.0:
   resolved "https://registry.npmjs.org/react-native-image-picker/-/react-native-image-picker-7.0.0.tgz"
   integrity sha512-eiDj0mJUPivranQJX/pwkGf/Ar9QrQ+BF3y0D8frHU3S7U86IGOnOzHN7Wh6ofXEnafRij0TpmRCdrSebBMV+Q==
 
-react-native-pager-view@6.1.2:
-  version "6.1.2"
-  resolved "https://registry.yarnpkg.com/react-native-pager-view/-/react-native-pager-view-6.1.2.tgz#3522079b9a9d6634ca5e8d153bc0b4d660254552"
-  integrity sha512-qs2KSFc+7N7B+UZ6SG2sTvCkppagm5fVyRclv1KFKc7lDtrhXLzN59tXJw575LDP/dRJoXsNwqUAhZJdws6ABQ==
+react-native-pager-view@6.0.1:
+  version "6.0.1"
+  resolved "https://registry.yarnpkg.com/react-native-pager-view/-/react-native-pager-view-6.0.1.tgz#353abf38d3c2b91ed7c586f10af0f94700f5b1dc"
+  integrity sha512-kOVNu+4JnR3Gpykviy4WbOAnQz8TgP6O2pRvne221oPUDQLYrvEE/FINR0P85TxbMgvKTPlLejGw0ZHQbezK/g==
 
 react-native-picker-select@^9.0.0:
   version "9.0.0"
@@ -8553,6 +8553,11 @@ react-native-progress@^5.0.0:
   integrity sha512-KjnGIt3r9i5Kn2biOD9fXLJocf0bwxPRxOyAgXEnZTJQU2O+HyzgGFRCbM5h3izm9kKIkSc1txh8aGmMafCD9A==
   dependencies:
     prop-types "^15.7.2"
+
+react-native-radio-buttons-group@^3.0.7:
+  version "3.0.7"
+  resolved "https://registry.yarnpkg.com/react-native-radio-buttons-group/-/react-native-radio-buttons-group-3.0.7.tgz#55ff476387aeb240ca5f259209f6887250e792bf"
+  integrity sha512-QV0ZSJEkf0Z8kIVe38iz02FlJbJZRxeVkX8F+iRUsSspqDf0nSviouFoQqtQOw3LTJWCo59ykycRZm4NmGaJ4w==
 
 react-native-ratings@^8.1.0:
   version "8.1.0"
@@ -8616,7 +8621,7 @@ react-native-swipe-gestures@^1.0.5:
   resolved "https://registry.npmjs.org/react-native-swipe-gestures/-/react-native-swipe-gestures-1.0.5.tgz"
   integrity sha512-Ns7Bn9H/Tyw278+5SQx9oAblDZ7JixyzeOczcBK8dipQk2pD7Djkcfnf1nB/8RErAmMLL9iXgW0QHqiII8AhKw==
 
-react-native-tab-view@^3.5.2:
+react-native-tab-view@^3.1.1:
   version "3.5.2"
   resolved "https://registry.yarnpkg.com/react-native-tab-view/-/react-native-tab-view-3.5.2.tgz#2789b8af6148b16835869566bf13dc3b0e6c1b46"
   integrity sha512-nE5WqjbeEPsWQx4mtz81QGVvgHRhujTNIIZiMCx3Bj6CBFDafbk7XZp9ocmtzXUQaZ4bhtVS43R4FIiR4LboJw==

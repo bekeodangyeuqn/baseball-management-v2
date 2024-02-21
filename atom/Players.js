@@ -77,7 +77,7 @@ export const filteredPlayers = selectorFamily({
     },
 });
 
-export const playerByIdState = selector({
+export const playerByIdState = selectorFamily({
   key: "playerByIdState",
   get:
     ({ get }) =>

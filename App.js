@@ -29,6 +29,8 @@ import EventDetailScreen from "./screens/event-detail-screen";
 import PlayerProfileScreen from "./screens/player-profile-screen";
 import JoinTeamListScreen from "./screens/join-team-list-screen";
 import { Image } from "react-native";
+import PlayBallTypeScreen from "./screens/play-ball-type-screen";
+import PlayByPlayScreen from "./screens/play-by-play-screen";
 export default function App() {
   const Stack = createStackNavigator();
   const [token, setToken] = useState("");
@@ -162,6 +164,16 @@ export default function App() {
                 name="PlayerProfile"
                 component={PlayerProfileScreen}
                 options={{ title: "Trận đấu" }}
+              />
+              <Stack.Screen
+                name="PlayBall"
+                component={PlayBallTypeScreen}
+                options={{ title: "Lựa chọn cách cập nhật" }}
+              />
+              <Stack.Screen
+                name="PlayByPlay"
+                component={PlayByPlayScreen}
+                options={{ headerShown: false }}
               />
             </Stack.Navigator>
           </NavigationContainer>

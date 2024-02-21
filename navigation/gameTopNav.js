@@ -36,6 +36,7 @@ const GameTopNav = () => {
   const teamid = route.params.teamid;
   const teamName = route.params.teamName;
   const fetchGames = useRecoilValueLoadable(fetchGamesState(teamid));
+  const setRecoilGame = useSetRecoilState(gamesState);
 
   useEffect(() => {
     const fetchAndSetGames = async () => {
@@ -44,6 +45,7 @@ const GameTopNav = () => {
         console.log(fetchGames.state);
         if (fetchGames.state === "hasValue") {
           setGames(fetchGames.contents);
+          setRecoilGame(fetchGames.contents);
           console.log("Load game successfully");
         } else if (fetchGames.state === "hasError") {
           throw fetchGames.contents; // Throw the error to be caught in the catch block

@@ -16,9 +16,9 @@ const BattingOrderItem = (props) => {
     "2B",
     "3B",
     "SS",
-    "RF",
-    "CF",
     "LF",
+    "CF",
+    "RF",
     "None",
   ];
   const [isDragging, setIsDragging] = useState(false);

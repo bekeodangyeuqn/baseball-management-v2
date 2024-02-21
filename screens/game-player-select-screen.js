@@ -46,9 +46,9 @@ const GamePlayerSelectScreen = () => {
     "2B",
     "3B",
     "SS",
-    "RF",
-    "CF",
     "LF",
+    "CF",
+    "RF",
     "None",
   ];
   const myPlayers = useRecoilValue(myGamePlayersByGameId(gameid));
@@ -69,7 +69,7 @@ const GamePlayerSelectScreen = () => {
         })
       : false;
   };
-  console.log(myPlayers);
+
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
@@ -95,29 +95,6 @@ const GamePlayerSelectScreen = () => {
               <TouchableOpacity
                 key={posNumber}
                 onPress={() => {
-                  if (typeof setPos !== "function") {
-                    console.error("setPos is not a function");
-                    return;
-                  }
-
-                  if (
-                    !choosePlayerBottomSheet ||
-                    !choosePlayerBottomSheet.current
-                  ) {
-                    console.error(
-                      "choosePlayerBottomSheet or choosePlayerBottomSheet.current is undefined"
-                    );
-                    return;
-                  }
-
-                  if (
-                    typeof choosePlayerBottomSheet.current.expand !== "function"
-                  ) {
-                    console.error(
-                      "choosePlayerBottomSheet.current.expand is not a function"
-                    );
-                    return;
-                  }
                   setPos(posNumber);
                   choosePlayerBottomSheet.current?.expand();
                 }}

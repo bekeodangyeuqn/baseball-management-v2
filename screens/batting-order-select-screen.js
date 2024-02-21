@@ -5,11 +5,12 @@ import { myBattingOrder, myGamePlayers } from "../atom/GamePlayers";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { Text } from "react-native";
 import BattingOrderItem from "../component/BattingOrderItem";
-import { useRoute } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 
 const BattingOrderSelectScreen = () => {
   const route = useRoute();
   const gameid = route.params.gameid;
+  const navigation = useNavigation();
   const players = useRecoilValue(myBattingOrder(gameid));
   const [myPlayers, setMyPlayers] = useState(players);
   console.log(myPlayers);
@@ -40,7 +41,12 @@ const BattingOrderSelectScreen = () => {
         keyExtractor={(item) => item.player.id}
         onDragEnd={({ data }) => setMyPlayers(data)}
       />
-      <Pressable style={{ ...styles.button }}>
+      <Pressable
+        style={{ ...styles.button }}
+        onPress={() => {
+          navigation.navigate("PlayBall", { gameid: gameid });
+        }}
+      >
         <Text style={{ fontWeight: "bold" }}>Let's play</Text>
       </Pressable>
     </SafeAreaView>
