@@ -42,7 +42,6 @@ const GameTopNav = () => {
     const fetchAndSetGames = async () => {
       setIsLoading(true);
       try {
-        console.log(fetchGames.state);
         if (fetchGames.state === "hasValue") {
           setGames(fetchGames.contents);
           setRecoilGame(fetchGames.contents);

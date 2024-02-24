@@ -10,6 +10,7 @@ const BottomNav = () => {
   const Tab = createBottomTabNavigator();
   const route = useRoute();
   const id = route.params.id;
+  const teamid = route.params.teamid;
 
   return (
     <Tab.Navigator>
@@ -25,6 +26,7 @@ const BottomNav = () => {
           ),
         }}
         component={HomeScreen}
+        initialParams={{ teamid: teamid }}
       ></Tab.Screen>
       <Tab.Screen
         name="Đội"

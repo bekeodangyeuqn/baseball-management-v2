@@ -1,6 +1,6 @@
 import { useRoute } from "@react-navigation/native";
 import React from "react";
-import { View, StyleSheet, Text } from "react-native";
+import { View, StyleSheet, Text, Button } from "react-native";
 
 const EventDetailScreen = () => {
   const route = useRoute();
@@ -32,7 +32,15 @@ const EventDetailScreen = () => {
             <Text style={{ fontSize: 18, fontWeight: "bold" }}>Mô tả:</Text>
             <Text>{event.description}</Text>
           </View>
+          <View style={{ marginTop: 10 }}>
+            <Button title="Gửi lời mời" />
+          </View>
         </View>
+      </View>
+      <View style={{ padding: 8 }}>
+        <Text style={{ fontSize: 16, fontWeight: "bold" }}>
+          Danh sách tham gia:
+        </Text>
       </View>
     </View>
   );
@@ -52,6 +60,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     marginHorizontal: 4,
     marginVertical: 6,
+    padding: 8,
   },
   cardHeader: {
     alignItems: "center",

@@ -36,6 +36,7 @@ export default function App() {
   const [token, setToken] = useState("");
   const [teamName, setTeamName] = useState("");
   const [id, setId] = useState(null);
+  const [teamid, setTeamId] = useState(null);
 
   useEffect(() => {
     const getInfo = async () => {
@@ -44,7 +45,8 @@ export default function App() {
         const decoded = jwtDecode(token);
         setToken(token);
         setTeamName(decoded.teamName);
-        setId(decoded.userid);
+        setId(decoded.id);
+        setTeamId(decoded.teamid);
       } catch (error) {
         console.log(error);
       }
@@ -98,7 +100,7 @@ export default function App() {
                 name="Home"
                 component={BottomNav}
                 options={{ headerShown: false }}
-                initialParams={{ id: id }}
+                initialParams={{ id: id, teamid: teamid }}
               />
               <Stack.Screen
                 name="Games"
