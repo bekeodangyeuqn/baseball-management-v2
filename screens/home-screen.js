@@ -14,12 +14,10 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import jwtDecode from "jwt-decode";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchGamesState, gamesState } from "../atom/Games";
-import {
-  useRecoilState,
-  useRecoilValueLoadable,
-  useSetRecoilState,
-} from "recoil";
+import { useRecoilState } from "recoil";
 import { eventsState, fetchEventsState } from "../atom/Events";
+import { ActivityIndicator } from "react-native";
+import axiosInstance from "../lib/axiosClient";
 
 const configDateTime = (datetime) => {
   let dateAndTime = datetime.split("T"); // split date and time
@@ -40,20 +38,21 @@ const getDate = (datetime) => {
 const HomeScreen = () => {
   const route = useRoute();
   const teamid = route.params.teamid;
+  const navigation = useNavigation();
 
-  const [events, setEvents] = useRecoilState(eventsState);
-  const fetchEvents = useRecoilValueLoadable(fetchEventsState(teamid));
-  const setRecoilEvent = useSetRecoilState(eventsState);
+  const [events, setEvents] = useState([]);
+  // const fetchEvents = useRecoilValueLoadable(fetchEventsState(teamid));
+  const [recoilEvents, setRecoilEvent] = useRecoilState(eventsState);
 
-  const [games, setGames] = useRecoilState(gamesState);
-  const fetchGames = useRecoilValueLoadable(fetchGamesState(teamid));
-  const setRecoilGame = useSetRecoilState(gamesState);
+  const [games, setGames] = useState([]);
+  // const fetchGames = useRecoilValueLoadable(fetchGamesState(teamid));
+  const [recoilGames, setRecoilGame] = useRecoilState(gamesState);
 
   const [selected, setSelected] = useState("");
-  const navigaton = useNavigation();
   const [username, setUsername] = useState("");
   const [teamName, setTeamName] = useState("");
   const [datesEvent, setDatesEvent] = useState([]);
+  const [isloading, setIsLoading] = useState(false);
 
   const getDatesHaveEvent = (events, games) => {
     let dates = [];
@@ -68,46 +67,59 @@ const HomeScreen = () => {
   };
 
   const markedDates = datesEvent.reduce((acc, date) => {
-    acc[date] = { marked: true, selectedColor: "blue" };
+    acc[date] = { marked: true, selectedColor: "green" };
     return acc;
   }, {});
 
   useEffect(() => {
     const getInfo = async () => {
       try {
-        const [gamesResponse, eventsResponse] = await Promise.all([
-          fetchGames,
-          fetchEvents,
-        ]);
+        setIsLoading(true);
         const token = await AsyncStorage.getItem("access_token");
         const decoded = jwtDecode(token);
         setUsername(decoded.username);
         setTeamName(decoded.teamName);
+        if (recoilEvents.length === 0) {
+          const { data } = await axiosInstance.get(`/events/team/${teamid}/`);
 
-        if (eventsResponse.state === "hasValue") {
-          setEvents(eventsResponse.contents);
-          setRecoilEvent(eventsResponse.contents);
-          console.log("Load event successfully");
-        } else if (eventsResponse.state === "hasError") {
-          throw eventsResponse.contents; // Throw the error to be caught in the catch block
+          setEvents(data);
+          setRecoilEvent(data);
+        } else {
+          setEvents(recoilEvents);
         }
 
-        if (gamesResponse.state === "hasValue") {
-          setGames(gamesResponse.contents);
-          setRecoilGame(gamesResponse.contents);
-          console.log("Load game successfully");
-        } else if (gamesResponse.state === "hasError") {
-          throw gamesResponse.contents; // Throw the error to be caught in the catch block
+        if (recoilGames.length === 0) {
+          const { data } = await axiosInstance.get(`/games/team/${teamid}/`);
+          setGames(data);
+          setRecoilGame(data);
+          setEvents((prev) => [...prev, ...data]);
+          setDatesEvent((prev) => [
+            ...prev,
+            ...getDatesHaveEvent(events, data),
+          ]);
+        } else {
+          setGames(recoilGames);
+          setEvents((prev) => [...prev, ...recoilGames]);
+          setDatesEvent((prev) => [
+            ...prev,
+            ...getDatesHaveEvent(events, recoilGames),
+          ]);
         }
-        setDatesEvent(getDatesHaveEvent(events, games));
-        setEvents((prev) => [...prev, ...games]);
+        setIsLoading(false);
       } catch (error) {
-        console.log(error);
+        toast.show(error.message, {
+          type: "danger",
+          placement: "bottom",
+          duration: 4000,
+          offset: 30,
+          animationType: "zoom-in",
+        });
+        setIsLoading(false);
       }
     };
-    getInfo().catch((error) => console.error(error));
+    getInfo();
   }, []);
-  console.log(games);
+  console.log(datesEvent);
   const renderEvents = () => {
     return events.map((event) => {
       if (getDate(event.timeStart) === selected) {
@@ -115,6 +127,13 @@ const HomeScreen = () => {
       }
     });
   };
+  if (isloading || datesEvent.length === 0) {
+    return (
+      <View style={styles.loadingOverlay}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -141,8 +160,20 @@ const HomeScreen = () => {
   );
 };
 const Event = ({ event, teamName }) => {
+  const navigaton = useNavigation();
   return (
-    <TouchableOpacity style={styles.event}>
+    <TouchableOpacity
+      style={styles.event}
+      onPress={() => {
+        event.title
+          ? navigaton.navigate("EventDetail", {
+              event: event,
+            })
+          : navigaton.navigate("GameDetail", {
+              game: event,
+            });
+      }}
+    >
       <Text style={styles.title}>
         {event.title ? event.title : `${teamName} - ${event.oppTeam}`}
       </Text>
@@ -172,6 +203,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: "#ccc",
     marginBottom: 10,
+    marginHorizontal: 5,
   },
   title: {
     fontSize: 20,
@@ -180,6 +212,12 @@ const styles = StyleSheet.create({
   },
   location: {
     marginBottom: 2,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 export default HomeScreen;

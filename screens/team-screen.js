@@ -86,7 +86,13 @@ const TeamScreen = () => {
             <Text style={{ fontSize: 16 }}>Quản lý đồ</Text>
           </View>
           <View style={{ flex: 1, padding: 10, alignItems: "center" }}>
-            <Ionicons name="cash" size={size} />
+            <Ionicons
+              name="cash"
+              size={size}
+              onPress={() =>
+                navigation.navigate("Transactions", { teamid: teamId })
+              }
+            />
             <Text style={{ fontSize: 16 }}>Quản lý thu chi</Text>
           </View>
         </View>

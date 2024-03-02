@@ -29,6 +29,11 @@ export const playersState = atom({
   default: [],
 });
 
+export const managersState = atom({
+  key: "ManagersState",
+  default: [],
+});
+
 export const playersAsyncSelector = selectorFamily({
   key: "PlayersAsyncSelector",
   get:
@@ -45,6 +50,29 @@ export const playersAsyncSelector = selectorFamily({
             console.error(error);
           } else {
             console.log("Players stored successfully.");
+          }
+        });
+        return data;
+      }
+    },
+});
+
+export const managersAsyncSelector = selectorFamily({
+  key: "ManagersAsyncSelector",
+  get:
+    (teamid) =>
+    async ({ get }) => {
+      const storedManagers = await AsyncStorage.getItem("managers");
+      if (storedManagers) {
+        const data = JSON.parse(storedManagers);
+        return data;
+      } else {
+        const { data } = await axiosInstance.get(`/managers/team/${teamid}/`);
+        AsyncStorage.setItem("managers", JSON.stringify(data), (error) => {
+          if (error) {
+            console.error(error);
+          } else {
+            console.log("Managers stored successfully.");
           }
         });
         return data;

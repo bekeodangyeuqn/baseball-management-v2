@@ -19,6 +19,7 @@ const ManagerProfileScreen = () => {
   const id = route.params.id;
   const [myInfo, setMyInfo] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentId, setCurrentId] = useState(null);
   const toast = useToast();
 
   const splitAvatarURI = (str) => {
@@ -39,7 +40,9 @@ const ManagerProfileScreen = () => {
             console.log("My info stored successfully.");
           }
         });
-
+        const token = await AsyncStorage.getItem("access_token");
+        const decoded = jwtDecode(token);
+        setCurrentId(decoded.id);
         setIsLoading(false);
       } catch (error) {
         console.log(error);
@@ -66,7 +69,9 @@ const ManagerProfileScreen = () => {
           <View style={styles.avatarContainer}>
             <Image
               source={{
-                uri: splitAvatarURI(myInfo.avatar),
+                uri: myInfo.avatar
+                  ? splitAvatarURI(myInfo.avatar)
+                  : "https://cdn0.iconfinder.com/data/icons/baseball-filledoutline/64/baseball_player-user-boy-sports-avatar-profile-man-people-coach-512.png",
               }}
               style={styles.avatar}
             />
@@ -114,9 +119,11 @@ const ManagerProfileScreen = () => {
               {myInfo.homeTown ? myInfo.homeTown : "Chưa rõ"}
             </Text>
           </View>
-          <TouchableOpacity style={styles.button}>
-            <Text style={styles.buttonText}>Đăng xuất</Text>
-          </TouchableOpacity>
+          {currentId == id ? (
+            <TouchableOpacity style={styles.button}>
+              <Text style={styles.buttonText}>Đăng xuất</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       )}
     </View>

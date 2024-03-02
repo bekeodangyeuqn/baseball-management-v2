@@ -31,6 +31,10 @@ import JoinTeamListScreen from "./screens/join-team-list-screen";
 import { Image } from "react-native";
 import PlayBallTypeScreen from "./screens/play-ball-type-screen";
 import PlayByPlayScreen from "./screens/play-by-play-screen";
+import ManagerProfileScreen from "./screens/manager-profile-screen";
+import TransactionsScreen from "./screens/transactions-screen";
+import AddTransactionScreen from "./screens/add-transaction-screen";
+
 export default function App() {
   const Stack = createStackNavigator();
   const [token, setToken] = useState("");
@@ -165,7 +169,7 @@ export default function App() {
               <Stack.Screen
                 name="PlayerProfile"
                 component={PlayerProfileScreen}
-                options={{ title: "Trận đấu" }}
+                options={{ title: "Thông tin cầu thủ" }}
               />
               <Stack.Screen
                 name="PlayBall"
@@ -176,6 +180,21 @@ export default function App() {
                 name="PlayByPlay"
                 component={PlayByPlayScreen}
                 options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="ManagerProfile"
+                component={ManagerProfileScreen}
+                options={{ title: "Thông tin quản lý" }}
+              />
+              <Stack.Screen
+                name="Transactions"
+                component={TransactionsScreen}
+                options={{ title: "Quản lý thu chi" }}
+              />
+              <Stack.Screen
+                name="AddTransaction"
+                component={AddTransactionScreen}
+                options={{ title: "Thêm thu chi" }}
               />
             </Stack.Navigator>
           </NavigationContainer>
