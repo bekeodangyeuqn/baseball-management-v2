@@ -5,8 +5,8 @@ import {
   ImageBackground,
   SectionList,
   Animated,
-  Text,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { useRecoilState } from "recoil";
 import { transactionsState } from "../atom/Transactions";
@@ -15,22 +15,28 @@ import { useToast } from "react-native-toast-notifications";
 import axiosInstance from "../lib/axiosClient";
 import Top from "../component/Top";
 import Expense from "../component/Expense";
-import { withTiming } from "react-native-reanimated";
+import { Easing, useSharedValue, withTiming } from "react-native-reanimated";
 import Delete from "../component/Delete";
 import moment from "moment/moment";
 import AddIcon from "../component/AddIcon";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import theme, { Box, Text } from "../component/theme";
+import { useTiming } from "react-native-redash";
 
 const TransactionsScreen = () => {
-  const [transactions, setTransactions] = useRecoilState(transactionsState);
+  const [recoilTransactions, setRecoilTransactions] =
+    useRecoilState(transactionsState);
+  const [transactions, setTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const route = useRoute();
   const teamid = route.params.teamid;
   const toast = useToast();
 
-  const active = new Animated.Value(0);
-  const transition = withTiming(active, { duration: 200 });
+  const [active, setActive] = useState(0);
 
+  const transition = useTiming(active, {
+    duration: 200,
+  });
   const navigation = useNavigation();
 
   const onDelete = (id) => {};
@@ -39,23 +45,18 @@ const TransactionsScreen = () => {
     const getInfo = async () => {
       setIsLoading(true);
       try {
-        const { data } = await axiosInstance.get(
-          `/transactions/team/${teamid}/`
-        );
-        setTransactions(data);
-        AsyncStorage.setItem("transactions", JSON.stringify(data), (error) => {
-          if (error) {
-            toast.show(error.message, {
-              type: "danger",
-              placement: "bottom",
-              duration: 4000,
-              offset: 30,
-              animationType: "zoom-in",
-            });
-          } else {
-            console.log("Transactions stored successfully.");
-          }
-        });
+        if (recoilTransactions.length == 0) {
+          const { data } = await axiosInstance.get(
+            `/transactions/team/${teamid}/`
+          );
+          setTransactions(data);
+          setRecoilTransactions(data);
+          console.log("Transactions stored successfully");
+          setIsLoading(false);
+        } else if (recoilTransactions.length > 0) {
+          setTransactions(recoilTransactions);
+          setIsLoading(false);
+        }
       } catch (error) {
         toast.show(error.message, {
           type: "danger",
@@ -71,113 +72,142 @@ const TransactionsScreen = () => {
     getInfo();
   }, []);
 
+  const getDate = (datetime) => {
+    let dateAndTime = datetime.split("T"); // split date and time
+
+    let date = dateAndTime[0]; // get the date
+    return date;
+  };
+
   /* Price calculations */
 
   const allDates = transactions
-    .map(({ addedtime }) => addedtime)
+    .map(({ time }) => time)
     .filter(function (value, index, array) {
       return array.indexOf(value) == index;
     });
 
-  const Prices = ({ time }) => {
+  const Prices = ({ ptime }) => {
     const prices = transactions
-      .filter(({ addedtime }) => addedtime == time)
-      .map(({ price }) => {
-        return price;
+      .filter(({ time }) => getDate(time) == getDate(ptime))
+      .map(({ price, type }) => {
+        return type > 0 ? price : price * -1;
       });
     const sum = eval(prices.join("+"));
 
     return (
-      <Text style={{ color: "#A9A2A6" }}>
-        {sum > 0 ? `₦${sum}` : `- ₦${Math.abs(sum)}`}
-      </Text>
+      <Text color="primary">{sum > 0 ? `${sum}₫` : `- ${Math.abs(sum)}₫`}</Text>
     );
   };
 
   const renderHeader = ({ section: { data } }) => {
     return (
-      <View
-        style={{
-          paddingHorizontal: 16,
-          backgroundColor: "white",
-          flexDirection: "row",
-          justifyContent: "space-between",
-          borderBottomWidth: 1,
-          borderBottomColor: "#F3F1F2",
-          paddingBottom: 8,
-          paddingTop: 8,
-          marginTop: 16,
-          borderTopRightRadius: 16,
-          borderTopLeftRadius: 16,
-        }}
+      <Box
+        paddingHorizontal="m"
+        backgroundColor="white"
+        flexDirection="row"
+        justifyContent="space-between"
+        borderBottomWidth={1}
+        borderBottomColor="silver"
+        paddingBottom="s"
+        paddingTop="s"
+        marginTop="m"
+        borderTopRightRadius="m"
+        borderTopLeftRadius="m"
       >
-        <Text color="#A9A2A6">
-          {moment(data[0].time, "x").format("DD MMM YYYY")}
-        </Text>
-        <Prices time={data[0].time} />
-      </View>
+        <Text color="primary">{getDate(data[0].time)}</Text>
+        <Prices ptime={getDate(data[0].time)} />
+      </Box>
     );
   };
+
+  const DATA = Object.values(
+    transactions.reduce((acc, item) => {
+      if (!acc[getDate(item.time)])
+        acc[getDate(item.time)] = {
+          title: getDate(item.time),
+          data: [],
+          price: item.price,
+        };
+
+      acc[getDate(item.time)].data.push(item);
+      return acc;
+    }, {})
+  );
 
   const renderFooter = () => {
     return (
-      <View
-        style={{
-          paddingHorizontal: 16,
-          backgroundColor: "white",
-          flexDirection: "row",
-          justifyContent: "space-between",
-          borderBottomWidth: 1,
-          borderBottomColor: "#F3F1F2",
-          paddingBottom: 8,
-          borderTopRightRadius: 16,
-          borderTopLeftRadius: 16,
-        }}
-      ></View>
+      <Box
+        paddingHorizontal="m"
+        backgroundColor="white"
+        flexDirection="row"
+        justifyContent="space-between"
+        borderBottomWidth={1}
+        borderBottomColor="silver"
+        paddingBottom="s"
+        borderBottomRightRadius="m"
+        borderBottomLeftRadius="m"
+      ></Box>
     );
   };
 
+  if (isLoading) {
+    return (
+      <View style={styles.loadingOverlay}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <Top />
-      <View style={{ paddingHorizontal: 16, paddingVertical: 8, flex: 1 }}>
+      <Top transactions={transactions} />
+      <Box
+        flex={1}
+        paddingLeft="l"
+        paddingRight="l"
+        paddingBottom="m"
+        paddingTop="m"
+      >
         <SectionList
-          sections={transactions}
           showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
           bounces={false}
           keyExtractor={(item, index) => item + index}
-          renderSectionHeader={renderHeader}
-          renderSectionFooter={renderFooter}
           renderItem={({ item }) => {
             const index = item.id;
             return (
               <Animated.View
                 style={{ borderRadius: 20, backgroundColor: "red" }}
               >
-                <View key={index} style={styles.tranItem}>
+                <Box
+                  overflow="hidden"
+                  borderBottomWidth={1}
+                  borderBottomColor="silver"
+                  height={50}
+                  position="relative"
+                  backgroundColor="white"
+                >
                   <Animated.View style={styles.deleteIcon}>
-                    <Text>
+                    {/* <Text>
                       <Delete />
-                    </Text>
+                    </Text> */}
                   </Animated.View>
                   <Animated.View style={{ backgroundColor: "white" }}>
                     <Expense
                       onTap={() => {
-                        active.setValue(index);
+                        setActive(index);
                       }}
                       {...{ transition, index, onDelete, item, allDates }}
                     >
-                      <View
-                        style={{
-                          overflow: "hidden",
-                          paddingHorizontal: 16,
-                          borderBottomWidth: 1,
-                          borderBottomColor: "#A9A2A6",
-                          height: 50,
-                          position: "relative",
-                          backgroundColor: "white",
-                        }}
+                      <Box
+                        overflow="hidden"
+                        paddingHorizontal="m"
+                        borderBottomWidth={1}
+                        borderBottomColor="silver"
+                        height={50}
+                        position="relative"
+                        backgroundColor="white"
                       >
                         <View style={[StyleSheet.absoluteFill, {}]}>
                           <Animated.View
@@ -190,15 +220,18 @@ const TransactionsScreen = () => {
                             }}
                           ></Animated.View>
                         </View>
-                      </View>
+                      </Box>
                     </Expense>
                   </Animated.View>
-                </View>
+                </Box>
               </Animated.View>
             );
           }}
+          renderSectionHeader={renderHeader}
+          renderSectionFooter={renderFooter}
+          sections={DATA}
         />
-      </View>
+      </Box>
       <View style={{ position: "absolute", right: 20, bottom: 50, zIndex: 4 }}>
         <TouchableOpacity
           onPress={() =>
@@ -236,6 +269,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     backgroundColor: "white",
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

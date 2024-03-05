@@ -1,5 +1,12 @@
-import React, { useRef, useState } from "react";
-import { StyleSheet, Dimensions, TextInput, View, Text } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  StyleSheet,
+  Dimensions,
+  TextInput,
+  View,
+  Text,
+  ActivityIndicator,
+} from "react-native";
 import {
   BorderlessButton,
   TouchableOpacity,
@@ -13,7 +20,7 @@ import {
 import { Picker } from "@react-native-picker/picker";
 import { useRecoilState, useRecoilValueLoadable } from "recoil";
 import { transactionsState } from "../atom/Transactions";
-import { playersAsyncSelector } from "../atom/Players";
+import { playersAsyncSelector, playersState } from "../atom/Players";
 import BackArrow from "../component/BackArrow";
 import { useToast } from "react-native-toast-notifications";
 import axiosInstance from "../lib/axiosClient";
@@ -32,25 +39,65 @@ const AddTransactionScreen = () => {
   const [type, setType] = useState(0);
   const [description, setDescription] = useState("");
   const [playerid, setPlayerId] = useState(-1);
-  const typeRef = useRef(null);
   const descriptionRef = useRef(null);
-  const players = useRecoilValueLoadable(playersAsyncSelector(teamid));
+  // const players = useRecoilValueLoadable(playersAsyncSelector(teamid));
+  const [fullPlayers, setFullPlayers] = useRecoilState(playersState);
   const toast = useToast();
   const [isLoading, setIsLoading] = useState(false);
-
-  // const onPop = () => {
-  //   const popAction = StackActions.pop(1);
-  //   navigation.dispatch(popAction);
-  // };
+  const tranType = [
+    { title: "Được tặng quà", value: 1 },
+    { title: "Tiền thưởng từ giải đấu", value: 2 },
+    { title: "Đóng quỹ", value: 3 },
+    { title: "Khoản thu khác", value: 4 },
+    { title: "Mua dụng cụ", value: -1 },
+    { title: "Tổ chức sự kiện", value: -2 },
+    { title: "Tặng quà cho thành viên", value: -3 },
+    { title: "Khoảng chi khác", value: -4 },
+  ];
+  useEffect(() => {
+    const getInfo = async () => {
+      setIsLoading(true);
+      try {
+        if (fullPlayers.length == 0) {
+          const { data } = await axiosInstance.get(`/players/team/${teamid}/`);
+          setFullPlayers(data);
+          console.log("Players stored successfully");
+          setIsLoading(false);
+        } else if (fullPlayers.length > 0) {
+          setIsLoading(false);
+        }
+      } catch (error) {
+        toast.show(error.message, {
+          type: "danger",
+          placement: "bottom",
+          duration: 4000,
+          offset: 30,
+          animationType: "zoom-in",
+        });
+        setIsLoading(false);
+      }
+    };
+    getInfo();
+  });
 
   const onSubmit = async () => {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = ("0" + (date.getMonth() + 1)).slice(-2); // Months are zero-based
+    const day = ("0" + date.getDate()).slice(-2);
+    const hours = ("0" + date.getHours()).slice(-2);
+    const minutes = ("0" + date.getMinutes()).slice(-2);
+
+    const formattedDate = `${year}-${month}-${day} ${hours}:${minutes}`;
     const transaction = {
       price,
       type,
       description,
-      teamid,
-      time: new Date().toLocaleString("en-US", options).replace(",", ""),
+      team_id: teamid,
+      player_id: playerid < 0 ? null : playerid,
+      time: formattedDate,
     };
+    console.log(transaction);
 
     if (!price || !type)
       return toast.show("Thiếu thông tin cần thiết", {
@@ -67,10 +114,11 @@ const AddTransactionScreen = () => {
         transaction
       );
       setPrice("");
-      setType("");
+      setType(0);
       setDescription("");
       setPlayerId(-1);
       setTransactions((prev) => [...prev, response.data]);
+      setIsLoading(false);
       navigation.navigate("Transactions", { teamid: teamid });
     } catch (error) {
       toast.show(error.message, {
@@ -80,27 +128,22 @@ const AddTransactionScreen = () => {
         offset: 30,
         animationType: "zoom-in",
       });
+      setIsLoading(false);
     } finally {
       setIsLoading(false);
     }
   };
 
+  if (isLoading) {
+    return (
+      <View style={styles.loadingOverlay}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
   return (
     <View style={{ padding: 24, flex: 1 }}>
-      {/* <View
-        style={{ flexDirection: "row", alignItems: "center", paddingTop: 24 }}
-      >
-        <TouchableOpacity onPress={onPop}>
-          <View>
-            <BackArrow />
-          </View>
-        </TouchableOpacity>
-
-        <Text style={{ marginLeft: 30, fontSize: 18, color: "#171E32" }}>
-          Add Amount
-        </Text>
-      </View> */}
-
       <View style={{ flexDirection: "column", marginTop: 16 }}>
         <View
           style={{
@@ -130,7 +173,7 @@ const AddTransactionScreen = () => {
           {/* <Text style={{ fontSize: 20 }}>NGN</Text> */}
         </View>
 
-        <View style={{ marginTop: 20, borderBottomWidth: 2 }}>
+        {/* <View style={{ marginTop: 20, borderBottomWidth: 2 }}>
           <TextInput
             ref={typeRef}
             placeholderTextColor="grey"
@@ -142,7 +185,20 @@ const AddTransactionScreen = () => {
             }}
             onChangeText={(type) => setType(type)}
           />
-        </View>
+        </View> */}
+        <Picker
+          style={styles.input}
+          selectedValue={type}
+          onValueChange={(itemValue, itemIndex) => {
+            if (itemValue != "label") setType(itemValue);
+          }}
+          dropdownIconColor="#00fc08"
+        >
+          <Picker.Item label="Chọn loại thu chi" value={0} />
+          {tranType.map((tran) => (
+            <Picker.Item label={`${tran.title}`} value={tran.value} />
+          ))}
+        </Picker>
 
         <View style={{ marginTop: 20, borderBottomWidth: 2 }}>
           <TextInput
@@ -154,7 +210,7 @@ const AddTransactionScreen = () => {
               fontSize: 30,
               width: "80%",
             }}
-            onChangeText={(type) => setType(type)}
+            onChangeText={(description) => setDescription(description)}
           />
         </View>
 
@@ -167,12 +223,12 @@ const AddTransactionScreen = () => {
           dropdownIconColor="#00fc08"
         >
           <Picker.Item label="Chọn cầu thủ liên quan" value={-1} />
-          {/* {players.map((player) => (
+          {fullPlayers.map((player) => (
             <Picker.Item
               label={`${player.firstName} ${player.lastName}`}
               value={player.id}
             />
-          ))} */}
+          ))}
         </Picker>
 
         <View style={{ marginTop: 20 }}>
@@ -216,8 +272,13 @@ const styles = StyleSheet.create({
     height: 40,
     borderColor: "#ccc",
     borderWidth: 1,
-    padding: 10,
     marginTop: 10,
     marginBottom: 10,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

@@ -4,96 +4,118 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
 } from "react-native-gesture-handler";
-import Animated, { eq, interpolate } from "react-native-reanimated";
+import Animated, {
+  Easing,
+  Extrapolation,
+  eq,
+  interpolate,
+  useDerivedValue,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
-import { withTransition } from "react-native-redash";
+// import { withTransition } from "react-native-redash";
 import Delete from "./Delete";
+import { useTiming } from "react-native-redash";
+import { Box, Text } from "./theme";
 
 const Expense = ({ index, transition, onTap, onDelete, item, allDates }) => {
-  const isActive = eq(transition, index);
-  const activeTransition = withTransition(isActive, { duration: 200 });
+  const isActive = useDerivedValue(() => (transition.value === index ? 1 : 0));
 
-  const delX = interpolate(activeTransition, {
-    inputRange: [0, 1],
-    outputRange: [-100, 20],
+  const activeTransition = useTiming(isActive.value, {
+    duration: 200,
   });
 
-  const hidePrice = interpolate(activeTransition, {
-    inputRange: [0, 1],
-    outputRange: [1, 0],
-  });
+  const delX = interpolate(activeTransition.value, [0, 1], [-100, 20]);
+
+  const hidePrice = interpolate(activeTransition.value, [0, 1], [1, 0]);
+
+  console.log("delX: " + delX);
+  console.log("hidePrice: " + hidePrice);
+  const tranType = [
+    "",
+    "Được tặng quà",
+    "Tiền thưởng từ giải đấu",
+    "Đóng quỹ",
+    "Khoản thu khác",
+    "Khoảng chi khác",
+    "Tặng quà cho thành viên",
+    "Tổ chức sự kiện",
+    "Mua dụng cụ",
+  ];
 
   return (
-    <>
-      <TouchableWithoutFeedback
-        onPress={() => {
-          onTap();
-        }}
-      >
-        <Animated.View>
-          <View
-            style={{
-              overflow: "hidden",
-              paddingHorizontal: 16,
-              borderBottomWidth: 1,
-              borderBottomColor: "silver",
-              height: 50,
-              position: "relative",
-            }}
-          >
-            <View style={[StyleSheet.absoluteFill, {}]}>
-              <Animated.View
-                style={{
-                  justifyContent: "space-between",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  height: 50,
-                  padding: 16,
-                }}
-              >
-                <Animated.Text>{item.title}</Animated.Text>
-                <Animated.Text
-                  style={{
-                    opacity: hidePrice,
-                    color: item.price > 0 ? "#009BFC" : "#FF4500",
-                  }}
-                >
-                  {item.price > 0
-                    ? `${item.price}₫`
-                    : `- ${Math.abs(item.price)}₫`}
-                </Animated.Text>
-              </Animated.View>
-            </View>
-
+    <TouchableWithoutFeedback
+      onPress={() => {
+        onTap();
+      }}
+    >
+      <Animated.View>
+        <Box
+          overflow="hidden"
+          paddingHorizontal="l"
+          borderBottomWidth={1}
+          borderBottomColor="silver"
+          height={50}
+          position="relative"
+        >
+          <View style={[StyleSheet.absoluteFill, {}]}>
             <Animated.View
               style={{
-                fontSize: 12,
-                color: "white",
-                fontWeight: "900",
-                position: "absolute",
-                height: 50,
-                width: "14%",
-                right: delX,
-                alignItems: "center",
+                justifyContent: "space-between",
                 flexDirection: "row",
-                justifyContent: "center",
-                backgroundColor: "white",
+                alignItems: "center",
+                height: 50,
+                padding: 16,
               }}
             >
-              <Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    onDelete(index);
-                  }}
-                >
-                  <Delete />
-                </TouchableOpacity>
-              </Text>
+              <Animated.Text>
+                {item.type > 0
+                  ? tranType[item.type]
+                  : tranType[tranType.length + item.type]}
+              </Animated.Text>
+              <Animated.Text
+                style={{
+                  opacity: hidePrice ? hidePrice : 0,
+                  color: item.type > 0 ? "#009BFC" : "#FF4500",
+                }}
+              >
+                {item.price > 0
+                  ? `${item.price}₫`
+                  : `- ${Math.abs(item.price)}₫`}
+              </Animated.Text>
             </Animated.View>
           </View>
-        </Animated.View>
-      </TouchableWithoutFeedback>
-    </>
+
+          <Animated.View
+            style={{
+              fontSize: 12,
+              color: "white",
+              fontWeight: "900",
+              position: "absolute",
+              height: 50,
+              width: "14%",
+              right: delX ? delX : 0,
+              alignItems: "center",
+              flexDirection: "row",
+              justifyContent: "center",
+              backgroundColor: "white",
+            }}
+          >
+            <Text>
+              <TouchableOpacity
+                onPress={() => {
+                  onDelete(index);
+                }}
+              >
+                <Delete />
+                {/* <Text>Delete</Text> */}
+              </TouchableOpacity>
+            </Text>
+          </Animated.View>
+        </Box>
+      </Animated.View>
+    </TouchableWithoutFeedback>
   );
 };
 

@@ -18,6 +18,8 @@ import { useRecoilState } from "recoil";
 import { eventsState, fetchEventsState } from "../atom/Events";
 import { ActivityIndicator } from "react-native";
 import axiosInstance from "../lib/axiosClient";
+import { useToast } from "react-native-toast-notifications";
+import { teamIdSelector } from "../atom/Players";
 
 const configDateTime = (datetime) => {
   let dateAndTime = datetime.split("T"); // split date and time
@@ -53,6 +55,7 @@ const HomeScreen = () => {
   const [teamName, setTeamName] = useState("");
   const [datesEvent, setDatesEvent] = useState([]);
   const [isloading, setIsLoading] = useState(false);
+  const toast = useToast();
 
   const getDatesHaveEvent = (events, games) => {
     let dates = [];
@@ -120,6 +123,7 @@ const HomeScreen = () => {
     getInfo();
   }, []);
   console.log(datesEvent);
+  console.log(teamid);
   const renderEvents = () => {
     return events.map((event) => {
       if (getDate(event.timeStart) === selected) {
