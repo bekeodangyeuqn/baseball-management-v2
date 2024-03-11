@@ -35,10 +35,10 @@ const AddTransactionScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const teamid = route.params.teamid;
-  const [price, setPrice] = useState("");
+  const [price, setPrice] = useState(0);
   const [type, setType] = useState(0);
   const [description, setDescription] = useState("");
-  const [playerid, setPlayerId] = useState(-1);
+  const [playerid, setPlayerId] = useState(null);
   const descriptionRef = useRef(null);
   // const players = useRecoilValueLoadable(playersAsyncSelector(teamid));
   const [fullPlayers, setFullPlayers] = useRecoilState(playersState);
@@ -194,9 +194,20 @@ const AddTransactionScreen = () => {
           }}
           dropdownIconColor="#00fc08"
         >
-          <Picker.Item label="Chọn loại thu chi" value={0} />
+          <Picker.Item
+            label="Chọn loại thu chi"
+            value={0}
+            style={{ color: "black" }}
+          />
           {tranType.map((tran) => (
-            <Picker.Item label={`${tran.title}`} value={tran.value} />
+            <Picker.Item
+              style={{
+                color:
+                  tran.value < 0 ? "red" : tran.value === 0 ? "black" : "green",
+              }}
+              label={`${tran.title}`}
+              value={tran.value}
+            />
           ))}
         </Picker>
 

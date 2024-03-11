@@ -82,7 +82,15 @@ const TeamScreen = () => {
             <Text style={{ fontSize: 16 }}>Quản lý nhân sự</Text>
           </View>
           <View style={{ flex: 1, padding: 10, alignItems: "center" }}>
-            <Ionicons name="shirt" size={size} />
+            <Ionicons
+              name="shirt"
+              size={size}
+              onPress={() =>
+                navigation.navigate("Equipments", {
+                  teamid: teamId,
+                })
+              }
+            />
             <Text style={{ fontSize: 16 }}>Quản lý đồ</Text>
           </View>
           <View style={{ flex: 1, padding: 10, alignItems: "center" }}>

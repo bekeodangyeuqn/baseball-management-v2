@@ -481,6 +481,8 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginLeft: 8,
     marginRight: 8,
+    borderRadius: 10,
+    backgroundColor: "white",
   },
   inputLong: {
     width: "80%",
@@ -491,6 +493,8 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginLeft: 8,
     marginRight: 8,
+    borderRadius: 10,
+    backgroundColor: "white",
   },
   button: {
     height: 40,

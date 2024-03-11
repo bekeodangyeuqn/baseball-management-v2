@@ -13,6 +13,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axiosInstance from "../lib/axiosClient";
 import { useToast } from "react-native-toast-notifications";
 import { useRoute } from "@react-navigation/native";
+import jwtDecode from "jwt-decode";
 
 const tableDataSample = {
   tableHead: [
@@ -130,6 +131,7 @@ const PlayerProfileScreen = () => {
   const [player, setPlayer] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
+  const [teamName, setTeamName] = useState("");
 
   const splitAvatarURI = (str) => {
     const arr = str.split("?");
@@ -140,6 +142,10 @@ const PlayerProfileScreen = () => {
     const getInfo = async () => {
       setIsLoading(true);
       try {
+        const token = await AsyncStorage.getItem("access_token");
+        const decoded = jwtDecode(token);
+        setTeamName(decoded.teamName);
+
         const storedPlayer = await AsyncStorage.getItem(`player_${id}`);
         if (storedPlayer) {
           const data = JSON.parse(storedPlayer);
@@ -192,7 +198,7 @@ const PlayerProfileScreen = () => {
               style={styles.name}
             >{`${player.firstName} ${player.lastName}`}</Text>
             <Text style={{ fontSize: 24, textAlign: "center" }}>
-              Team: HUST Red Owls
+              Team: {`${teamName}`}
             </Text>
             <Text style={{ fontSize: 24, textAlign: "center" }}>
               Role: Player
@@ -203,12 +209,12 @@ const PlayerProfileScreen = () => {
               <Text>Số áo</Text>
             </View>
             <View style={styles.profileRow}>
-              <Text
-                style={{ marginRight: 8, fontWeight: "bold" }}
-              >{`${player.height}cm`}</Text>
-              <Text
-                style={{ marginRight: 8, fontWeight: "bold" }}
-              >{`${player.weight}kg`}</Text>
+              <Text style={{ marginRight: 8, fontWeight: "bold" }}>
+                {player.height ? `${player.height} cm` : "Chưa rõ"}
+              </Text>
+              <Text style={{ marginRight: 8, fontWeight: "bold" }}>
+                {player.weight ? `${player.weight} kg` : "Chưa rõ"}
+              </Text>
               <Text style={{ fontWeight: "bold" }}>{player.jerseyNumber}</Text>
             </View>
           </View>

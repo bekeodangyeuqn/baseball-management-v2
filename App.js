@@ -36,6 +36,8 @@ import TransactionsScreen from "./screens/transactions-screen";
 import AddTransactionScreen from "./screens/add-transaction-screen";
 import { ThemeProvider } from "@shopify/restyle";
 import theme from "./component/theme";
+import EquipmentScreen from "./screens/equipment-screen";
+import AddEquipmentScreen from "./screens/add-equipment-screen";
 
 export default function App() {
   const Stack = createStackNavigator();
@@ -198,6 +200,16 @@ export default function App() {
                   name="AddTransaction"
                   component={AddTransactionScreen}
                   options={{ title: "Thêm thu chi" }}
+                />
+                <Stack.Screen
+                  name="Equipments"
+                  component={EquipmentScreen}
+                  options={{ title: "Quản lý dụng cụ" }}
+                />
+                <Stack.Screen
+                  name="AddEquipment"
+                  component={AddEquipmentScreen}
+                  options={{ title: "Thêm dụng cụ" }}
                 />
               </Stack.Navigator>
             </NavigationContainer>

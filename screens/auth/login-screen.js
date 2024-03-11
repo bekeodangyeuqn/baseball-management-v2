@@ -52,7 +52,7 @@ const LoginScreen = () => {
         }
       });
       setIsLoading(false);
-      toast.show("Login successfully", {
+      toast.show("Đăng nhập thành công", {
         type: "success",
         placement: "bottom",
         duration: 4000,
@@ -168,6 +168,8 @@ const styles = StyleSheet.create({
     padding: 10,
     marginTop: 10,
     marginBottom: 10,
+    borderRadius: 10,
+    backgroundColor: "white",
   },
   button: {
     width: 300,

@@ -20,7 +20,7 @@ export const transactionByIdState = selector({
   get:
     ({ get }) =>
     (id) =>
-      get(transactionByIdState).find((transaction) => transaction.id === id),
+      get(transactionsState).find((transaction) => transaction.id === id),
 });
 
 export const fetchTransactionsState = selectorFamily({
