@@ -332,11 +332,16 @@ const AddEquipmentScreen = () => {
               }}
               dropdownIconColor="#00fc08"
             >
-              <Picker.Item label="Chọn cầu thủ liên quan" value={-1} />
+              <Picker.Item
+                label="Chọn cầu thủ liên quan"
+                value={null}
+                key={-1}
+              />
               {fullPlayers.map((player) => (
                 <Picker.Item
                   label={`${player.firstName} ${player.lastName}`}
                   value={player.id}
+                  key={player.id}
                 />
               ))}
             </Picker>

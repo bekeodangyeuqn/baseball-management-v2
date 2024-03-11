@@ -31,6 +31,7 @@ import {
 } from "recoil";
 import SearchBox from "../component/SearchBox";
 import filter from "lodash.filter";
+import EmptyList from "../component/EmptyList";
 
 const { width } = Dimensions.get("window");
 const gap = 4;
@@ -152,32 +153,36 @@ const PlayerListScreen = () => {
       <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 8 }}>
         Danh sách cầu thủ
       </Text>
-      <View style={styles.itemsWrap}>
-        {players.map((player) => (
-          <TouchableOpacity
-            style={styles.singleItem}
-            key={player.id}
-            onPress={() => {
-              navigation.navigate("PlayerProfile", { id: player.id });
-            }}
-          >
-            <Card>
-              <View style={{ position: "relative", alignItems: "center" }}>
-                <Image
-                  style={{ height: 40, width: 40 }}
-                  resizeMode="contain"
-                  source={{
-                    uri: splitAvatarURI(player.avatar),
-                  }}
-                />
-                <Text>{player.lastName}</Text>
-                <Text>{player.jerseyNumber}</Text>
-                <Text>{position[player.firstPos]}</Text>
-              </View>
-            </Card>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {players.length === 0 ? (
+        <EmptyList />
+      ) : (
+        <View style={styles.itemsWrap}>
+          {players.map((player) => (
+            <TouchableOpacity
+              style={styles.singleItem}
+              key={player.id}
+              onPress={() => {
+                navigation.navigate("PlayerProfile", { id: player.id });
+              }}
+            >
+              <Card>
+                <View style={{ position: "relative", alignItems: "center" }}>
+                  <Image
+                    style={{ height: 40, width: 40 }}
+                    resizeMode="contain"
+                    source={{
+                      uri: splitAvatarURI(player.avatar),
+                    }}
+                  />
+                  <Text>{player.lastName}</Text>
+                  <Text>{player.jerseyNumber}</Text>
+                  <Text>{position[player.firstPos]}</Text>
+                </View>
+              </Card>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
       <Text
         style={{
           fontWeight: "bold",
@@ -188,34 +193,38 @@ const PlayerListScreen = () => {
       >
         Danh sách quản lý
       </Text>
-      <View style={styles.itemsWrap}>
-        {managers.map((manager) => (
-          <TouchableOpacity
-            style={styles.singleItem}
-            key={manager.id}
-            onPress={() => {
-              navigation.navigate("ManagerProfile", { id: manager.id });
-            }}
-          >
-            <Card>
-              <View style={{ position: "relative", alignItems: "center" }}>
-                <Image
-                  style={{ height: 40, width: 40 }}
-                  resizeMode="contain"
-                  source={{
-                    uri: manager.avatar
-                      ? splitAvatarURI(manager.avatar)
-                      : "https://cdn0.iconfinder.com/data/icons/baseball-filledoutline/64/baseball_player-user-boy-sports-avatar-profile-man-people-coach-512.png",
-                  }}
-                />
-                <Text>{manager.lastName}</Text>
-                <Text></Text>
-                <Text></Text>
-              </View>
-            </Card>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {managers.length === 0 ? (
+        <EmptyList />
+      ) : (
+        <View style={styles.itemsWrap}>
+          {managers.map((manager) => (
+            <TouchableOpacity
+              style={styles.singleItem}
+              key={manager.id}
+              onPress={() => {
+                navigation.navigate("ManagerProfile", { id: manager.id });
+              }}
+            >
+              <Card>
+                <View style={{ position: "relative", alignItems: "center" }}>
+                  <Image
+                    style={{ height: 40, width: 40 }}
+                    resizeMode="contain"
+                    source={{
+                      uri: manager.avatar
+                        ? splitAvatarURI(manager.avatar)
+                        : "https://cdn0.iconfinder.com/data/icons/baseball-filledoutline/64/baseball_player-user-boy-sports-avatar-profile-man-people-coach-512.png",
+                    }}
+                  />
+                  <Text>{manager.lastName}</Text>
+                  <Text></Text>
+                  <Text></Text>
+                </View>
+              </Card>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
     </ScrollView>
   );
 };

@@ -26,21 +26,25 @@ const equipType = [
     id: 0,
     type: "Găng",
     image: glove,
+    path: "Gloves",
   },
   {
     id: 1,
     type: "Bóng",
     image: ball,
+    path: "Balls",
   },
   {
     id: 2,
     type: "Gậy",
     image: bat,
+    path: "Bats",
   },
   {
     id: 3,
     type: "Khác",
     image: other,
+    path: "Others",
   },
 ];
 
@@ -69,7 +73,7 @@ const EquipmentScreen = () => {
           console.log("Equipements stored successfully");
           setIsLoading(false);
         } else if (recoilEquipments.length > 0) {
-          setTransactions(recoilEquipments);
+          setEquipments(recoilEquipments);
           setIsLoading(false);
         }
       } catch (error) {
@@ -128,6 +132,11 @@ const EquipmentScreen = () => {
                 shadowOpacity: 0.4,
                 padding: 8,
               }}
+              onPress={() =>
+                navigation.navigate(item.path, {
+                  teamid: teamid,
+                })
+              }
             >
               <Image
                 source={item.image}

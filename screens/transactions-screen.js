@@ -22,6 +22,7 @@ import AddIcon from "../component/AddIcon";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import theme, { Box, Text } from "../component/theme";
 import { useTiming } from "react-native-redash";
+import EmptyList from "../component/EmptyList";
 
 const TransactionsScreen = () => {
   const [recoilTransactions, setRecoilTransactions] =
@@ -171,6 +172,7 @@ const TransactionsScreen = () => {
       >
         <SectionList
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={<EmptyList />}
           scrollEventThrottle={16}
           bounces={false}
           keyExtractor={(item, index) => item + index}

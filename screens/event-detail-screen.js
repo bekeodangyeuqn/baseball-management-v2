@@ -5,6 +5,15 @@ import { View, StyleSheet, Text, Button } from "react-native";
 const EventDetailScreen = () => {
   const route = useRoute();
   const event = route.params.event;
+  const getDate = (datetime) => {
+    let dateAndTime = datetime.split("T"); // split date and time
+
+    let date = dateAndTime[0]; // get the date
+
+    let time = dateAndTime[1].split(":"); // split hours and minutes
+    let hoursAndMinutes = `${time[0]}:${time[1]}`;
+    return `${hoursAndMinutes} ${date}`; // get hours and minutes
+  };
   return (
     <View style={styles.container}>
       <View style={styles.card}>
@@ -16,13 +25,13 @@ const EventDetailScreen = () => {
             <Text style={{ fontSize: 18, fontWeight: "bold" }}>
               Thời gian bắt đầu:
             </Text>
-            <Text>{event.timeStart}</Text>
+            <Text>{getDate(event.timeStart)}</Text>
           </View>
           <View>
             <Text style={{ fontSize: 18, fontWeight: "bold" }}>
               Thời gian kết thúc:
             </Text>
-            <Text>{event.timeEnd ? event.timeEnd : "Chưa rõ"}</Text>
+            <Text>{event.timeEnd ? getDate(event.timeEnd) : "Chưa rõ"}</Text>
           </View>
           <View>
             <Text style={{ fontSize: 18, fontWeight: "bold" }}>Địa điểm:</Text>

@@ -5,10 +5,19 @@ import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
 const EventInfo = (props) => {
   const { key, title, timeStart, timeEnd, location, event } = props;
   const navigation = useNavigation();
+  const getDate = (datetime) => {
+    let dateAndTime = datetime.split("T"); // split date and time
+
+    let date = dateAndTime[0]; // get the date
+
+    let time = dateAndTime[1].split(":"); // split hours and minutes
+    let hoursAndMinutes = `${time[0]}:${time[1]}`;
+    return `${hoursAndMinutes} ${date}`; // get hours and minutes
+  };
   return (
     <TouchableOpacity
+      key={event.id}
       style={styles.event}
-      key={key}
       onPress={() =>
         navigation.navigate("EventDetail", {
           event: event,
@@ -17,8 +26,8 @@ const EventInfo = (props) => {
     >
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.time}>
-        {timeStart.toString()} -{" "}
-        {timeEnd ? timeEnd.toLocaleString() : "Chưa rõ"}
+        {getDate(timeStart.toString())} -{" "}
+        {timeEnd ? getDate(timeEnd.toLocaleString()) : "Chưa rõ"}
       </Text>
       <Text style={styles.location}>{location}</Text>
     </TouchableOpacity>

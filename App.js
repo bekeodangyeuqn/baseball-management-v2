@@ -38,6 +38,10 @@ import { ThemeProvider } from "@shopify/restyle";
 import theme from "./component/theme";
 import EquipmentScreen from "./screens/equipment-screen";
 import AddEquipmentScreen from "./screens/add-equipment-screen";
+import GlovesScreen from "./screens/equipment/gloves-screen";
+import BallsScreen from "./screens/equipment/balls-screen";
+import BatsScreen from "./screens/equipment/bats-screen";
+import OthersScreen from "./screens/equipment/others-screen";
 
 export default function App() {
   const Stack = createStackNavigator();
@@ -210,6 +214,26 @@ export default function App() {
                   name="AddEquipment"
                   component={AddEquipmentScreen}
                   options={{ title: "Thêm dụng cụ" }}
+                />
+                <Stack.Screen
+                  name="Gloves"
+                  component={GlovesScreen}
+                  options={{ title: "Găng" }}
+                />
+                <Stack.Screen
+                  name="Balls"
+                  component={BallsScreen}
+                  options={{ title: "Bóng" }}
+                />
+                <Stack.Screen
+                  name="Bats"
+                  component={BatsScreen}
+                  options={{ title: "Gậy" }}
+                />
+                <Stack.Screen
+                  name="Others"
+                  component={OthersScreen}
+                  options={{ title: "Khác" }}
                 />
               </Stack.Navigator>
             </NavigationContainer>

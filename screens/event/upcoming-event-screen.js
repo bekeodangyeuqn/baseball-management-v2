@@ -23,7 +23,6 @@ const UpcomingEventScreen = (props) => {
           if (event.status === -1) {
             return (
               <EventInfo
-                key={event.id}
                 title={event.title}
                 timeStart={event.timeStart}
                 timeEnd={event.timeEnd}
