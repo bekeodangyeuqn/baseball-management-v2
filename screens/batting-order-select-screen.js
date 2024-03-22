@@ -13,7 +13,7 @@ const BattingOrderSelectScreen = () => {
   const navigation = useNavigation();
   const players = useRecoilValue(myBattingOrder(gameid));
   const [myPlayers, setMyPlayers] = useState(players);
-  console.log(myPlayers);
+
   useEffect(() => {
     if (myPlayers.length === 10) {
       setMyPlayers((curPlayers) => {
@@ -44,7 +44,10 @@ const BattingOrderSelectScreen = () => {
       <Pressable
         style={{ ...styles.button }}
         onPress={() => {
-          navigation.navigate("PlayBall", { gameid: gameid });
+          navigation.navigate("PlayBall", {
+            gameid: gameid,
+            myBatting: myPlayers,
+          });
         }}
       >
         <Text style={{ fontWeight: "bold" }}>Let's play</Text>

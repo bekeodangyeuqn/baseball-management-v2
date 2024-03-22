@@ -7,6 +7,7 @@ const PlayBallTypeScreen = () => {
   const navigaton = useNavigation();
   const route = useRoute();
   const gameid = route.params.gameid;
+  const myBatting = route.params.myBatting;
   const [beforeId, setBeforeId] = useState();
 
   const radioButtons = useMemo(
@@ -35,6 +36,7 @@ const PlayBallTypeScreen = () => {
             navigaton.navigate("PlayByPlay", {
               gameid: gameid,
               beforeId: beforeId,
+              myBatting: myBatting,
             })
           }
         >
@@ -49,6 +51,7 @@ const PlayBallTypeScreen = () => {
             navigaton.navigate("BoxScore", {
               gameid: gameid,
               beforeId: beforeId,
+              myBatting: myBatting,
             });
           }}
         >
