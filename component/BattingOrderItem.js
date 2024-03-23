@@ -7,7 +7,7 @@ import { myGamePlayers } from "../atom/GamePlayers";
 import { ScaleDecorator } from "react-native-draggable-flatlist";
 
 const BattingOrderItem = (props) => {
-  const { obj, drag, isActive } = props;
+  const { obj, drag, isActive, index } = props;
   const positionStr = [
     "DH",
     "P",
@@ -32,6 +32,7 @@ const BattingOrderItem = (props) => {
         style={{
           ...styles.container,
           backgroundColor: isActive ? "green" : "white",
+          display: index === 9 ? "none" : null,
         }}
         onLongPress={drag}
         disabled={isActive}

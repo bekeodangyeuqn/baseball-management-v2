@@ -158,9 +158,7 @@ const PlayByPlayScreen = () => {
   const [currentPlayer, setCurrentPlayer] = useState(1);
   const [outcomeType, setOutcomeType] = useState(null);
   const [description, setDescription] = useState("");
-  const [gloRbi, setGloRbi] = useState(0);
-  const [gloRun, setGloRun] = useState(0);
-  const [gloLob, setGloLob] = useState(0);
+  const [numPitchers, setNumPitchers] = useState(1);
 
   const [atBat, setAtBat] = useState({
     gameid: gameid,
@@ -171,7 +169,7 @@ const PlayByPlayScreen = () => {
     isTop: true,
     ball: 0,
     strike: 0,
-    isOffense: beforeId,
+    isOffense: Number(beforeId),
     isRunnerFirst: null,
     isRunnerSecond: null,
     isRunnerThird: null,
@@ -179,8 +177,10 @@ const PlayByPlayScreen = () => {
     oppCurPlayer: 1,
     outcomeType: null,
     description: "",
-    currentPitcher: myPlayers.filter((p) => p.position === 1)[0],
+    currentPitcher: myPlayers.find((p) => p.position === 1),
   });
+
+  const [pitchers, setPitchers] = useState([]);
 
   const [showStrike, setShowStrike] = useState(false);
   const [showBall, setShowBall] = useState(false);
@@ -223,6 +223,63 @@ const PlayByPlayScreen = () => {
   const viewPlayers = () => {
     playersBottomSheet.current?.expand();
   };
+
+  const updatePitcherStat = (
+    pitcher,
+    type,
+    ball,
+    strike,
+    out,
+    run,
+    earnRun,
+    balk,
+    wildPitch,
+    firstPitchStrike,
+    pickOff
+  ) => {
+    const updatePitcher = {
+      ...pitcher,
+      pitchBall: ball === 1 ? pitcher.pitchBall + 1 : pitcher.pitchBall,
+      pitchStrike:
+        strike === 1 || (type !== null && type !== 11 && type !== 12)
+          ? pitcher.pitchStrike + 1
+          : pitcher.pitchStrike,
+      totalBatterFaced:
+        type !== null ? pitcher.totalBatterFaced + 1 : pitcher.totalBatterFaced,
+      totalInGameOut:
+        out === 1 ? pitcher.totalInGameOut + 1 : pitcher.totalInGameOut,
+      oppHit: type >= 13 && type <= 17 ? pitcher.oppHit + 1 : pitcher.oppHit,
+      oppRun: run > 0 ? pitcher.oppRun + run : pitcher.oppRun,
+      earnedRun: earnRun > 0 ? pitcher.earnedRun + earnRun : pitcher.earnedRun,
+      oppBaseOnBall:
+        type === 11 || type === 12
+          ? pitcher.oppBaseOnBall + 1
+          : pitcher.oppBaseOnBall,
+      oppStrikeOut:
+        type === 1 || type === 2
+          ? pitcher.oppStrikeOut + 1
+          : pitcher.oppStrikeOut,
+      hitBatter: type === 19 ? pitcher.hitBatter + 1 : pitcher.hitBatter,
+      balk: balk > 0 ? pitcher.balk + balk : pitcher.balk,
+      wildPitch:
+        wildPitch > 0 ? pitcher.wildPitch + wildPitch : pitcher.wildPitch,
+      oppHomeRun: type === 16 ? pitcher.oppHomeRun + 1 : pitcher.oppHomeRun,
+      firstPitchStrike:
+        firstPitchStrike > 0
+          ? pitcher.firstPitchStrike + 1
+          : pitcher.firstPitchStrike,
+      pickOff: pickOff > 0 ? pitcher.pickOff + pickOff : pitcher.pickOff,
+    };
+    setMyBatting((prev) => {
+      let newBatting = [
+        ...prev.filter((obj) => obj.player.id !== pitcher.player.id),
+      ];
+      newBatting.splice(9 * numPitchers, 0, updatePitcher);
+      return newBatting;
+    });
+  };
+
+  console.log(atBat.isOffense, atBat.out);
 
   const updateBatterStat = (
     player,
@@ -284,17 +341,28 @@ const PlayByPlayScreen = () => {
     });
   };
 
-  const handleOut = (isBatter, player) => {
+  const handleOut = (isBatter = null, player) => {
     if (atBat.out < 2) {
       setAtBat((prev) => {
         let out = prev.out + 1;
-        let player = 0;
-        if (prev.currentPlayer === 9) player = 1;
-        else player = prev.currentPlayer + 1;
+        let player = prev.currentPlayer;
+        let oppPLayer = prev.oppCurPlayer;
+        if (prev.isOffense === 1) {
+          if (prev.currentPlayer === 9) player = 1;
+          else player = prev.currentPlayer + 1;
+        } else {
+          if (prev.oppCurPlayer === 9) oppPLayer = 1;
+          else oppPLayer = prev.oppCurPlayer + 1;
+        }
+
         return {
           ...prev,
           out: out,
-          currentPlayer: isBatter ? player : prev.currentPlayer,
+          currentPlayer: isBatter === true ? player : prev.currentPlayer,
+          oppCurPlayer: isBatter === true ? oppPLayer : prev.oppCurPlayer,
+          isRunnerFirst: isBatter === 1 ? null : prev.isRunnerFirst,
+          isRunnerSecond: isBatter === 2 ? null : prev.isRunnerSecond,
+          isRunnerThird: isBatter === 3 ? null : prev.isRunnerThird,
           ball: 0,
           strike: 0,
         };
@@ -302,18 +370,26 @@ const PlayByPlayScreen = () => {
     } else {
       setAtBat((prev) => {
         let player = prev.currentPlayer;
-        if (player === 9) player = 1;
-        else player = prev.currentPlayer + 1;
+        let oppCurPlayer = prev.oppCurPlayer;
+        if (prev.isOffense === 1) {
+          if (prev.currentPlayer === 9) player = 1;
+          else player = prev.currentPlayer + 1;
+        } else {
+          if (prev.oppCurPlayer === 9) oppCurPlayer = 1;
+          else oppCurPlayer = prev.oppCurPlayer + 1;
+        }
+
         let inn = prev.inning;
         if (!prev.isTop) inn = inn + 1;
         return {
           ...prev,
-          isOffense: prev.isOffense === 0 ? 1 : 0,
+          isOffense: prev.isOffense == 0 ? 1 : 0,
           inning: inn,
           ball: 0,
           strike: 0,
           out: 0,
           currentPlayer: player,
+          oppCurPlayer: oppCurPlayer,
           isRunnerFirst: null,
           isRunnerSecond: null,
           isRunnerThird: null,
@@ -371,7 +447,7 @@ const PlayByPlayScreen = () => {
                     if (atBat.isRunnerSecond) lob++;
                     if (atBat.isRunnerThird) lob++;
 
-                    if (atBat.isOffense) {
+                    if (atBat.isOffense === 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         1,
@@ -381,6 +457,25 @@ const PlayByPlayScreen = () => {
                         lob
                       );
                       handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                    } else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        1,
+                        0,
+                        3 - atBat.strike,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                      handleOut(true, atBat.oppCurPlayer);
                     }
                   }}
                   style={styles.modelButton}
@@ -396,7 +491,7 @@ const PlayByPlayScreen = () => {
                     if (atBat.isRunnerSecond) lob++;
                     if (atBat.isRunnerThird) lob++;
 
-                    if (atBat.isOffense) {
+                    if (atBat.isOffense === 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         2,
@@ -406,6 +501,25 @@ const PlayByPlayScreen = () => {
                         lob
                       );
                       handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                    } else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        2,
+                        0,
+                        3 - atBat.strike,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                      handleOut(true, atBat.oppCurPlayer);
                     }
                   }}
                   style={styles.modelButton}
@@ -425,7 +539,7 @@ const PlayByPlayScreen = () => {
                     if (atBat.isRunnerThird) setThirdRunnerVisible(true);
                     else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
                     else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
-                    if (atBat.isOffense) {
+                    if (atBat.isOffense === 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         3,
@@ -435,6 +549,13 @@ const PlayByPlayScreen = () => {
                         lob
                       );
                       handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                    } else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(pitcher, 3, 0, 0, 1, 0, 0, 0, 0, 0, 0);
+                      handleOut(true, atBat.oppCurPlayer);
                     }
                   }}
                   style={styles.modelButton}
@@ -452,7 +573,7 @@ const PlayByPlayScreen = () => {
                     if (atBat.isRunnerThird) setThirdRunnerVisible(true);
                     else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
                     else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
-                    if (atBat.isOffense) {
+                    if (atBat.isOffense === 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         4,
@@ -462,6 +583,13 @@ const PlayByPlayScreen = () => {
                         lob
                       );
                       handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                    } else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(pitcher, 4, 0, 0, 1, 0, 0, 0, 0, 0, 0);
+                      handleOut(true, atBat.oppCurPlayer);
                     }
                   }}
                   style={styles.modelButton}
@@ -477,16 +605,23 @@ const PlayByPlayScreen = () => {
                     if (atBat.isRunnerThird) setThirdRunnerVisible(true);
                     else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
                     else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
-                    if (atBat.isOffense) {
+                    if (atBat.isOffense === 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         5,
                         0,
                         0,
                         false,
-                        lob
+                        0
                       );
                       handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                    } else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(pitcher, 5, 0, 0, 1, 0, 0, 0, 0, 0, 0);
+                      handleOut(true, atBat.oppCurPlayer);
                     }
                   }}
                   style={styles.modelButton}
@@ -500,16 +635,23 @@ const PlayByPlayScreen = () => {
                     if (atBat.isRunnerThird) setThirdRunnerVisible(true);
                     else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
                     else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
-                    if (atBat.isOffense) {
+                    if (atBat.isOffense === 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         6,
                         0,
                         0,
                         false,
-                        lob
+                        0
                       );
                       handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                    } else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(pitcher, 6, 0, 0, 1, 0, 0, 0, 0, 0, 0);
+                      handleOut(true, atBat.oppCurPlayer);
                     }
                   }}
                   style={styles.modelButton}
@@ -521,12 +663,33 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   disabled={atBat.out > 2 ? true : false}
                   onPress={() => {
+                    let lob = 0;
+                    if (atBat.isRunnerFirst) lob++;
+                    if (atBat.isRunnerSecond) lob++;
+                    if (atBat.isRunnerThird) lob++;
                     setOutModalVisible(false);
                     setOutcomeType(7);
                     if (atBat.isRunnerThird) setThirdRunnerVisible(true);
                     else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
                     else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
-                    handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                    if (atBat.isOffense === 1) {
+                      updateBatterStat(
+                        myBatting[atBat.currentPlayer - 1],
+                        7,
+                        0,
+                        0,
+                        false,
+                        lob
+                      );
+                      handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                    } else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(pitcher, 7, 0, 0, 1, 0, 0, 0, 0, 0, 0);
+                      handleOut(true, atBat.oppCurPlayer);
+                    }
                   }}
                   style={styles.modelButton}
                 >
@@ -534,12 +697,33 @@ const PlayByPlayScreen = () => {
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => {
+                    let lob = 0;
+                    if (atBat.isRunnerFirst) lob++;
+                    if (atBat.isRunnerSecond) lob++;
+                    if (atBat.isRunnerThird) lob++;
                     setOutModalVisible(false);
                     setOutcomeType(8);
                     if (atBat.isRunnerThird) setThirdRunnerVisible(true);
                     else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
                     else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
                     else setBatterRunnerVisible(true);
+                    if (atBat.isOffense === 1) {
+                      updateBatterStat(
+                        myBatting[atBat.currentPlayer - 1],
+                        8,
+                        0,
+                        0,
+                        false,
+                        lob
+                      );
+                    } else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(pitcher, 8, 0, 0, 1, 0, 0, 0, 0, 0, 0);
+                      handleOut(true, atBat.oppCurPlayer);
+                    }
                   }}
                   style={styles.modelButton}
                 >
@@ -550,12 +734,26 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   disabled={atBat.out > 2 ? true : false}
                   onPress={() => {
+                    let lob = 0;
+                    if (atBat.isRunnerFirst) lob++;
+                    if (atBat.isRunnerSecond) lob++;
+                    if (atBat.isRunnerThird) lob++;
                     setOutModalVisible(false);
                     setOutcomeType(9);
                     if (atBat.isRunnerThird) setThirdRunnerVisible(true);
                     else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
                     else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
                     else setBatterRunnerVisible(true);
+                    if (atBat.isOffense === 1) {
+                      updateBatterStat(
+                        myBatting[atBat.currentPlayer - 1],
+                        9,
+                        0,
+                        0,
+                        false,
+                        lob
+                      );
+                    }
                   }}
                   style={styles.modelButton}
                 >
@@ -566,12 +764,33 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   disabled={atBat.out > 1 ? true : false}
                   onPress={() => {
+                    let lob = 0;
+                    if (atBat.isRunnerFirst) lob++;
+                    if (atBat.isRunnerSecond) lob++;
+                    if (atBat.isRunnerThird) lob++;
                     setOutModalVisible(false);
                     setOutcomeType(10);
                     if (atBat.isRunnerThird) setThirdRunnerVisible(true);
                     else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
                     else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
                     else setBatterRunnerVisible(true);
+                    if (atBat.isOffense === 1) {
+                      updateBatterStat(
+                        myBatting[atBat.currentPlayer - 1],
+                        10,
+                        0,
+                        0,
+                        false,
+                        lob
+                      );
+                    } else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(pitcher, 10, 0, 0, 1, 0, 0, 0, 0, 0, 0);
+                      handleOut(true, atBat.oppCurPlayer);
+                    }
                   }}
                   style={styles.modelButton}
                 >
@@ -602,32 +821,59 @@ const PlayByPlayScreen = () => {
                     setSafeModalVisible(false);
                     setOutcomeType(11);
                     let player = atBat.currentPlayer;
+                    let oppPlayer = atBat.oppCurPlayer;
                     let runner1 = atBat.isRunnerFirst;
                     let runner2 = atBat.isRunnerSecond;
                     let runner3 = atBat.isRunnerThird;
                     let teamscore = atBat.teamScore;
+                    let oppScore = atBat.oppScore;
                     let rbi = 0;
+                    let earnRun = 0;
+                    let run = 0;
+                    if (atBat.isOffense === 1) {
+                      if (player === 9) player = 1;
+                      else player = atBat.currentPlayer + 1;
+                      if (atBat.isRunnerFirst === null) {
+                        runner1 = myBatting[atBat.currentPlayer - 1];
+                      } else if (atBat.isRunnerSecond === null) {
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = myBatting[atBat.currentPlayer - 1];
+                      } else if (atBat.isRunnerThird === null) {
+                        runner3 = atBat.isRunnerSecond;
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = myBatting[atBat.currentPlayer - 1];
+                      } else {
+                        runner3 = atBat.isRunnerSecond;
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = myBatting[atBat.currentPlayer - 1];
 
-                    if (player === 9) player = 1;
-                    else player = atBat.currentPlayer + 1;
-                    if (atBat.isRunnerFirst === null) {
-                      runner1 = myBatting[atBat.currentPlayer - 1];
-                    } else if (atBat.isRunnerSecond === null) {
-                      runner2 = atBat.isRunnerFirst;
-                      runner1 = myBatting[atBat.currentPlayer - 1];
-                    } else if (atBat.isRunnerThird === null) {
-                      runner3 = atBat.isRunnerSecond;
-                      runner2 = atBat.isRunnerFirst;
-                      runner1 = myBatting[atBat.currentPlayer - 1];
+                        teamscore++;
+                        rbi++;
+                      }
                     } else {
-                      runner3 = atBat.isRunnerSecond;
-                      runner2 = atBat.isRunnerFirst;
-                      runner1 = myBatting[atBat.currentPlayer - 1];
-                      teamscore = teamscore + 1;
-                      rbi = 1;
+                      if (oppPlayer === 9) oppPlayer = 1;
+                      else oppPlayer = atBat.oppCurPlayer + 1;
+                      if (atBat.isRunnerFirst === null) {
+                        runner1 = atBat.oppCurPlayer;
+                      } else if (atBat.isRunnerSecond === null) {
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = atBat.oppCurPlayer;
+                      } else if (atBat.isRunnerThird === null) {
+                        runner3 = atBat.isRunnerSecond;
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = atBat.oppCurPlayer;
+                      } else {
+                        runner3 = atBat.isRunnerSecond;
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = atBat.oppCurPlayer;
+
+                        oppScore++;
+                        run++;
+                        if (!Array.isArray(atBat.isRunnerFirst)) earnRun++;
+                      }
                     }
 
-                    if (atBat.isOffense)
+                    if (atBat.isOffense === 1)
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         11,
@@ -636,15 +882,36 @@ const PlayByPlayScreen = () => {
                         false,
                         0
                       );
+                    else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        11,
+                        4 - atBat.ball,
+                        0,
+                        0,
+                        run,
+                        earnRun,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
 
                     setAtBat((prev) => {
                       return {
                         ...prev,
                         currentPlayer: player,
+                        oppCurPlayer: oppPlayer,
                         isRunnerFirst: runner1,
                         isRunnerSecond: runner2,
                         isRunnerThird: runner3,
                         teamScore: teamscore,
+                        oppScore: oppScore,
                         ball: 0,
                         strike: 0,
                         outcomeType: 11,
@@ -660,31 +927,59 @@ const PlayByPlayScreen = () => {
                     setSafeModalVisible(false);
                     setOutcomeType(12);
                     let player = atBat.currentPlayer;
+                    let oppPlayer = atBat.oppCurPlayer;
                     let runner1 = atBat.isRunnerFirst;
                     let runner2 = atBat.isRunnerSecond;
                     let runner3 = atBat.isRunnerThird;
                     let teamscore = atBat.teamScore;
+                    let oppScore = atBat.oppScore;
                     let rbi = 0;
+                    let earnRun = 0;
+                    let run = 0;
+                    if (atBat.isOffense === 1) {
+                      if (player === 9) player = 1;
+                      else player = atBat.currentPlayer + 1;
+                      if (atBat.isRunnerFirst === null) {
+                        runner1 = myBatting[atBat.currentPlayer - 1];
+                      } else if (atBat.isRunnerSecond === null) {
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = myBatting[atBat.currentPlayer - 1];
+                      } else if (atBat.isRunnerThird === null) {
+                        runner3 = atBat.isRunnerSecond;
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = myBatting[atBat.currentPlayer - 1];
+                      } else {
+                        runner3 = atBat.isRunnerSecond;
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = myBatting[atBat.currentPlayer - 1];
 
-                    if (player === 9) player = 1;
-                    else player = atBat.currentPlayer + 1;
-                    if (atBat.isRunnerFirst === null) {
-                      runner1 = myBatting[atBat.currentPlayer - 1];
-                    } else if (atBat.isRunnerSecond === null) {
-                      runner2 = atBat.isRunnerFirst;
-                      runner1 = myBatting[atBat.currentPlayer - 1];
-                    } else if (atBat.isRunnerThird === null) {
-                      runner3 = atBat.isRunnerSecond;
-                      runner2 = atBat.isRunnerFirst;
-                      runner1 = myBatting[atBat.currentPlayer - 1];
+                        teamscore++;
+                        rbi++;
+                      }
                     } else {
-                      runner3 = atBat.isRunnerSecond;
-                      runner2 = atBat.isRunnerFirst;
-                      runner1 = myBatting[atBat.currentPlayer - 1];
-                      teamscore = teamscore + 1;
-                      rbi = 1;
+                      if (oppPlayer === 9) oppPlayer = 1;
+                      else oppPlayer = atBat.oppCurPlayer + 1;
+                      if (atBat.isRunnerFirst === null) {
+                        runner1 = atBat.oppCurPlayer;
+                      } else if (atBat.isRunnerSecond === null) {
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = atBat.oppCurPlayer;
+                      } else if (atBat.isRunnerThird === null) {
+                        runner3 = atBat.isRunnerSecond;
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = atBat.oppCurPlayer;
+                      } else {
+                        runner3 = atBat.isRunnerSecond;
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = atBat.oppCurPlayer;
+
+                        oppScore++;
+                        run++;
+                        if (!Array.isArray(atBat.isRunnerFirst)) earnRun++;
+                      }
                     }
-                    if (atBat.isOffense)
+
+                    if (atBat.isOffense === 1)
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         12,
@@ -693,11 +988,31 @@ const PlayByPlayScreen = () => {
                         false,
                         0
                       );
+                    else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        12,
+                        4 - atBat.ball,
+                        0,
+                        0,
+                        run,
+                        earnRun,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
 
                     setAtBat((prev) => {
                       return {
                         ...prev,
                         currentPlayer: player,
+                        oppCurPlayer: oppPlayer,
                         isRunnerFirst: runner1,
                         isRunnerSecond: runner2,
                         isRunnerThird: runner3,
@@ -794,27 +1109,55 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   onPress={() => {
                     let teamscore = atBat.teamScore;
+                    let oppScore = atBat.oppScore;
                     let rbi = 1;
+                    let earnRun = 1;
+                    let run = 1;
                     if (atBat.isRunnerFirst !== null) {
-                      teamscore++;
-                      rbi++;
+                      if (atBat.isOffense === 1) {
+                        teamscore++;
+                        rbi++;
+                      } else {
+                        run++;
+                        oppScore++;
+                        if (!Array.isArray(atBat.isRunnerFirst)) earnRun++;
+                      }
                     }
                     if (atBat.isRunnerSecond !== null) {
-                      teamscore++;
-                      rbi++;
+                      if (atBat.isOffense === 1) {
+                        teamscore++;
+                        rbi++;
+                      } else {
+                        run++;
+                        oppScore++;
+                        if (!Array.isArray(atBat.isRunnerFirst)) earnRun++;
+                      }
                     }
                     if (atBat.isRunnerThird !== null) {
-                      teamscore++;
-                      rbi++;
+                      if (atBat.isOffense === 1) {
+                        teamscore++;
+                        rbi++;
+                      } else {
+                        run++;
+                        oppScore++;
+                        if (!Array.isArray(atBat.isRunnerFirst)) earnRun++;
+                      }
                     }
 
                     let player = atBat.currentPlayer;
-                    if (player === 9) player = 1;
-                    else player = atBat.currentPlayer + 1;
-                    teamscore++;
+                    let oppPlayer = atBat.oppCurPlayer;
+                    if (atBat.isOffense === 1) {
+                      if (player === 9) player = 1;
+                      else player = atBat.currentPlayer + 1;
+                    } else {
+                      if (oppPlayer === 9) oppPlayer = 1;
+                      else oppPlayer = atBat.oppCurPlayer + 1;
+                    }
+                    if (atBat.isOffense === 1) teamscore++;
+                    else oppScore++;
                     setSafeModalVisible(false);
                     setOutcomeType(16);
-                    if (atBat.isOffense)
+                    if (atBat.isOffense === 1)
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         16,
@@ -823,16 +1166,37 @@ const PlayByPlayScreen = () => {
                         false,
                         0
                       );
+                    else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        16,
+                        0,
+                        0,
+                        0,
+                        run,
+                        earnRun,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
                     setAtBat((prev) => {
                       return {
                         ...prev,
                         teamScore: teamscore,
+                        oppScore: oppScore,
                         ball: 0,
                         strike: 0,
                         isRunnerFirst: null,
                         isRunnerSecond: null,
                         isRunnerThird: null,
                         currentPlayer: player,
+                        oppCurPlayer: oppPlayer,
                         outcomeType: 16,
                       };
                     });
@@ -872,33 +1236,60 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   onPress={() => {
                     let player = atBat.currentPlayer;
+                    let oppPlayer = atBat.oppCurPlayer;
                     let runner1 = atBat.isRunnerFirst;
                     let runner2 = atBat.isRunnerSecond;
                     let runner3 = atBat.isRunnerThird;
                     let teamscore = atBat.teamScore;
+                    let oppScore = atBat.oppScore;
                     let rbi = 0;
+                    let earnRun = 0;
+                    let run = 0;
 
-                    if (player === 9) player = 1;
-                    else player = atBat.currentPlayer + 1;
-                    if (isRunnerFirst === null) {
-                      runner1 = myBatting[atBat.currentPlayer - 1];
-                    } else if (atBat.isRunnerSecond === null) {
-                      runner2 = atBat.isRunnerFirst;
-                      runner1 = myBatting[atBat.currentPlayer - 1];
-                    } else if (atBat.isRunnerThird === null) {
-                      runner3 = atBat.isRunnerSecond;
-                      runner2 = atBat.isRunnerFirst;
-                      runner1 = myBatting[atBat.currentPlayer - 1];
+                    if (atBat.isOffense === 1) {
+                      if (player === 9) player = 1;
+                      else player = atBat.currentPlayer + 1;
+                      if (atBat.isRunnerFirst === null) {
+                        runner1 = myBatting[atBat.currentPlayer - 1];
+                      } else if (atBat.isRunnerSecond === null) {
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = myBatting[atBat.currentPlayer - 1];
+                      } else if (atBat.isRunnerThird === null) {
+                        runner3 = atBat.isRunnerSecond;
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = myBatting[atBat.currentPlayer - 1];
+                      } else {
+                        runner3 = atBat.isRunnerSecond;
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = myBatting[atBat.currentPlayer - 1];
+
+                        teamscore++;
+                        rbi++;
+                      }
                     } else {
-                      runner3 = atBat.isRunnerSecond;
-                      runner2 = atBat.isRunnerFirst;
-                      runner1 = myBatting[atBat.currentPlayer - 1];
-                      teamscore = teamscore + 1;
-                      rbi = 1;
+                      if (oppPlayer === 9) oppPlayer = 1;
+                      else oppPlayer = atBat.oppCurPlayer + 1;
+                      if (atBat.isRunnerFirst === null) {
+                        runner1 = atBat.oppCurPlayer;
+                      } else if (atBat.isRunnerSecond === null) {
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = atBat.oppCurPlayer;
+                      } else if (atBat.isRunnerThird === null) {
+                        runner3 = atBat.isRunnerSecond;
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = atBat.oppCurPlayer;
+                      } else {
+                        runner3 = atBat.isRunnerSecond;
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = atBat.oppCurPlayer;
+                        run++;
+                        oppScore++;
+                        if (!Array.isArray(atBat.isRunnerFirst)) earnRun++;
+                      }
                     }
                     setSafeModalVisible(false);
                     setOutcomeType(19);
-                    if (atBat.isOffense)
+                    if (atBat.isOffense === 1)
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         19,
@@ -907,10 +1298,30 @@ const PlayByPlayScreen = () => {
                         false,
                         0
                       );
+                    else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        12,
+                        1,
+                        0,
+                        0,
+                        run,
+                        earnRun,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
                     setAtBat((prev) => {
                       return {
                         ...prev,
                         currentPlayer: player,
+                        oppCurPlayer: oppPlayer,
                         isRunnerFirst: runner1,
                         isRunnerSecond: runner2,
                         isRunnerThird: runner3,
@@ -955,33 +1366,60 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   onPress={() => {
                     let player = atBat.currentPlayer;
+                    let oppPlayer = atBat.oppCurPlayer;
                     let runner1 = atBat.isRunnerFirst;
                     let runner2 = atBat.isRunnerSecond;
                     let runner3 = atBat.isRunnerThird;
                     let teamscore = atBat.teamScore;
+                    let oppScore = atBat.oppScore;
                     let rbi = 0;
+                    let earnRun = 0;
+                    let run = 0;
 
-                    if (player === 9) player = 1;
-                    else player = atBat.currentPlayer + 1;
-                    if (isRunnerFirst === null) {
-                      runner1 = myBatting[atBat.currentPlayer - 1];
-                    } else if (atBat.isRunnerSecond === null) {
-                      runner2 = atBat.isRunnerFirst;
-                      runner1 = myBatting[atBat.currentPlayer - 1];
-                    } else if (atBat.isRunnerThird === null) {
-                      runner3 = atBat.isRunnerSecond;
-                      runner2 = atBat.isRunnerFirst;
-                      runner1 = myBatting[atBat.currentPlayer - 1];
+                    if (atBat.isOffense === 1) {
+                      if (player === 9) player = 1;
+                      else player = atBat.currentPlayer + 1;
+                      if (atBat.isRunnerFirst === null) {
+                        runner1 = myBatting[atBat.currentPlayer - 1];
+                      } else if (atBat.isRunnerSecond === null) {
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = myBatting[atBat.currentPlayer - 1];
+                      } else if (atBat.isRunnerThird === null) {
+                        runner3 = atBat.isRunnerSecond;
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = myBatting[atBat.currentPlayer - 1];
+                      } else {
+                        runner3 = atBat.isRunnerSecond;
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = myBatting[atBat.currentPlayer - 1];
+
+                        teamscore++;
+                        rbi++;
+                      }
                     } else {
-                      runner3 = atBat.isRunnerSecond;
-                      runner2 = atBat.isRunnerFirst;
-                      runner1 = myBatting[atBat.currentPlayer - 1];
-                      teamscore = teamscore + 1;
-                      rbi = 1;
+                      if (oppPlayer === 9) oppPlayer = 1;
+                      else oppPlayer = atBat.oppCurPlayer + 1;
+                      if (atBat.isRunnerFirst === null) {
+                        runner1 = atBat.oppCurPlayer;
+                      } else if (atBat.isRunnerSecond === null) {
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = atBat.oppCurPlayer;
+                      } else if (atBat.isRunnerThird === null) {
+                        runner3 = atBat.isRunnerSecond;
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = atBat.oppCurPlayer;
+                      } else {
+                        runner3 = atBat.isRunnerSecond;
+                        runner2 = atBat.isRunnerFirst;
+                        runner1 = atBat.oppCurPlayer;
+                        run++;
+                        oppScore++;
+                        if (!Array.isArray(atBat.isRunnerFirst)) earnRun++;
+                      }
                     }
                     setSafeModalVisible(false);
                     setOutcomeType(21);
-                    if (atBat.isOffense)
+                    if (atBat.isOffense === 1)
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         21,
@@ -990,6 +1428,25 @@ const PlayByPlayScreen = () => {
                         false,
                         0
                       );
+                    else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        12,
+                        0,
+                        1,
+                        0,
+                        run,
+                        earnRun,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
                     setAtBat((prev) => {
                       return {
                         ...prev,
@@ -1033,7 +1490,7 @@ const PlayByPlayScreen = () => {
                   style={{ ...styles.modelButton, marginBottom: 4 }}
                   onPress={() => {
                     setBatterRunnerVisible(false);
-                    if (atBat.isOffense)
+                    if (atBat.isOffense == 1)
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         outcomeType,
@@ -1042,12 +1499,46 @@ const PlayByPlayScreen = () => {
                         false,
                         0
                       );
+                    else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        outcomeType,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
                     setAtBat((prev) => {
                       return {
                         ...prev,
-                        isRunnerFirst: myBatting[prev.currentPlayer - 1],
+                        isRunnerFirst:
+                          atBat.isOffense == 1
+                            ? myBatting[prev.currentPlayer - 1]
+                            : outcomeType === 18
+                            ? [atBat.oppCurPlayer]
+                            : atBat.oppCurPlayer,
                         currentPlayer:
-                          prev.currentPlayer >= 9 ? 1 : prev.currentPlayer + 1,
+                          atBat.isOffense == 1
+                            ? prev.currentPlayer >= 9
+                              ? 1
+                              : prev.currentPlayer + 1
+                            : prev.currentPlayer,
+                        oppCurPlayer:
+                          atBat.isOffense == 0
+                            ? prev.oppCurPlayer >= 9
+                              ? 1
+                              : prev.oppCurPlayer + 1
+                            : prev.oppCurPlayer,
                       };
                     });
                   }}
@@ -1058,7 +1549,7 @@ const PlayByPlayScreen = () => {
                   style={{ ...styles.modelButton, marginBottom: 4 }}
                   onPress={() => {
                     setBatterRunnerVisible(false);
-                    if (atBat.isOffense && outcomeType > 2)
+                    if (atBat.isOffense == 1 && outcomeType > 2)
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         outcomeType,
@@ -1067,12 +1558,46 @@ const PlayByPlayScreen = () => {
                         false,
                         0
                       );
+                    else if (atBat.isOffense == 0) {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        outcomeType,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
                     setAtBat((prev) => {
                       return {
                         ...prev,
-                        isRunnerSecond: myBatting[prev.currentPlayer - 1],
+                        isRunnerSecond:
+                          atBat.isOffense == 1
+                            ? myBatting[prev.currentPlayer - 1]
+                            : outcomeType === 18
+                            ? [atBat.oppCurPlayer]
+                            : atBat.oppCurPlayer,
                         currentPlayer:
-                          prev.currentPlayer >= 9 ? 1 : prev.currentPlayer + 1,
+                          atBat.isOffense == 1
+                            ? prev.currentPlayer >= 9
+                              ? 1
+                              : prev.currentPlayer + 1
+                            : prev.currentPlayer,
+                        oppCurPlayer:
+                          atBat.isOffense == 0
+                            ? prev.oppCurPlayer >= 9
+                              ? 1
+                              : prev.oppCurPlayer + 1
+                            : prev.oppCurPlayer,
                       };
                     });
                   }}
@@ -1083,7 +1608,7 @@ const PlayByPlayScreen = () => {
                   style={styles.modelButton}
                   onPress={() => {
                     setBatterRunnerVisible(false);
-                    if (atBat.isOffense)
+                    if (atBat.isOffense == 1)
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         outcomeType,
@@ -1092,12 +1617,46 @@ const PlayByPlayScreen = () => {
                         false,
                         0
                       );
+                    else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        outcomeType,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
                     setAtBat((prev) => {
                       return {
                         ...prev,
-                        isRunnerThird: myBatting[prev.currentPlayer - 1],
+                        isRunnerThird:
+                          atBat.isOffense == 1
+                            ? myBatting[prev.currentPlayer - 1]
+                            : outcomeType == 18
+                            ? [atBat.oppCurPlayer]
+                            : atBat.oppCurPlayer,
                         currentPlayer:
-                          prev.currentPlayer >= 9 ? 1 : prev.currentPlayer + 1,
+                          atBat.isOffense == 1
+                            ? prev.currentPlayer >= 9
+                              ? 1
+                              : prev.currentPlayer + 1
+                            : prev.currentPlayer,
+                        oppCurPlayer:
+                          atBat.isOffense == 0
+                            ? prev.oppCurPlayer >= 9
+                              ? 1
+                              : prev.oppCurPlayer + 1
+                            : prev.oppCurPlayer,
                       };
                     });
                   }}
@@ -1108,7 +1667,7 @@ const PlayByPlayScreen = () => {
                   style={styles.modelButton}
                   onPress={() => {
                     setBatterRunnerVisible(false);
-                    if (atBat.isOffense)
+                    if (atBat.isOffense == 1)
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         outcomeType,
@@ -1117,12 +1676,48 @@ const PlayByPlayScreen = () => {
                         false,
                         0
                       );
+                    else if (atBat.isOffense == 0) {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        outcomeType,
+                        0,
+                        1,
+                        0,
+                        1,
+                        outcomeType === 18 ? 0 : 1,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
                     setAtBat((prev) => {
                       return {
                         ...prev,
-                        teamScore: prev.teamScore + 1,
+                        teamScore:
+                          atBat.isOffense == 1
+                            ? prev.teamScore + 1
+                            : prev.teamScore,
+                        oppScore:
+                          atBat.isOffense == 0
+                            ? prev.oppScore + 1
+                            : prev.oppScore,
                         currentPlayer:
-                          prev.currentPlayer >= 9 ? 1 : prev.currentPlayer + 1,
+                          atBat.isOffense == 1
+                            ? prev.currentPlayer >= 9
+                              ? 1
+                              : prev.currentPlayer + 1
+                            : prev.currentPlayer,
+                        oppCurPlayer:
+                          atBat.isOffense == 0
+                            ? prev.oppCurPlayer >= 9
+                              ? 1
+                              : prev.oppCurPlayer + 1
+                            : prev.oppCurPlayer,
                       };
                     });
                   }}
@@ -1134,7 +1729,29 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={{ ...styles.modelButton, marginBottom: 4 }}
                   onPress={() => {
-                    handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                    setBatterRunnerVisible(false);
+                    if (atBat.isOffense === 1)
+                      handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                    else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        null,
+                        0,
+                        1,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                      handleOut(true, atBat.oppCurPlayer);
+                    }
                   }}
                 >
                   <Text style={styles.textButton}>Out ở B1</Text>
@@ -1142,7 +1759,29 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={{ ...styles.modelButton, marginBottom: 4 }}
                   onPress={() => {
-                    handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                    setBatterRunnerVisible(false);
+                    if (atBat.isOffense === 1)
+                      handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                    else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        null,
+                        0,
+                        1,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                      handleOut(true, atBat.oppCurPlayer);
+                    }
                   }}
                 >
                   <Text style={styles.textButton}>Tag out ở B2</Text>
@@ -1150,7 +1789,29 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={{ ...styles.modelButton, marginBottom: 4 }}
                   onPress={() => {
-                    handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                    setBatterRunnerVisible(false);
+                    if (atBat.isOffense === 1)
+                      handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                    else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        null,
+                        0,
+                        1,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                      handleOut(true, atBat.oppCurPlayer);
+                    }
                   }}
                 >
                   <Text style={styles.textButton}>Tag out ở B3</Text>
@@ -1158,7 +1819,29 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={styles.modelButton}
                   onPress={() => {
-                    handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                    setBatterRunnerVisible(false);
+                    if (atBat.isOffense == 1)
+                      handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                    else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        null,
+                        0,
+                        1,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                      handleOut(true, atBat.oppCurPlayer);
+                    }
                   }}
                 >
                   <Text style={styles.textButton}>Tag out ở home</Text>
@@ -1166,7 +1849,29 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={styles.modelButton}
                   onPress={() => {
-                    handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                    setBatterRunnerVisible(false);
+                    if (atBat.isOffense == 1)
+                      handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                    else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        null,
+                        0,
+                        1,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                      handleOut(true, atBat.oppCurPlayer);
+                    }
                   }}
                 >
                   <Text style={styles.textButton}>
@@ -1242,7 +1947,7 @@ const PlayByPlayScreen = () => {
                   style={styles.modelButton}
                   onPress={() => {
                     setFirstRunnerVisible(false);
-                    if (atBat.isOffense) {
+                    if (atBat.isOffense === 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         null,
@@ -1263,12 +1968,37 @@ const PlayByPlayScreen = () => {
                         0,
                         true
                       );
+                    } else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        null,
+                        0,
+                        0,
+                        0,
+                        1,
+                        Array.isArray(atBat.isRunnerFirst) ? 1 : 0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
                     }
                     setAtBat((prev) => {
                       return {
                         ...prev,
                         isRunnerFirst: null,
-                        teamScore: prev.teamScore + 1,
+                        teamScore:
+                          prev.isOffense == 1
+                            ? prev.teamScore + 1
+                            : prev.teamScore,
+                        oppScore:
+                          prev.isOffense == 0
+                            ? prev.oppScore + 1
+                            : prev.oppScore,
                       };
                     });
                     if (outcomeType > 7) setBatterRunnerVisible(true);
@@ -1281,7 +2011,27 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={{ ...styles.modelButton, marginBottom: 4 }}
                   onPress={() => {
-                    handleOut(false, atBat.isRunnerFirst);
+                    setFirstRunnerVisible(false);
+                    handleOut(1, atBat.isRunnerFirst);
+                    if (atBat.isOffense !== 1) {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        null,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
                     if (outcomeType > 7) setBatterRunnerVisible(true);
                   }}
                 >
@@ -1290,8 +2040,28 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={{ ...styles.modelButton, marginBottom: 4 }}
                   onPress={() => {
+                    setFirstRunnerVisible(false);
                     if (outcomeType > 7) setBatterRunnerVisible(true);
-                    handleOut(false, atBat.isRunnerFirst);
+                    handleOut(1, atBat.isRunnerFirst);
+                    if (atBat.isOffense != 1) {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        null,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
                   }}
                 >
                   <Text style={styles.textButton}>Tag out ở B3</Text>
@@ -1299,8 +2069,28 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={styles.modelButton}
                   onPress={() => {
+                    setFirstRunnerVisible(false);
                     if (outcomeType > 7) setBatterRunnerVisible(true);
-                    handleOut(false, atBat.isRunnerFirst);
+                    handleOut(1, atBat.isRunnerFirst);
+                    if (atBat.isOffense != 1) {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        null,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
                   }}
                 >
                   <Text style={styles.textButton}>Tag out ở home</Text>
@@ -1308,7 +2098,27 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={styles.modelButton}
                   onPress={() => {
-                    handleOut(false, atBat.isRunnerFirst);
+                    setFirstRunnerVisible(false);
+                    handleOut(1, atBat.isRunnerFirst);
+                    if (atBat.isOffense != 1) {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        null,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
                     if (outcomeType > 7) setBatterRunnerVisible(true);
                   }}
                 >
@@ -1317,7 +2127,27 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={styles.modelButton}
                   onPress={() => {
-                    handleOut(false, atBat.isRunnerFirst);
+                    setFirstRunnerVisible(false);
+                    handleOut(1, atBat.isRunnerFirst);
+                    if (atBat.isOffense != 1) {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        null,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
                     if (outcomeType > 7) setBatterRunnerVisible(true);
                   }}
                 >
@@ -1382,7 +2212,7 @@ const PlayByPlayScreen = () => {
                   style={styles.modelButton}
                   onPress={() => {
                     setSecondRunnerVisible(false);
-                    if (atBat.isOffense) {
+                    if (atBat.isOffense == 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         null,
@@ -1403,12 +2233,37 @@ const PlayByPlayScreen = () => {
                         0,
                         true
                       );
+                    } else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        null,
+                        0,
+                        0,
+                        0,
+                        1,
+                        Array.isArray(atBat.isRunnerSecond) ? 1 : 0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
                     }
                     setAtBat((prev) => {
                       return {
                         ...prev,
                         isRunnerSecond: null,
-                        teamScore: prev.teamScore + 1,
+                        teamScore:
+                          prev.isOffense == 1
+                            ? prev.teamScore + 1
+                            : prev.teamScore,
+                        oppScore:
+                          prev.isOffense == 0
+                            ? prev.oppScore + 1
+                            : prev.oppScore,
                       };
                     });
                     if (atBat.isRunnerFirst !== null)
@@ -1423,7 +2278,27 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={styles.modelButton}
                   onPress={() => {
-                    handleOut(false, atBat.isRunnerSecond);
+                    setSecondRunnerVisible(false);
+                    handleOut(2, atBat.isRunnerSecond);
+                    if (atBat.isOffense != 1) {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        null,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
                     if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
                   }}
@@ -1433,7 +2308,27 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={styles.modelButton}
                   onPress={() => {
-                    handleOut(false, atBat.isRunnerSecond);
+                    setSecondRunnerVisible(false);
+                    handleOut(2, atBat.isRunnerSecond);
+                    if (atBat.isOffense != 1) {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        null,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
                     if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
                   }}
@@ -1443,7 +2338,27 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={styles.modelButton}
                   onPress={() => {
-                    handleOut(false, atBat.isRunnerSecond);
+                    setSecondRunnerVisible(false);
+                    handleOut(2, atBat.isRunnerSecond);
+                    if (atBat.isOffense != 1) {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        null,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
                     if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
                   }}
@@ -1453,7 +2368,27 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={styles.modelButton}
                   onPress={() => {
-                    handleOut(false, atBat.isRunnerSecond);
+                    setSecondRunnerVisible(false);
+                    handleOut(2, atBat.isRunnerSecond);
+                    if (atBat.isOffense != 1) {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        null,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
                     if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
                   }}
@@ -1463,7 +2398,29 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={styles.modelButton}
                   onPress={() => {
-                    handleOut(false, atBat.isRunnerSecond);
+                    setSecondRunnerVisible(false);
+                    handleOut(2, atBat.isRunnerSecond);
+                    if (atBat.isOffense != 1) {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        null,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
+                    if (atBat.isRunnerFirst !== null)
+                      setFirstRunnerVisible(true);
                   }}
                 >
                   <Text style={styles.textButton}>
@@ -1511,7 +2468,7 @@ const PlayByPlayScreen = () => {
                   style={styles.modelButton}
                   onPress={() => {
                     setThirdRunnerVisible(false);
-                    if (atBat.isOffense) {
+                    if (atBat.isOffense === 1) {
                       if (outcomeType !== 18)
                         updateBatterStat(
                           myBatting[atBat.currentPlayer - 1],
@@ -1533,11 +2490,36 @@ const PlayByPlayScreen = () => {
                         0,
                         true
                       );
+                    } else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        null,
+                        0,
+                        0,
+                        0,
+                        1,
+                        Array.isArray(atBat.isRunnerThird) ? 1 : 0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
                     }
                     setAtBat((prev) => {
                       return {
                         ...prev,
-                        teamScore: prev.teamScore + 1,
+                        teamScore:
+                          prev.isOffense == 1
+                            ? prev.teamScore + 1
+                            : prev.teamScore,
+                        oppScore:
+                          prev.isOffense == 0
+                            ? prev.oppScore + 1
+                            : prev.oppScore,
                         isRunnerThird: null,
                       };
                     });
@@ -1555,8 +2537,28 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={styles.modelButton}
                   onPress={() => {
-                    handleOut(false, atBat.isRunnerThird);
-                    if (atBat.isRunnerSecond !== null)
+                    setThirdRunnerVisible(false);
+                    handleOut(3, atBat.isRunnerThird);
+                    if (atBat.isOffense != 1) {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        null,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
+                    if (atBat.isRunnerSecond != null)
                       setSecondRunnerVisible(true);
                     else if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
@@ -1567,7 +2569,27 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={styles.modelButton}
                   onPress={() => {
-                    handleOut(false, atBat.isRunnerThird);
+                    setThirdRunnerVisible(false);
+                    handleOut(3, atBat.isRunnerThird);
+                    if (atBat.isOffense != 1) {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        null,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
                     if (atBat.isRunnerSecond !== null)
                       setSecondRunnerVisible(true);
                     else if (atBat.isRunnerFirst !== null)
@@ -1579,7 +2601,27 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={styles.modelButton}
                   onPress={() => {
-                    handleOut(false, atBat.isRunnerThird);
+                    setThirdRunnerVisible(false);
+                    handleOut(3, atBat.isRunnerThird);
+                    if (atBat.isOffense !== 1) {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      updatePitcherStat(
+                        pitcher,
+                        null,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                      );
+                    }
                     if (atBat.isRunnerSecond !== null)
                       setSecondRunnerVisible(true);
                     else if (atBat.isRunnerFirst !== null)
@@ -1697,6 +2739,45 @@ const PlayByPlayScreen = () => {
               />
             )}
           </View>
+        </View>
+        <View
+          style={{ flex: 1, flexDirection: "row", border: "1px solid black" }}
+        >
+          {atBat.isRunnerThird ? (
+            <MaterialCommunityIcons
+              name="rhombus"
+              size={18}
+              color="green"
+              style={{ position: "relative", top: 12 }}
+            />
+          ) : (
+            <MaterialCommunityIcons
+              name="rhombus"
+              size={18}
+              color="white"
+              style={{ position: "relative", top: 12 }}
+            />
+          )}
+          {atBat.isRunnerSecond ? (
+            <MaterialCommunityIcons name="rhombus" size={18} color="green" />
+          ) : (
+            <MaterialCommunityIcons name="rhombus" size={18} color="white" />
+          )}
+          {atBat.isRunnerFirst ? (
+            <MaterialCommunityIcons
+              name="rhombus"
+              size={18}
+              color="green"
+              style={{ position: "relative", top: 12 }}
+            />
+          ) : (
+            <MaterialCommunityIcons
+              name="rhombus"
+              size={18}
+              color="white"
+              style={{ position: "relative", top: 12 }}
+            />
+          )}
         </View>
       </View>
       <ImageBackground
@@ -1889,7 +2970,12 @@ const PlayByPlayScreen = () => {
           </View>
           <View>
             <Text style={styles.title}>Count</Text>
-            <Text style={styles.content}>69</Text>
+            <Text style={styles.content}>
+              {[...myBatting].reverse().find((p) => p.position === 1)
+                .pitchStrike +
+                [...myBatting].reverse().find((p) => p.position === 1)
+                  .pitchBall}
+            </Text>
           </View>
         </View>
       )}
@@ -1899,6 +2985,10 @@ const PlayByPlayScreen = () => {
           title="Ball"
           onPress={() => {
             if (atBat.ball < 3) {
+              let pitcher = [...myBatting]
+                .reverse()
+                .find((p) => p.position === 1);
+              updatePitcherStat(pitcher, null, 1, 0, 0, 0, 0, 0, 0, 0, 0);
               setAtBat((prev) => {
                 return { ...prev, ball: prev.ball + 1 };
               });
@@ -1912,6 +3002,10 @@ const PlayByPlayScreen = () => {
           title="Strike"
           onPress={() => {
             if (atBat.strike < 2) {
+              let pitcher = [...myBatting]
+                .reverse()
+                .find((p) => p.position === 1);
+              updatePitcherStat(pitcher, null, 0, 1, 0, 0, 0, 0, 0, 0, 0);
               setAtBat((prev) => {
                 return { ...prev, strike: prev.strike + 1 };
               });
@@ -1924,11 +3018,15 @@ const PlayByPlayScreen = () => {
           style={styles.button}
           title="Foul"
           onPress={() => {
-            if (strike < 2) {
+            if (atBat.strike < 2) {
               setAtBat((prev) => {
                 return { ...prev, strike: prev.strike + 1 };
               });
             }
+            let pitcher = [...myBatting]
+              .reverse()
+              .find((p) => p.position === 1);
+            updatePitcherStat(pitcher, null, 0, 1, 0, 0, 0, 0, 0, 0, 0);
             playSound(3);
             setShowFoul(true);
           }}
@@ -1955,7 +3053,7 @@ const PlayByPlayScreen = () => {
         style={{
           position: "absolute",
           right: 15,
-          top: isOffense ? 75 : 150,
+          top: 75,
           zIndex: 4,
         }}
       >
@@ -1970,7 +3068,20 @@ const PlayByPlayScreen = () => {
             <MenuOption
               onSelect={() => {
                 let offData = [];
-                myBatting.map((obj) => {
+                let numPlayerEachOrder = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+                let myBattingAll = [];
+                for (let i = 0; i < myBatting.length; i++) {
+                  if (i % 9 === 0 && i !== 0) continue;
+                  else if (myBatting[i] !== null) numPlayerEachOrder[i % 10]++;
+                }
+
+                for (let i = 0; i < 9; i++) {
+                  for (let j = 0; j < numPlayerEachOrder[i]; j++) {
+                    if (myBatting[i + 10 * j] !== null)
+                      myBattingAll.push(myBatting[i + 10 * j]);
+                  }
+                }
+                myBattingAll.map((obj) => {
                   const atBat =
                     obj.plateApperance -
                     obj.baseOnBall -
@@ -2012,7 +3123,42 @@ const PlayByPlayScreen = () => {
             <MenuOption onSelect={() => console.log("Option 3 clicked")}>
               <Text>Thống kê Fielding</Text>
             </MenuOption>
-            <MenuOption onSelect={() => console.log("Option 4 clicked")}>
+            <MenuOption
+              onSelect={() => {
+                let pitchData = [];
+                let myPitchingAll = [];
+                for (let i = 0; i < myBatting.length; i++) {
+                  if (myBatting[i] !== null) {
+                    if (myBatting[i].position === 1)
+                      myPitchingAll.push(myBatting[i]);
+                  }
+                }
+
+                myPitchingAll.map((obj) => {
+                  let inning = Math.floor(obj.totalInGameOut / 3);
+                  let leftOut = obj.totalInGameOut % 3;
+                  let up = obj.earnedRun * game.inningERA * 3;
+                  let down = obj.totalInGameOut;
+                  let era = "";
+                  if (down === 0)
+                    if (obj.earnedRun !== 0) era = "INF";
+                    else era = "-";
+                  else era = (up / down).toFixed(2);
+                  pitchData.push([
+                    `#${obj.player.jerseyNumber}.${obj.player.lastName}`,
+                    `${inning}.${leftOut}`,
+                    obj.oppHit,
+                    obj.oppRun,
+                    obj.earnedRun,
+                    obj.oppBaseOnBall,
+                    obj.oppStrikeOut,
+                    obj.oppHomeRun,
+                    era,
+                  ]);
+                });
+                navigation.navigate("PitchingStat", { pitchData: pitchData });
+              }}
+            >
               <Text>Thống kê Pitching</Text>
             </MenuOption>
           </MenuOptions>
@@ -2129,7 +3275,7 @@ const styles = StyleSheet.create({
   modalButtonList: {
     flex: 1,
     flexDirection: "column",
-    justifyContent: "space-around",
+    justifyContent: "center",
     width: "100%",
   },
   modalButtonRow: {
