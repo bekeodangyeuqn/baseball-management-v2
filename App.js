@@ -45,6 +45,7 @@ import OthersScreen from "./screens/equipment/others-screen";
 import { MenuProvider } from "react-native-popup-menu";
 import BattingStatScreen from "./screens/batting-stat-screen";
 import PitchingStatScreen from "./screens/pitching-stat-screen";
+import PlayByPlayListScreen from "./screens/play-by-play-list-screen";
 
 export default function App() {
   const Stack = createStackNavigator();
@@ -203,6 +204,11 @@ export default function App() {
                     name="PitchingStat"
                     component={PitchingStatScreen}
                     options={{ title: "Thông số pitcher" }}
+                  />
+                  <Stack.Screen
+                    name="PlayByPlayList"
+                    component={PlayByPlayListScreen}
+                    options={{ title: "Play-by-play" }}
                   />
                   <Stack.Screen
                     name="ManagerProfile"

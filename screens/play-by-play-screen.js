@@ -9,7 +9,7 @@ import {
   SafeAreaView,
   StyleSheet,
 } from "react-native";
-import { useRecoilValue } from "recoil";
+import { useRecoilState, useRecoilValue } from "recoil";
 import field from "../assets/image/field.jpg";
 import { gameByIdState } from "../atom/Games";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -35,6 +35,12 @@ import {
   MenuTrigger,
 } from "react-native-popup-menu";
 import { Audio } from "expo-av";
+import {
+  atBatsSelectorByGameId,
+  atBatsState,
+  lastStatusSelectorByGameId,
+  lastStatusState,
+} from "../atom/AtBats";
 
 const FirstRoute = () => (
   <View style={[styles.scene, { backgroundColor: "#ff4081" }]}>
@@ -136,13 +142,14 @@ const PlayByPlayScreen = () => {
   const navigation = useNavigation();
   const myPlayers = useRecoilValue(myGamePlayersByGameId(gameid));
   // const myFirstBatting = useRecoilValue(myBattingOrder(gameid));
-  const [myBatting, setMyBatting] = useState(myFirstBatting);
+
   const [pos, setPos] = useState(null);
   const snapPoints = useMemo(() => ["50%"], []);
   const playersBottomSheet = useRef(null);
   const filterBottomSheet = useRef(null);
   const choosePlayerBottomSheet = useRef(null);
   const [teamName, setTeamName] = useState("");
+  const [atBatsList, setAtBatsList] = useRecoilState(atBatsState);
 
   const [teamScore, setTeamScore] = useState(0);
   const [oppScore, setOppScore] = useState(0);
@@ -160,25 +167,41 @@ const PlayByPlayScreen = () => {
   const [description, setDescription] = useState("");
   const [numPitchers, setNumPitchers] = useState(1);
 
-  const [atBat, setAtBat] = useState({
-    gameid: gameid,
-    teamScore: 0,
-    oppScore: 0,
-    out: 0,
-    inning: 1,
-    isTop: true,
-    ball: 0,
-    strike: 0,
-    isOffense: Number(beforeId),
-    isRunnerFirst: null,
-    isRunnerSecond: null,
-    isRunnerThird: null,
-    currentPlayer: 1,
-    oppCurPlayer: 1,
-    outcomeType: null,
-    description: "",
-    currentPitcher: myPlayers.find((p) => p.position === 1),
-  });
+  const recoilAtBat = useRecoilValue(atBatsSelectorByGameId(gameid));
+  const [lastState, setLastState] = useRecoilState(lastStatusState);
+  const recoilLastState = useRecoilState(lastStatusSelectorByGameId(gameid));
+  const [myBatting, setMyBatting] = useState(
+    recoilAtBat.length === 0 ? myFirstBatting : recoilLastState[0].myBatting
+  );
+
+  const [atBat, setAtBat] = useState(
+    recoilAtBat.length === 0
+      ? {
+          gameid: gameid,
+          teamScore: 0,
+          oppScore: 0,
+          out: 0,
+          inning: 1,
+          isTop: true,
+          ball: 0,
+          strike: 0,
+          beforeBall: 0,
+          beforeStrike: 0,
+          isOffense: Number(beforeId),
+          isRunnerFirst: null,
+          isRunnerSecond: null,
+          isRunnerThird: null,
+          beforeRunnerFirst: null,
+          beforeRunnerSecond: null,
+          beforeRunnerThird: null,
+          currentPlayer: 1,
+          oppCurPlayer: 1,
+          outcomeType: null,
+          description: "",
+          currentPitcher: myPlayers.find((p) => p.position === 1),
+        }
+      : recoilLastState[0].atBat
+  );
 
   const [pitchers, setPitchers] = useState([]);
 
@@ -198,6 +221,36 @@ const PlayByPlayScreen = () => {
     };
     getInfo().catch((error) => console.error(error));
   }, []);
+
+  useEffect(() => {
+    setLastState((prev) => {
+      return [
+        ...prev.filter((obj) => obj.atBat.gameid !== gameid),
+        { atBat: atBat, myBatting: myBatting },
+      ];
+    });
+  }, [
+    atBat.teamScore,
+    atBat.oppScore,
+    atBat.out,
+    atBat.inning,
+    atBat.isTop,
+    atBat.ball,
+    atBat.strike,
+    atBat.isOffense,
+    atBat.isRunnerFirst,
+    atBat.isRunnerSecond,
+    atBat.isRunnerThird,
+    atBat.beforeRunnerFirst,
+    atBat.beforeRunnerSecond,
+    atBat.beforeRunnerThird,
+    atBat.currentPlayer,
+    atBat.oppCurPlayer,
+    atBat.outcomeType,
+    atBat.description,
+    atBat.currentPitcher,
+    myBatting,
+  ]);
 
   useEffect(() => {
     let timer;
@@ -278,8 +331,6 @@ const PlayByPlayScreen = () => {
       return newBatting;
     });
   };
-
-  console.log(atBat.isOffense, atBat.out);
 
   const updateBatterStat = (
     player,
@@ -363,8 +414,13 @@ const PlayByPlayScreen = () => {
           isRunnerFirst: isBatter === 1 ? null : prev.isRunnerFirst,
           isRunnerSecond: isBatter === 2 ? null : prev.isRunnerSecond,
           isRunnerThird: isBatter === 3 ? null : prev.isRunnerThird,
+          beforeRunnerFirst: prev.isRunnerFirst,
+          beforeRunnerSecond: prev.isRunnerSecond,
+          beforeRunnerThird: prev.isRunnerThird,
           ball: 0,
           strike: 0,
+          beforeBall: prev.ball,
+          beforeStrike: prev.strike,
         };
       });
     } else {
@@ -387,12 +443,17 @@ const PlayByPlayScreen = () => {
           inning: inn,
           ball: 0,
           strike: 0,
+          beforeBall: prev.ball,
+          beforeStrike: prev.strike,
           out: 0,
           currentPlayer: player,
           oppCurPlayer: oppCurPlayer,
           isRunnerFirst: null,
           isRunnerSecond: null,
           isRunnerThird: null,
+          beforeRunnerFirst: prev.isRunnerFirst,
+          beforeRunnerSecond: prev.isRunnerSecond,
+          beforeRunnerThird: prev.isRunnerThird,
           isTop: !prev.isTop,
         };
       });
@@ -418,6 +479,38 @@ const PlayByPlayScreen = () => {
       default:
         return false;
     }
+  };
+
+  const endTheAtBat = (des = null) => {
+    setAtBatsList((prev) => [
+      ...prev,
+      {
+        ...atBat,
+        description: des === null ? description : des,
+        // beforeBall: atBat.ball,
+        // beforeStrike: atBat.strike,
+        // beforeRunnerFirst: atBat.isRunnerFirst,
+        // beforeRunnerSecond: atBat.isRunnerSecond,
+        // beforeRunnerThird: atBat.isRunnerThird,
+      },
+    ]);
+    setDescription("");
+    setAtBat((prev) => {
+      return {
+        ...prev,
+        ball: 0,
+        strike: 0,
+        beforeBall: prev.ball,
+        beforeStrike: prev.strike,
+      };
+    });
+  };
+
+  const addDescription = (str) => {
+    setDescription((prev) => {
+      if (prev.length === 0) return str + ". ";
+      else return prev + str + ". ";
+    });
   };
 
   const splitAvatarURI = (str) => {
@@ -447,6 +540,8 @@ const PlayByPlayScreen = () => {
                     if (atBat.isRunnerSecond) lob++;
                     if (atBat.isRunnerThird) lob++;
 
+                    let description = "";
+
                     if (atBat.isOffense === 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
@@ -456,6 +551,14 @@ const PlayByPlayScreen = () => {
                         false,
                         lob
                       );
+                      description += `#${
+                        myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                      }.${
+                        myBatting[atBat.currentPlayer - 1].player.firstName
+                      } ${
+                        myBatting[atBat.currentPlayer - 1].player.lastName
+                      } bị strikeout looking`;
+                      endTheAtBat(description);
                       handleOut(true, myBatting[atBat.currentPlayer - 1]);
                     } else {
                       let reversedBatting = [...myBatting].reverse();
@@ -475,6 +578,8 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      description += `Batter ${atBat.oppCurPlayer} đối phương bị strikeout looking`;
+                      endTheAtBat(description);
                       handleOut(true, atBat.oppCurPlayer);
                     }
                   }}
@@ -491,6 +596,8 @@ const PlayByPlayScreen = () => {
                     if (atBat.isRunnerSecond) lob++;
                     if (atBat.isRunnerThird) lob++;
 
+                    let description = "";
+
                     if (atBat.isOffense === 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
@@ -500,6 +607,14 @@ const PlayByPlayScreen = () => {
                         false,
                         lob
                       );
+                      description += `#${
+                        myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                      }.${
+                        myBatting[atBat.currentPlayer - 1].player.firstName
+                      } ${
+                        myBatting[atBat.currentPlayer - 1].player.lastName
+                      } bị strikeout swinging`;
+                      endTheAtBat(description);
                       handleOut(true, myBatting[atBat.currentPlayer - 1]);
                     } else {
                       let reversedBatting = [...myBatting].reverse();
@@ -519,6 +634,8 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      description += `Batter ${atBat.oppCurPlayer} đối phương bị strikeout swinging`;
+                      endTheAtBat(description);
                       handleOut(true, atBat.oppCurPlayer);
                     }
                   }}
@@ -533,12 +650,10 @@ const PlayByPlayScreen = () => {
                     setOutModalVisible(false);
                     setOutcomeType(3);
                     let lob = 0;
+                    let description = "";
                     if (atBat.isRunnerFirst) lob++;
                     if (atBat.isRunnerSecond) lob++;
                     if (atBat.isRunnerThird) lob++;
-                    if (atBat.isRunnerThird) setThirdRunnerVisible(true);
-                    else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
-                    else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
                     if (atBat.isOffense === 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
@@ -548,15 +663,32 @@ const PlayByPlayScreen = () => {
                         false,
                         lob
                       );
-                      handleOut(true, myBatting[atBat.currentPlayer - 1]);
-                    } else {
-                      let reversedBatting = [...myBatting].reverse();
-                      let pitcher = reversedBatting.find(
-                        (p) => p.position === 1
+                      addDescription(
+                        `#${
+                          myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                        }.${
+                          myBatting[atBat.currentPlayer - 1].player.firstName
+                        } ${
+                          myBatting[atBat.currentPlayer - 1].player.lastName
+                        } bị ground out`
                       );
-                      updatePitcherStat(pitcher, 3, 0, 0, 1, 0, 0, 0, 0, 0, 0);
-                      handleOut(true, atBat.oppCurPlayer);
+                      description += `#${
+                        myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                      }.${
+                        myBatting[atBat.currentPlayer - 1].player.firstName
+                      } ${
+                        myBatting[atBat.currentPlayer - 1].player.lastName
+                      } bị ground out.`;
+                    } else {
+                      addDescription(
+                        `Batter ${atBat.oppCurPlayer} đối phương bị ground out`
+                      );
+                      description += `Batter ${atBat.oppCurPlayer} đối phương bị ground out.`;
                     }
+                    if (atBat.isRunnerThird) setThirdRunnerVisible(true);
+                    else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
+                    else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
+                    else setBatterRunnerVisible(true);
                   }}
                   style={styles.modelButton}
                 >
@@ -567,12 +699,10 @@ const PlayByPlayScreen = () => {
                     setOutModalVisible(false);
                     setOutcomeType(4);
                     let lob = 0;
+                    let description = "";
                     if (atBat.isRunnerFirst) lob++;
                     if (atBat.isRunnerSecond) lob++;
                     if (atBat.isRunnerThird) lob++;
-                    if (atBat.isRunnerThird) setThirdRunnerVisible(true);
-                    else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
-                    else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
                     if (atBat.isOffense === 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
@@ -582,15 +712,32 @@ const PlayByPlayScreen = () => {
                         false,
                         lob
                       );
-                      handleOut(true, myBatting[atBat.currentPlayer - 1]);
-                    } else {
-                      let reversedBatting = [...myBatting].reverse();
-                      let pitcher = reversedBatting.find(
-                        (p) => p.position === 1
+                      addDescription(
+                        `#${
+                          myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                        }.${
+                          myBatting[atBat.currentPlayer - 1].player.firstName
+                        } ${
+                          myBatting[atBat.currentPlayer - 1].player.lastName
+                        } bị fly out`
                       );
-                      updatePitcherStat(pitcher, 4, 0, 0, 1, 0, 0, 0, 0, 0, 0);
-                      handleOut(true, atBat.oppCurPlayer);
+                      description += `#${
+                        myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                      }.${
+                        myBatting[atBat.currentPlayer - 1].player.firstName
+                      } ${
+                        myBatting[atBat.currentPlayer - 1].player.lastName
+                      } bị fly out`;
+                    } else {
+                      addDescription(
+                        `Batter ${atBat.oppCurPlayer} đối phương bị fly out`
+                      );
+                      description += `Batter ${atBat.oppCurPlayer} đối phương bị fly out`;
                     }
+                    if (atBat.isRunnerThird) setThirdRunnerVisible(true);
+                    else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
+                    else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
+                    else setBatterRunnerVisible(true);
                   }}
                   style={styles.modelButton}
                 >
@@ -602,9 +749,7 @@ const PlayByPlayScreen = () => {
                   onPress={() => {
                     setOutModalVisible(false);
                     setOutcomeType(5);
-                    if (atBat.isRunnerThird) setThirdRunnerVisible(true);
-                    else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
-                    else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
+                    let description = "";
                     if (atBat.isOffense === 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
@@ -614,15 +759,36 @@ const PlayByPlayScreen = () => {
                         false,
                         0
                       );
-                      handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                      addDescription(
+                        `#${
+                          myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                        }.${
+                          myBatting[atBat.currentPlayer - 1].player.firstName
+                        } ${
+                          myBatting[atBat.currentPlayer - 1].player.lastName
+                        } đã fly hi sinh`
+                      );
+                      description += `#${
+                        myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                      }.${
+                        myBatting[atBat.currentPlayer - 1].player.firstName
+                      } ${
+                        myBatting[atBat.currentPlayer - 1].player.lastName
+                      } đã fly hi sinh`;
                     } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      updatePitcherStat(pitcher, 5, 0, 0, 1, 0, 0, 0, 0, 0, 0);
-                      handleOut(true, atBat.oppCurPlayer);
+                      addDescription(
+                        `Batter ${atBat.oppCurPlayer} đối phương đã fly hi sinh`
+                      );
+                      description += `Batter ${atBat.oppCurPlayer} đối phương đã fly hi sinh`;
                     }
+                    if (atBat.isRunnerThird) setThirdRunnerVisible(true);
+                    else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
+                    else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
+                    else setBatterRunnerVisible(true);
                   }}
                   style={styles.modelButton}
                 >
@@ -632,9 +798,7 @@ const PlayByPlayScreen = () => {
                   onPress={() => {
                     setOutModalVisible(false);
                     setOutcomeType(6);
-                    if (atBat.isRunnerThird) setThirdRunnerVisible(true);
-                    else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
-                    else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
+                    let description = "";
                     if (atBat.isOffense === 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
@@ -644,15 +808,36 @@ const PlayByPlayScreen = () => {
                         false,
                         0
                       );
-                      handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                      addDescription(
+                        `#${
+                          myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                        }.${
+                          myBatting[atBat.currentPlayer - 1].player.firstName
+                        } ${
+                          myBatting[atBat.currentPlayer - 1].player.lastName
+                        } đã bunt hi sinh`
+                      );
+                      description += `#${
+                        myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                      }.${
+                        myBatting[atBat.currentPlayer - 1].player.firstName
+                      } ${
+                        myBatting[atBat.currentPlayer - 1].player.lastName
+                      } đã bunt hi sinh`;
                     } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      updatePitcherStat(pitcher, 6, 0, 0, 1, 0, 0, 0, 0, 0, 0);
-                      handleOut(true, atBat.oppCurPlayer);
+                      addDescription(
+                        `Batter ${atBat.oppCurPlayer} đối phương đã bunt hi sinh`
+                      );
+                      description += `Batter ${atBat.oppCurPlayer} đối phương đã bunt hi sinh`;
                     }
+                    if (atBat.isRunnerThird) setThirdRunnerVisible(true);
+                    else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
+                    else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
+                    else setBatterRunnerVisible(true);
                   }}
                   style={styles.modelButton}
                 >
@@ -664,14 +849,12 @@ const PlayByPlayScreen = () => {
                   disabled={atBat.out > 2 ? true : false}
                   onPress={() => {
                     let lob = 0;
+                    let description = "";
                     if (atBat.isRunnerFirst) lob++;
                     if (atBat.isRunnerSecond) lob++;
                     if (atBat.isRunnerThird) lob++;
                     setOutModalVisible(false);
                     setOutcomeType(7);
-                    if (atBat.isRunnerThird) setThirdRunnerVisible(true);
-                    else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
-                    else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
                     if (atBat.isOffense === 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
@@ -681,15 +864,36 @@ const PlayByPlayScreen = () => {
                         false,
                         lob
                       );
-                      handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                      addDescription(
+                        `#${
+                          myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                        }.${
+                          myBatting[atBat.currentPlayer - 1].player.firstName
+                        } ${
+                          myBatting[atBat.currentPlayer - 1].player.lastName
+                        } bị infield fly`
+                      );
+                      description += `#${
+                        myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                      }.${
+                        myBatting[atBat.currentPlayer - 1].player.firstName
+                      } ${
+                        myBatting[atBat.currentPlayer - 1].player.lastName
+                      } bị infield fly`;
                     } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      updatePitcherStat(pitcher, 7, 0, 0, 1, 0, 0, 0, 0, 0, 0);
-                      handleOut(true, atBat.oppCurPlayer);
+                      addDescription(
+                        `Batter ${atBat.oppCurPlayer} đối phương bị infield fly`
+                      );
+                      description += `Batter ${atBat.oppCurPlayer} đối phương bị infield fly`;
                     }
+                    if (atBat.isRunnerThird) setThirdRunnerVisible(true);
+                    else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
+                    else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
+                    else setBatterRunnerVisible(true);
                   }}
                   style={styles.modelButton}
                 >
@@ -698,6 +902,7 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   onPress={() => {
                     let lob = 0;
+                    let description = "";
                     if (atBat.isRunnerFirst) lob++;
                     if (atBat.isRunnerSecond) lob++;
                     if (atBat.isRunnerThird) lob++;
@@ -716,13 +921,23 @@ const PlayByPlayScreen = () => {
                         false,
                         lob
                       );
+                      addDescription(
+                        `#${
+                          myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                        }.${
+                          myBatting[atBat.currentPlayer - 1].player.firstName
+                        } ${
+                          myBatting[atBat.currentPlayer - 1].player.lastName
+                        } bị strike thứ 3 nhưng catcher drop`
+                      );
                     } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      updatePitcherStat(pitcher, 8, 0, 0, 1, 0, 0, 0, 0, 0, 0);
-                      handleOut(true, atBat.oppCurPlayer);
+                      addDescription(
+                        `Batter ${atBat.oppCurPlayer} đối phương bị strike thứ 3 nhưng catcher drop`
+                      );
                     }
                   }}
                   style={styles.modelButton}
@@ -740,10 +955,6 @@ const PlayByPlayScreen = () => {
                     if (atBat.isRunnerThird) lob++;
                     setOutModalVisible(false);
                     setOutcomeType(9);
-                    if (atBat.isRunnerThird) setThirdRunnerVisible(true);
-                    else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
-                    else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
-                    else setBatterRunnerVisible(true);
                     if (atBat.isOffense === 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
@@ -753,7 +964,27 @@ const PlayByPlayScreen = () => {
                         false,
                         lob
                       );
+                      addDescription(
+                        `#${
+                          myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                        }.${
+                          myBatting[atBat.currentPlayer - 1].player.firstName
+                        } ${
+                          myBatting[atBat.currentPlayer - 1].player.lastName
+                        } bị ground into double play`
+                      );
+                    } else {
+                      let reversedBatting = [...myBatting].reverse();
+                      let pitcher = reversedBatting.find(
+                        (p) => p.position === 1
+                      );
+                      addDescription(
+                        `Batter ${atBat.oppCurPlayer} đối phương bị ground into double play`
+                      );
                     }
+                    if (atBat.isRunnerThird) setThirdRunnerVisible(true);
+                    else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
+                    else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
                   }}
                   style={styles.modelButton}
                 >
@@ -770,10 +1001,6 @@ const PlayByPlayScreen = () => {
                     if (atBat.isRunnerThird) lob++;
                     setOutModalVisible(false);
                     setOutcomeType(10);
-                    if (atBat.isRunnerThird) setThirdRunnerVisible(true);
-                    else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
-                    else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
-                    else setBatterRunnerVisible(true);
                     if (atBat.isOffense === 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
@@ -783,14 +1010,27 @@ const PlayByPlayScreen = () => {
                         false,
                         lob
                       );
+                      addDescription(
+                        `#${
+                          myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                        }.${
+                          myBatting[atBat.currentPlayer - 1].player.firstName
+                        } ${
+                          myBatting[atBat.currentPlayer - 1].player.lastName
+                        } bị grounded into triple play`
+                      );
                     } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      updatePitcherStat(pitcher, 10, 0, 0, 1, 0, 0, 0, 0, 0, 0);
-                      handleOut(true, atBat.oppCurPlayer);
+                      addDescription(
+                        `Batter ${atBat.oppCurPlayer} đối phương bị ground into triple play`
+                      );
                     }
+                    if (atBat.isRunnerThird) setThirdRunnerVisible(true);
+                    else if (atBat.isRunnerSecond) setSecondRunnerVisible(true);
+                    else if (atBat.isRunnerFirst) setFirstRunnerVisible(true);
                   }}
                   style={styles.modelButton}
                 >
@@ -830,6 +1070,7 @@ const PlayByPlayScreen = () => {
                     let rbi = 0;
                     let earnRun = 0;
                     let run = 0;
+                    let description = "";
                     if (atBat.isOffense === 1) {
                       if (player === 9) player = 1;
                       else player = atBat.currentPlayer + 1;
@@ -873,7 +1114,7 @@ const PlayByPlayScreen = () => {
                       }
                     }
 
-                    if (atBat.isOffense === 1)
+                    if (atBat.isOffense === 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         11,
@@ -882,7 +1123,20 @@ const PlayByPlayScreen = () => {
                         false,
                         0
                       );
-                    else {
+                      description += `#${
+                        myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                      }.${
+                        myBatting[atBat.currentPlayer - 1].player.firstName
+                      } ${
+                        myBatting[atBat.currentPlayer - 1].player.lastName
+                      } walk. `;
+                      if (atBat.isRunnerFirst)
+                        description += `#${atBat.isRunnerFirst.player.jerseyNumber}.${atBat.isRunnerFirst.player.firstName} ${atBat.isRunnerFirst.player.lastName} lên chốt 2. `;
+                      if (atBat.isRunnerSecond)
+                        description += `#${atBat.isRunnerSecond.player.jerseyNumber}.${atBat.isRunnerSecond.player.firstName} ${atBat.isRunnerSecond.player.lastName} lên chốt 3. `;
+                      if (atBat.isRunnerThird)
+                        description += `#${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} ghi điểm.`;
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -900,8 +1154,18 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      description += `Batter ${atBat.oppCurPlayer} đối phương walk. `;
+                      if (atBat.isRunnerFirst) {
+                        description += `Runner B1 đối phương lên B2. `;
+                      }
+                      if (atBat.isRunnerSecond) {
+                        description += `Runner B2 đối phương lên B3. `;
+                      }
+                      if (atBat.isRunnerThird) {
+                        description += `Runner B3 đối phương ghi điểm.`;
+                      }
                     }
-
+                    endTheAtBat(description);
                     setAtBat((prev) => {
                       return {
                         ...prev,
@@ -910,6 +1174,9 @@ const PlayByPlayScreen = () => {
                         isRunnerFirst: runner1,
                         isRunnerSecond: runner2,
                         isRunnerThird: runner3,
+                        beforeRunnerFirst: prev.isRunnerFirst,
+                        beforeRunnerSecond: prev.isRunnerSecond,
+                        beforeRunnerThird: prev.isRunnerThird,
                         teamScore: teamscore,
                         oppScore: oppScore,
                         ball: 0,
@@ -936,6 +1203,7 @@ const PlayByPlayScreen = () => {
                     let rbi = 0;
                     let earnRun = 0;
                     let run = 0;
+                    let description = "";
                     if (atBat.isOffense === 1) {
                       if (player === 9) player = 1;
                       else player = atBat.currentPlayer + 1;
@@ -979,7 +1247,7 @@ const PlayByPlayScreen = () => {
                       }
                     }
 
-                    if (atBat.isOffense === 1)
+                    if (atBat.isOffense === 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         12,
@@ -988,7 +1256,20 @@ const PlayByPlayScreen = () => {
                         false,
                         0
                       );
-                    else {
+                      description += `#${
+                        myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                      }.${
+                        myBatting[atBat.currentPlayer - 1].player.firstName
+                      } ${
+                        myBatting[atBat.currentPlayer - 1].player.lastName
+                      } được pitcher cố tình walk. `;
+                      if (atBat.isRunnerFirst)
+                        description += `#${atBat.isRunnerFirst.player.jerseyNumber}.${atBat.isRunnerFirst.player.firstName} ${atBat.isRunnerFirst.player.lastName} lên chốt 2. `;
+                      if (atBat.isRunnerSecond)
+                        description += `#${atBat.isRunnerSecond.player.jerseyNumber}.${atBat.isRunnerSecond.player.firstName} ${atBat.isRunnerSecond.player.lastName} lên chốt 3. `;
+                      if (atBat.isRunnerThird)
+                        description += `#${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} ghi điểm.`;
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -1006,8 +1287,18 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      description += `Batter ${atBat.oppCurPlayer} đối phương được pitcher cố tình walk. `;
+                      if (atBat.isRunnerFirst) {
+                        description += `Runner B1 đối phương lên B2. `;
+                      }
+                      if (atBat.isRunnerSecond) {
+                        description += `Runner B2 đối phương lên B3. `;
+                      }
+                      if (atBat.isRunnerThird) {
+                        description += `Runner B3 đối phương ghi điểm.`;
+                      }
                     }
-
+                    endTheAtBat(description);
                     setAtBat((prev) => {
                       return {
                         ...prev,
@@ -1016,9 +1307,15 @@ const PlayByPlayScreen = () => {
                         isRunnerFirst: runner1,
                         isRunnerSecond: runner2,
                         isRunnerThird: runner3,
+                        beforeRunnerFirst: prev.isRunnerFirst,
+                        beforeRunnerSecond: prev.isRunnerSecond,
+                        beforeRunnerThird: prev.isRunnerThird,
                         teamScore: teamscore,
+                        oppScore: oppScore,
                         ball: 0,
                         strike: 0,
+                        beforeBall: prev.ball,
+                        beforeStrike: prev.strike,
                         outcomeType: 12,
                       };
                     });
@@ -1037,8 +1334,6 @@ const PlayByPlayScreen = () => {
                     setAtBat((prev) => {
                       return {
                         ...prev,
-                        ball: 0,
-                        strike: 0,
                         outcomeType: 13,
                       };
                     });
@@ -1049,6 +1344,30 @@ const PlayByPlayScreen = () => {
                     else if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
                     else setBatterRunnerVisible(true);
+
+                    if (atBat.isOffense === 1) {
+                      addDescription(
+                        `#${
+                          myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                        }.${
+                          myBatting[atBat.currentPlayer - 1].player.firstName
+                        } ${
+                          myBatting[atBat.currentPlayer - 1].player.lastName
+                        } hit single`
+                      );
+                      updateBatterStat(
+                        myBatting[atBat.currentPlayer - 1],
+                        13,
+                        0,
+                        0,
+                        false,
+                        0
+                      );
+                    } else {
+                      addDescription(
+                        `Batter ${atBat.oppCurPlayer} đối phương hit single`
+                      );
+                    }
                   }}
                   style={styles.modelButton}
                 >
@@ -1062,8 +1381,6 @@ const PlayByPlayScreen = () => {
                     setAtBat((prev) => {
                       return {
                         ...prev,
-                        ball: 0,
-                        strike: 0,
                         outcomeType: 14,
                       };
                     });
@@ -1074,6 +1391,29 @@ const PlayByPlayScreen = () => {
                     else if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
                     else setBatterRunnerVisible(true);
+                    if (atBat.isOffense === 1) {
+                      addDescription(
+                        `#${
+                          myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                        }.${
+                          myBatting[atBat.currentPlayer - 1].player.firstName
+                        } ${
+                          myBatting[atBat.currentPlayer - 1].player.lastName
+                        } hit double`
+                      );
+                      updateBatterStat(
+                        myBatting[atBat.currentPlayer - 1],
+                        14,
+                        0,
+                        0,
+                        false,
+                        0
+                      );
+                    } else {
+                      addDescription(
+                        `Batter ${atBat.oppCurPlayer} đối phương hit double`
+                      );
+                    }
                   }}
                   style={styles.modelButton}
                 >
@@ -1089,8 +1429,6 @@ const PlayByPlayScreen = () => {
                     setAtBat((prev) => {
                       return {
                         ...prev,
-                        ball: 0,
-                        strike: 0,
                         outcomeType: 15,
                       };
                     });
@@ -1101,6 +1439,30 @@ const PlayByPlayScreen = () => {
                     else if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
                     else setBatterRunnerVisible(true);
+
+                    if (atBat.isOffense === 1) {
+                      addDescription(
+                        `#${
+                          myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                        }.${
+                          myBatting[atBat.currentPlayer - 1].player.firstName
+                        } ${
+                          myBatting[atBat.currentPlayer - 1].player.lastName
+                        } hit triple`
+                      );
+                      updateBatterStat(
+                        myBatting[atBat.currentPlayer - 1],
+                        15,
+                        0,
+                        0,
+                        false,
+                        0
+                      );
+                    } else {
+                      addDescription(
+                        `Batter ${atBat.oppCurPlayer} đối phương hit triple`
+                      );
+                    }
                   }}
                   style={styles.modelButton}
                 >
@@ -1113,6 +1475,7 @@ const PlayByPlayScreen = () => {
                     let rbi = 1;
                     let earnRun = 1;
                     let run = 1;
+                    let description = "";
                     if (atBat.isRunnerFirst !== null) {
                       if (atBat.isOffense === 1) {
                         teamscore++;
@@ -1157,7 +1520,7 @@ const PlayByPlayScreen = () => {
                     else oppScore++;
                     setSafeModalVisible(false);
                     setOutcomeType(16);
-                    if (atBat.isOffense === 1)
+                    if (atBat.isOffense === 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         16,
@@ -1166,7 +1529,22 @@ const PlayByPlayScreen = () => {
                         false,
                         0
                       );
-                    else {
+                      description += `#${
+                        myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                      }.${
+                        myBatting[atBat.currentPlayer - 1].player.firstName
+                      } ${
+                        myBatting[atBat.currentPlayer - 1].player.lastName
+                      } hit ${
+                        rbi === 4 ? "Grand-slam" : `${rbi}-run`
+                      } homerun. `;
+                      if (atBat.isRunnerFirst)
+                        description += `#${atBat.isRunnerFirst.player.jerseyNumber}.${atBat.isRunnerFirst.player.firstName} ${atBat.isRunnerFirst.player.lastName} ghi điểm. `;
+                      if (atBat.isRunnerSecond)
+                        description += `#${atBat.isRunnerSecond.player.jerseyNumber}.${atBat.isRunnerSecond.player.firstName} ${atBat.isRunnerSecond.player.lastName} ghi điểm. `;
+                      if (atBat.isRunnerThird)
+                        description += `#${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} ghi điểm. `;
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -1184,7 +1562,19 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      description += `Batter ${
+                        atBat.oppCurPlayer
+                      } đối phương hit ${
+                        run === 4 ? "Grand-slam" : `${run}-run`
+                      } homerun. `;
+                      if (atBat.isRunnerFirst)
+                        description += `Runner B1 đối phương ghi điểm. `;
+                      if (atBat.isRunnerSecond)
+                        description += `Runner B2 đối phương ghi điểm. `;
+                      if (atBat.isRunnerThird)
+                        description += `Runner B3 đối phương ghi điểm. `;
                     }
+                    endTheAtBat(description);
                     setAtBat((prev) => {
                       return {
                         ...prev,
@@ -1195,6 +1585,9 @@ const PlayByPlayScreen = () => {
                         isRunnerFirst: null,
                         isRunnerSecond: null,
                         isRunnerThird: null,
+                        beforeRunnerFirst: prev.isRunnerFirst,
+                        beforeRunnerSecond: prev.isRunnerSecond,
+                        beforeRunnerThird: prev.isRunnerThird,
                         currentPlayer: player,
                         oppCurPlayer: oppPlayer,
                         outcomeType: 16,
@@ -1228,6 +1621,22 @@ const PlayByPlayScreen = () => {
                     else if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
                     else setBatterRunnerVisible(true);
+
+                    if (atBat.isOffense === 1) {
+                      addDescription(
+                        `#${
+                          myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                        }.${
+                          myBatting[atBat.currentPlayer - 1].player.firstName
+                        } ${
+                          myBatting[atBat.currentPlayer - 1].player.lastName
+                        } an toàn bởi lỗi phòng ngự`
+                      );
+                    } else {
+                      addDescription(
+                        `Batter ${atBat.oppCurPlayer} an toàn bởi lỗi phòng ngự`
+                      );
+                    }
                   }}
                   style={styles.modelButton}
                 >
@@ -1245,6 +1654,7 @@ const PlayByPlayScreen = () => {
                     let rbi = 0;
                     let earnRun = 0;
                     let run = 0;
+                    let description = "";
 
                     if (atBat.isOffense === 1) {
                       if (player === 9) player = 1;
@@ -1289,7 +1699,7 @@ const PlayByPlayScreen = () => {
                     }
                     setSafeModalVisible(false);
                     setOutcomeType(19);
-                    if (atBat.isOffense === 1)
+                    if (atBat.isOffense === 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         19,
@@ -1298,7 +1708,20 @@ const PlayByPlayScreen = () => {
                         false,
                         0
                       );
-                    else {
+                      description += `#${
+                        myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                      }.${
+                        myBatting[atBat.currentPlayer - 1].player.firstName
+                      } ${
+                        myBatting[atBat.currentPlayer - 1].player.lastName
+                      } bị hit by pitch. `;
+                      if (atBat.isRunnerFirst)
+                        description += `#${atBat.isRunnerFirst.player.jerseyNumber}.${atBat.isRunnerFirst.player.firstName} ${atBat.isRunnerFirst.player.lastName} lên chốt 2. `;
+                      if (atBat.isRunnerSecond)
+                        description += `#${atBat.isRunnerSecond.player.jerseyNumber}.${atBat.isRunnerSecond.player.firstName} ${atBat.isRunnerSecond.player.lastName} lên chốt 3. `;
+                      if (atBat.isRunnerThird)
+                        description += `#${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} ghi điểm.`;
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -1316,7 +1739,18 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      description += `Batter ${atBat.oppCurPlayer} đối phương bị hit by pitch. `;
+                      if (atBat.isRunnerFirst) {
+                        description += `Runner B1 đối phương lên B2. `;
+                      }
+                      if (atBat.isRunnerSecond) {
+                        description += `Runner B2 đối phương lên B3. `;
+                      }
+                      if (atBat.isRunnerThird) {
+                        description += `Runner B3 đối phương ghi điểm.`;
+                      }
                     }
+                    endTheAtBat(description);
                     setAtBat((prev) => {
                       return {
                         ...prev,
@@ -1325,7 +1759,11 @@ const PlayByPlayScreen = () => {
                         isRunnerFirst: runner1,
                         isRunnerSecond: runner2,
                         isRunnerThird: runner3,
+                        beforeRunnerFirst: prev.isRunnerFirst,
+                        beforeRunnerSecond: prev.isRunnerSecond,
+                        beforeRunnerThird: prev.isRunnerThird,
                         teamScore: teamscore,
+                        oppScore: oppScore,
                         ball: 0,
                         strike: 0,
                         outcomeType: 19,
@@ -1358,6 +1796,30 @@ const PlayByPlayScreen = () => {
                     else if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
                     else setBatterRunnerVisible(true);
+
+                    if (atBat.isOffense === 1) {
+                      addDescription(
+                        `#${
+                          myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                        }.${
+                          myBatting[atBat.currentPlayer - 1].player.firstName
+                        } ${
+                          myBatting[atBat.currentPlayer - 1].player.lastName
+                        } ground dẫn đến fielder choice`
+                      );
+                      updateBatterStat(
+                        myBatting[atBat.currentPlayer - 1],
+                        20,
+                        0,
+                        0,
+                        false,
+                        0
+                      );
+                    } else {
+                      addDescription(
+                        `Batter ${atBat.oppCurPlayer} đối phương ground dẫn đến fielder choice`
+                      );
+                    }
                   }}
                   style={styles.modelButton}
                 >
@@ -1375,6 +1837,7 @@ const PlayByPlayScreen = () => {
                     let rbi = 0;
                     let earnRun = 0;
                     let run = 0;
+                    let description = "";
 
                     if (atBat.isOffense === 1) {
                       if (player === 9) player = 1;
@@ -1419,7 +1882,7 @@ const PlayByPlayScreen = () => {
                     }
                     setSafeModalVisible(false);
                     setOutcomeType(21);
-                    if (atBat.isOffense === 1)
+                    if (atBat.isOffense === 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         21,
@@ -1428,7 +1891,20 @@ const PlayByPlayScreen = () => {
                         false,
                         0
                       );
-                    else {
+                      description += `#${
+                        myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                      }.${
+                        myBatting[atBat.currentPlayer - 1].player.firstName
+                      } ${
+                        myBatting[atBat.currentPlayer - 1].player.lastName
+                      } lên chốt 1 do bị catcher interference. `;
+                      if (atBat.isRunnerFirst)
+                        description += `#${atBat.isRunnerFirst.player.jerseyNumber}.${atBat.isRunnerFirst.player.firstName} ${atBat.isRunnerFirst.player.lastName} lên chốt 2. `;
+                      if (atBat.isRunnerSecond)
+                        description += `#${atBat.isRunnerSecond.player.jerseyNumber}.${atBat.isRunnerSecond.player.firstName} ${atBat.isRunnerSecond.player.lastName} lên chốt 3. `;
+                      if (atBat.isRunnerThird)
+                        description += `#${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} ghi điểm.`;
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -1446,6 +1922,16 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      description += `Batter ${atBat.oppCurPlayer} đối phương lên chốt 1 do bị catcher interference. `;
+                      if (atBat.isRunnerFirst) {
+                        description += `Runner B1 đối phương lên B2. `;
+                      }
+                      if (atBat.isRunnerSecond) {
+                        description += `Runner B2 đối phương lên B3. `;
+                      }
+                      if (atBat.isRunnerThird) {
+                        description += `Runner B3 đối phương ghi điểm.`;
+                      }
                     }
                     setAtBat((prev) => {
                       return {
@@ -1454,7 +1940,11 @@ const PlayByPlayScreen = () => {
                         isRunnerFirst: runner1,
                         isRunnerSecond: runner2,
                         isRunnerThird: runner3,
+                        beforeRunnerFirst: prev.isRunnerFirst,
+                        beforeRunnerSecond: prev.isRunnerSecond,
+                        beforeRunnerThird: prev.isRunnerThird,
                         teamScore: teamscore,
+                        oppScore: oppScore,
                         ball: 0,
                         strike: 0,
                         outcomeType: 21,
@@ -1490,7 +1980,8 @@ const PlayByPlayScreen = () => {
                   style={{ ...styles.modelButton, marginBottom: 4 }}
                   onPress={() => {
                     setBatterRunnerVisible(false);
-                    if (atBat.isOffense == 1)
+                    let des = description;
+                    if (atBat.isOffense == 1 && outcomeType > 2) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         outcomeType,
@@ -1499,7 +1990,14 @@ const PlayByPlayScreen = () => {
                         false,
                         0
                       );
-                    else {
+                      des += `#${
+                        myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                      }.${
+                        myBatting[atBat.currentPlayer - 1].player.firstName
+                      } ${
+                        myBatting[atBat.currentPlayer - 1].player.lastName
+                      } lên chốt 1.`;
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -1517,7 +2015,9 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      des += `Batter ${atBat.oppCurPlayer} đối phương lên chốt 1.`;
                     }
+                    endTheAtBat(des);
                     setAtBat((prev) => {
                       return {
                         ...prev,
@@ -1548,8 +2048,9 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={{ ...styles.modelButton, marginBottom: 4 }}
                   onPress={() => {
+                    let des = description;
                     setBatterRunnerVisible(false);
-                    if (atBat.isOffense == 1 && outcomeType > 2)
+                    if (atBat.isOffense == 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         outcomeType,
@@ -1558,7 +2059,14 @@ const PlayByPlayScreen = () => {
                         false,
                         0
                       );
-                    else if (atBat.isOffense == 0) {
+                      des += `#${
+                        myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                      }.${
+                        myBatting[atBat.currentPlayer - 1].player.firstName
+                      } ${
+                        myBatting[atBat.currentPlayer - 1].player.lastName
+                      } lên chốt 2.`;
+                    } else if (atBat.isOffense == 0) {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -1576,7 +2084,9 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      des += `Batter ${atBat.oppCurPlayer} đối phương lên chốt 2.`;
                     }
+                    endTheAtBat(des);
                     setAtBat((prev) => {
                       return {
                         ...prev,
@@ -1607,8 +2117,9 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={styles.modelButton}
                   onPress={() => {
+                    let des = description;
                     setBatterRunnerVisible(false);
-                    if (atBat.isOffense == 1)
+                    if (atBat.isOffense == 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         outcomeType,
@@ -1617,7 +2128,14 @@ const PlayByPlayScreen = () => {
                         false,
                         0
                       );
-                    else {
+                      des += `#${
+                        myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                      }.${
+                        myBatting[atBat.currentPlayer - 1].player.firstName
+                      } ${
+                        myBatting[atBat.currentPlayer - 1].player.lastName
+                      } lên chốt 3.`;
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -1635,7 +2153,9 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      des += `Batter ${atBat.oppCurPlayer} đối phương lên chốt 3.`;
                     }
+                    endTheAtBat(des);
                     setAtBat((prev) => {
                       return {
                         ...prev,
@@ -1666,8 +2186,9 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={styles.modelButton}
                   onPress={() => {
+                    let des = description;
                     setBatterRunnerVisible(false);
-                    if (atBat.isOffense == 1)
+                    if (atBat.isOffense == 1) {
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         outcomeType,
@@ -1676,7 +2197,14 @@ const PlayByPlayScreen = () => {
                         false,
                         0
                       );
-                    else if (atBat.isOffense == 0) {
+                      des += `#${
+                        myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                      }.${
+                        myBatting[atBat.currentPlayer - 1].player.firstName
+                      } ${
+                        myBatting[atBat.currentPlayer - 1].player.lastName
+                      } ghi điểm.`;
+                    } else if (atBat.isOffense == 0) {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -1694,7 +2222,9 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      des += `Batter ${atBat.oppCurPlayer} ghi điểm.`;
                     }
+                    endTheAtBat(des);
                     setAtBat((prev) => {
                       return {
                         ...prev,
@@ -1729,10 +2259,22 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={{ ...styles.modelButton, marginBottom: 4 }}
                   onPress={() => {
+                    let des = description;
                     setBatterRunnerVisible(false);
-                    if (atBat.isOffense === 1)
+                    console.log(outcomeType);
+                    if (atBat.isOffense === 1) {
+                      des += `#${
+                        myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                      }.${
+                        myBatting[atBat.currentPlayer - 1].player.firstName
+                      } ${
+                        myBatting[atBat.currentPlayer - 1].player.lastName
+                      } out ở chốt 1.`;
+
+                      endTheAtBat(des);
+
                       handleOut(true, myBatting[atBat.currentPlayer - 1]);
-                    else {
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -1750,6 +2292,8 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      des += `Batter ${atBat.oppCurPlayer} out ở chốt 1.`;
+                      endTheAtBat(des);
                       handleOut(true, atBat.oppCurPlayer);
                     }
                   }}
@@ -1759,10 +2303,21 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={{ ...styles.modelButton, marginBottom: 4 }}
                   onPress={() => {
+                    let des = description;
                     setBatterRunnerVisible(false);
-                    if (atBat.isOffense === 1)
+                    if (atBat.isOffense === 1) {
+                      des += `#${
+                        myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                      }.${
+                        myBatting[atBat.currentPlayer - 1].player.firstName
+                      } ${
+                        myBatting[atBat.currentPlayer - 1].player.lastName
+                      } bị tag out ở chốt 2.`;
+
+                      endTheAtBat(des);
+
                       handleOut(true, myBatting[atBat.currentPlayer - 1]);
-                    else {
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -1780,6 +2335,8 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      des += `Batter ${atBat.oppCurPlayer} bị tag out ở chốt 2.`;
+                      endTheAtBat(des);
                       handleOut(true, atBat.oppCurPlayer);
                     }
                   }}
@@ -1789,10 +2346,21 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={{ ...styles.modelButton, marginBottom: 4 }}
                   onPress={() => {
+                    let des = description;
                     setBatterRunnerVisible(false);
-                    if (atBat.isOffense === 1)
+                    if (atBat.isOffense === 1) {
+                      des += `#${
+                        myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                      }.${
+                        myBatting[atBat.currentPlayer - 1].player.firstName
+                      } ${
+                        myBatting[atBat.currentPlayer - 1].player.lastName
+                      } bị tag out ở chốt 3.`;
+
+                      endTheAtBat(des);
+
                       handleOut(true, myBatting[atBat.currentPlayer - 1]);
-                    else {
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -1810,6 +2378,8 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      des += `Batter ${atBat.oppCurPlayer} bị tag out ở chốt 3.`;
+                      endTheAtBat(des);
                       handleOut(true, atBat.oppCurPlayer);
                     }
                   }}
@@ -1819,10 +2389,21 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={styles.modelButton}
                   onPress={() => {
+                    let des = description;
                     setBatterRunnerVisible(false);
-                    if (atBat.isOffense == 1)
+                    if (atBat.isOffense === 1) {
+                      des += `#${
+                        myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                      }.${
+                        myBatting[atBat.currentPlayer - 1].player.firstName
+                      } ${
+                        myBatting[atBat.currentPlayer - 1].player.lastName
+                      } bị tag out ở home.`;
+
+                      endTheAtBat(des);
+
                       handleOut(true, myBatting[atBat.currentPlayer - 1]);
-                    else {
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -1840,7 +2421,10 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
-                      handleOut(true, atBat.oppCurPlayer);
+                      des += `Batter ${atBat.oppCurPlayer} bị tag out ở home.`;
+                      endTheAtBat(des);
+                      if ((outcomeType = 7))
+                        handleOut(true, atBat.oppCurPlayer);
                     }
                   }}
                 >
@@ -1849,10 +2433,21 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={styles.modelButton}
                   onPress={() => {
+                    let des = description;
                     setBatterRunnerVisible(false);
-                    if (atBat.isOffense == 1)
+                    if (atBat.isOffense === 1) {
+                      des += `#${
+                        myBatting[atBat.currentPlayer - 1].player.jerseyNumber
+                      }.${
+                        myBatting[atBat.currentPlayer - 1].player.firstName
+                      } ${
+                        myBatting[atBat.currentPlayer - 1].player.lastName
+                      } out vì cản trở fielder.`;
+
+                      endTheAtBat(des);
+
                       handleOut(true, myBatting[atBat.currentPlayer - 1]);
-                    else {
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -1870,7 +2465,9 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
-                      handleOut(true, atBat.oppCurPlayer);
+                      des += `Batter ${atBat.oppCurPlayer} out vì cản trở fielder.`;
+                      endTheAtBat(des);
+                      if (outcomeType > 7) handleOut(true, atBat.oppCurPlayer);
                     }
                   }}
                 >
@@ -1907,6 +2504,7 @@ const PlayByPlayScreen = () => {
                   style={{ ...styles.modelButton, marginBottom: 4 }}
                   onPress={() => {
                     setFirstRunnerVisible(false);
+                    setBatterRunnerVisible(true);
                   }}
                 >
                   <Text style={styles.textButton}>Vẫn ở B1</Text>
@@ -1915,14 +2513,22 @@ const PlayByPlayScreen = () => {
                   style={{ ...styles.modelButton, marginBottom: 4 }}
                   onPress={() => {
                     setFirstRunnerVisible(false);
+                    if (atBat.isOffense) {
+                      addDescription(
+                        `#${atBat.isRunnerFirst.player.jerseyNumber}.${atBat.isRunnerFirst.player.firstName} ${atBat.isRunnerFirst.player.lastName} lên chốt 2`
+                      );
+                    } else {
+                      addDescription(`Runner B1 đối phương lên chốt 2`);
+                    }
                     setAtBat((prev) => {
                       return {
                         ...prev,
                         isRunnerFirst: null,
+                        beforeRunnerFirst: prev.isRunnerFirst,
                         isRunnerSecond: prev.isRunnerFirst,
                       };
                     });
-                    if (outcomeType > 7) setBatterRunnerVisible(true);
+                    setBatterRunnerVisible(true);
                   }}
                 >
                   <Text style={styles.textButton}>Lên B2</Text>
@@ -1931,14 +2537,22 @@ const PlayByPlayScreen = () => {
                   style={styles.modelButton}
                   onPress={() => {
                     setFirstRunnerVisible(false);
+                    if (atBat.isOffense) {
+                      addDescription(
+                        `#${atBat.isRunnerFirst.player.jerseyNumber}.${atBat.isRunnerFirst.player.firstName} ${atBat.isRunnerFirst.player.lastName} lên chốt 3`
+                      );
+                    } else {
+                      addDescription(`Runner B1 đối phương lên chốt 3`);
+                    }
                     setAtBat((prev) => {
                       return {
                         ...prev,
                         isRunnerFirst: null,
+                        beforeRunnerFirst: prev.isRunnerFirst,
                         isRunnerThird: prev.isRunnerFirst,
                       };
                     });
-                    if (outcomeType > 7) setBatterRunnerVisible(true);
+                    setBatterRunnerVisible(true);
                   }}
                 >
                   <Text style={styles.textButton}>Lên B3</Text>
@@ -1968,6 +2582,9 @@ const PlayByPlayScreen = () => {
                         0,
                         true
                       );
+                      addDescription(
+                        `#${atBat.isRunnerFirst.player.jerseyNumber}.${atBat.isRunnerFirst.player.firstName} ${atBat.isRunnerFirst.player.lastName} ghi điểm`
+                      );
                     } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
@@ -1986,11 +2603,13 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      addDescription(`Runner B1 đối phương ghi điểm`);
                     }
                     setAtBat((prev) => {
                       return {
                         ...prev,
                         isRunnerFirst: null,
+                        beforeRunnerFirst: prev.isRunnerFirst,
                         teamScore:
                           prev.isOffense == 1
                             ? prev.teamScore + 1
@@ -2001,7 +2620,7 @@ const PlayByPlayScreen = () => {
                             : prev.oppScore,
                       };
                     });
-                    if (outcomeType > 7) setBatterRunnerVisible(true);
+                    setBatterRunnerVisible(true);
                   }}
                 >
                   <Text style={styles.textButton}>Về home</Text>
@@ -2012,8 +2631,12 @@ const PlayByPlayScreen = () => {
                   style={{ ...styles.modelButton, marginBottom: 4 }}
                   onPress={() => {
                     setFirstRunnerVisible(false);
-                    handleOut(1, atBat.isRunnerFirst);
-                    if (atBat.isOffense !== 1) {
+                    if (atBat.isOffense === 1) {
+                      addDescription(
+                        `#${atBat.isRunnerFirst.player.jerseyNumber}.${atBat.isRunnerFirst.player.firstName} ${atBat.isRunnerFirst.player.lastName} bị tag out ở chốt 2`
+                      );
+                      handleOut(1, atBat.isRunnerFirst);
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -2031,8 +2654,12 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      addDescription(
+                        `Runner B1 đối phương bị tag out ở chốt 2`
+                      );
+                      handleOut(1, atBat.isRunnerFirst);
                     }
-                    if (outcomeType > 7) setBatterRunnerVisible(true);
+                    setBatterRunnerVisible(true);
                   }}
                 >
                   <Text style={styles.textButton}>Tag out ở B2</Text>
@@ -2041,9 +2668,13 @@ const PlayByPlayScreen = () => {
                   style={{ ...styles.modelButton, marginBottom: 4 }}
                   onPress={() => {
                     setFirstRunnerVisible(false);
-                    if (outcomeType > 7) setBatterRunnerVisible(true);
-                    handleOut(1, atBat.isRunnerFirst);
-                    if (atBat.isOffense != 1) {
+                    setBatterRunnerVisible(true);
+                    if (atBat.isOffense === 1) {
+                      addDescription(
+                        `#${atBat.isRunnerFirst.player.jerseyNumber}.${atBat.isRunnerFirst.player.firstName} ${atBat.isRunnerFirst.player.lastName} bị tag out ở chốt 3`
+                      );
+                      handleOut(1, atBat.isRunnerFirst);
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -2061,6 +2692,10 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      addDescription(
+                        `Runner B1 đối phương bị tag out ở chốt 3`
+                      );
+                      handleOut(1, atBat.isRunnerFirst);
                     }
                   }}
                 >
@@ -2070,9 +2705,13 @@ const PlayByPlayScreen = () => {
                   style={styles.modelButton}
                   onPress={() => {
                     setFirstRunnerVisible(false);
-                    if (outcomeType > 7) setBatterRunnerVisible(true);
-                    handleOut(1, atBat.isRunnerFirst);
-                    if (atBat.isOffense != 1) {
+                    setBatterRunnerVisible(true);
+                    if (atBat.isOffense === 1) {
+                      addDescription(
+                        `#${atBat.isRunnerFirst.player.jerseyNumber}.${atBat.isRunnerFirst.player.firstName} ${atBat.isRunnerFirst.player.lastName} bị tag out ở home`
+                      );
+                      handleOut(1, atBat.isRunnerFirst);
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -2090,6 +2729,8 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      addDescription(`Runner B1 đối phương bị tag out ở home`);
+                      handleOut(1, atBat.isRunnerFirst);
                     }
                   }}
                 >
@@ -2099,8 +2740,12 @@ const PlayByPlayScreen = () => {
                   style={styles.modelButton}
                   onPress={() => {
                     setFirstRunnerVisible(false);
-                    handleOut(1, atBat.isRunnerFirst);
-                    if (atBat.isOffense != 1) {
+                    if (atBat.isOffense === 1) {
+                      addDescription(
+                        `#${atBat.isRunnerFirst.player.jerseyNumber}.${atBat.isRunnerFirst.player.firstName} ${atBat.isRunnerFirst.player.lastName} force out ở chốt 2`
+                      );
+                      handleOut(1, atBat.isRunnerFirst);
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -2118,8 +2763,10 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      addDescription(`Runner B1 đối phương force out ở chốt 2`);
+                      handleOut(1, atBat.isRunnerFirst);
                     }
-                    if (outcomeType > 7) setBatterRunnerVisible(true);
+                    setBatterRunnerVisible(true);
                   }}
                 >
                   <Text style={styles.textButton}>Force out ở B2</Text>
@@ -2128,8 +2775,12 @@ const PlayByPlayScreen = () => {
                   style={styles.modelButton}
                   onPress={() => {
                     setFirstRunnerVisible(false);
-                    handleOut(1, atBat.isRunnerFirst);
-                    if (atBat.isOffense != 1) {
+                    if (atBat.isOffense === 1) {
+                      addDescription(
+                        `#${atBat.isRunnerFirst.player.jerseyNumber}.${atBat.isRunnerFirst.player.firstName} ${atBat.isRunnerFirst.player.lastName} out vì cản trở fielder`
+                      );
+                      handleOut(1, atBat.isRunnerFirst);
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -2147,8 +2798,12 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      addDescription(
+                        `Runner B1 đối phương out vì cản trở fielder`
+                      );
+                      handleOut(1, atBat.isRunnerFirst);
                     }
-                    if (outcomeType > 7) setBatterRunnerVisible(true);
+                    setBatterRunnerVisible(true);
                   }}
                 >
                   <Text style={styles.textButton}>
@@ -2185,7 +2840,7 @@ const PlayByPlayScreen = () => {
                     setSecondRunnerVisible(false);
                     if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
-                    else if (outcomeType > 7) setBatterRunnerVisible(true);
+                    else setBatterRunnerVisible(true);
                   }}
                 >
                   <Text style={styles.textButton}>Vẫn ở B2</Text>
@@ -2194,16 +2849,24 @@ const PlayByPlayScreen = () => {
                   style={styles.modelButton}
                   onPress={() => {
                     setSecondRunnerVisible(false);
+                    if (atBat.isOffense === 1) {
+                      addDescription(
+                        `#${atBat.isRunnerSecond.player.jerseyNumber}.${atBat.isRunnerSecond.player.firstName} ${atBat.isRunnerSecond.player.lastName} lên chốt 3`
+                      );
+                    } else {
+                      addDescription(`Runner B2 đối phương lên chốt 3`);
+                    }
                     setAtBat((prev) => {
                       return {
                         ...prev,
                         isRunnerSecond: null,
+                        beforeRunnerSecond: prev.isRunnerSecond,
                         isRunnerThird: prev.isRunnerSecond,
                       };
                     });
                     if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
-                    else if (outcomeType > 7) setBatterRunnerVisible(true);
+                    else setBatterRunnerVisible(true);
                   }}
                 >
                   <Text style={styles.textButton}>Lên B3</Text>
@@ -2233,6 +2896,9 @@ const PlayByPlayScreen = () => {
                         0,
                         true
                       );
+                      addDescription(
+                        `#${atBat.isRunnerSecond.player.jerseyNumber}.${atBat.isRunnerSecond.player.firstName} ${atBat.isRunnerSecond.player.lastName} ghi điểm`
+                      );
                     } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
@@ -2251,11 +2917,13 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      addDescription(`Runner B2 đối phương ghi điểm`);
                     }
                     setAtBat((prev) => {
                       return {
                         ...prev,
                         isRunnerSecond: null,
+                        beforeRunnerSecond: prev.isRunnerSecond,
                         teamScore:
                           prev.isOffense == 1
                             ? prev.teamScore + 1
@@ -2268,7 +2936,7 @@ const PlayByPlayScreen = () => {
                     });
                     if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
-                    else if (outcomeType > 7) setBatterRunnerVisible(true);
+                    else setBatterRunnerVisible(true);
                   }}
                 >
                   <Text style={styles.textButton}>Về home</Text>
@@ -2279,8 +2947,12 @@ const PlayByPlayScreen = () => {
                   style={styles.modelButton}
                   onPress={() => {
                     setSecondRunnerVisible(false);
-                    handleOut(2, atBat.isRunnerSecond);
-                    if (atBat.isOffense != 1) {
+                    if (atBat.isOffense === 1) {
+                      addDescription(
+                        `#${atBat.isRunnerSecond.player.jerseyNumber}.${atBat.isRunnerSecond.player.firstName} ${atBat.isRunnerSecond.player.lastName} bị tag out ở chốt 3`
+                      );
+                      handleOut(2, atBat.isRunnerSecond);
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -2298,9 +2970,14 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      addDescription(
+                        `Runner B2 đối phương bị tag out ở chốt 3`
+                      );
+                      handleOut(2, atBat.isRunnerSecond);
                     }
                     if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
+                    else setBatterRunnerVisible(true);
                   }}
                 >
                   <Text style={styles.textButton}>Tag out ở B3</Text>
@@ -2309,8 +2986,12 @@ const PlayByPlayScreen = () => {
                   style={styles.modelButton}
                   onPress={() => {
                     setSecondRunnerVisible(false);
-                    handleOut(2, atBat.isRunnerSecond);
-                    if (atBat.isOffense != 1) {
+                    if (atBat.isOffense === 1) {
+                      addDescription(
+                        `#${atBat.isRunnerSecond.player.jerseyNumber}.${atBat.isRunnerSecond.player.firstName} ${atBat.isRunnerSecond.player.lastName} bị tag out ở home`
+                      );
+                      handleOut(2, atBat.isRunnerSecond);
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -2328,9 +3009,12 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      addDescription(`Runner B2 đối phương bị tag out ở home`);
+                      handleOut(2, atBat.isRunnerSecond);
                     }
                     if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
+                    else setBatterRunnerVisible(true);
                   }}
                 >
                   <Text style={styles.textButton}>Tag out ở home</Text>
@@ -2339,8 +3023,12 @@ const PlayByPlayScreen = () => {
                   style={styles.modelButton}
                   onPress={() => {
                     setSecondRunnerVisible(false);
-                    handleOut(2, atBat.isRunnerSecond);
-                    if (atBat.isOffense != 1) {
+                    if (atBat.isOffense === 1) {
+                      addDescription(
+                        `#${atBat.isRunnerSecond.player.jerseyNumber}.${atBat.isRunnerSecond.player.firstName} ${atBat.isRunnerSecond.player.lastName} bị force out ở chốt 3`
+                      );
+                      handleOut(2, atBat.isRunnerSecond);
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -2358,9 +3046,12 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      addDescription(`Runner B2 đối phương force out ở chốt 3`);
+                      handleOut(2, atBat.isRunnerSecond);
                     }
                     if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
+                    else setBatterRunnerVisible(true);
                   }}
                 >
                   <Text style={styles.textButton}>Force out ở B3</Text>
@@ -2369,8 +3060,12 @@ const PlayByPlayScreen = () => {
                   style={styles.modelButton}
                   onPress={() => {
                     setSecondRunnerVisible(false);
-                    handleOut(2, atBat.isRunnerSecond);
-                    if (atBat.isOffense != 1) {
+                    if (atBat.isOffense === 1) {
+                      addDescription(
+                        `#${atBat.isRunnerSecond.player.jerseyNumber}.${atBat.isRunnerSecond.player.firstName} ${atBat.isRunnerSecond.player.lastName} out vì cản trở fielder`
+                      );
+                      handleOut(2, atBat.isRunnerSecond);
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -2388,39 +3083,14 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      addDescription(
+                        `Runner B2 đối phương out vì cản trở fielder`
+                      );
+                      handleOut(2, atBat.isRunnerSecond);
                     }
                     if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
-                  }}
-                >
-                  <Text style={styles.textButton}>Force out ở home</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.modelButton}
-                  onPress={() => {
-                    setSecondRunnerVisible(false);
-                    handleOut(2, atBat.isRunnerSecond);
-                    if (atBat.isOffense != 1) {
-                      let reversedBatting = [...myBatting].reverse();
-                      let pitcher = reversedBatting.find(
-                        (p) => p.position === 1
-                      );
-                      updatePitcherStat(
-                        pitcher,
-                        null,
-                        0,
-                        0,
-                        1,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0
-                      );
-                    }
-                    if (atBat.isRunnerFirst !== null)
-                      setFirstRunnerVisible(true);
+                    else setBatterRunnerVisible(true);
                   }}
                 >
                   <Text style={styles.textButton}>
@@ -2459,7 +3129,7 @@ const PlayByPlayScreen = () => {
                       setSecondRunnerVisible(true);
                     else if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
-                    else if (outcomeType > 7) setBatterRunnerVisible(true);
+                    else setBatterRunnerVisible(true);
                   }}
                 >
                   <Text style={styles.textButton}>Vẫn ở B3</Text>
@@ -2509,9 +3179,17 @@ const PlayByPlayScreen = () => {
                         0
                       );
                     }
+                    if (atBat.isOffense === 1) {
+                      addDescription(
+                        `#${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} ghi điểm`
+                      );
+                    } else {
+                      addDescription(`Runner B3 đối phương ghi điểm`);
+                    }
                     setAtBat((prev) => {
                       return {
                         ...prev,
+                        beforeRunnerThird: prev.isRunnerThird,
                         teamScore:
                           prev.isOffense == 1
                             ? prev.teamScore + 1
@@ -2527,7 +3205,7 @@ const PlayByPlayScreen = () => {
                       setSecondRunnerVisible(true);
                     else if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
-                    else if (outcomeType > 7) setBatterRunnerVisible(true);
+                    else setBatterRunnerVisible(true);
                   }}
                 >
                   <Text style={styles.textButton}>Về home</Text>
@@ -2538,8 +3216,12 @@ const PlayByPlayScreen = () => {
                   style={styles.modelButton}
                   onPress={() => {
                     setThirdRunnerVisible(false);
-                    handleOut(3, atBat.isRunnerThird);
-                    if (atBat.isOffense != 1) {
+                    if (atBat.isOffense === 1) {
+                      addDescription(
+                        `#${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} bị tag out ở home`
+                      );
+                      handleOut(3, atBat.isRunnerThird);
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -2557,11 +3239,14 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      addDescription(`Runner B3 đối phương bị tag out ở home`);
+                      handleOut(3, atBat.isRunnerThird);
                     }
                     if (atBat.isRunnerSecond != null)
                       setSecondRunnerVisible(true);
                     else if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
+                    else setBatterRunnerVisible(true);
                   }}
                 >
                   <Text style={styles.textButton}>Tag out ở home</Text>
@@ -2570,8 +3255,12 @@ const PlayByPlayScreen = () => {
                   style={styles.modelButton}
                   onPress={() => {
                     setThirdRunnerVisible(false);
-                    handleOut(3, atBat.isRunnerThird);
-                    if (atBat.isOffense != 1) {
+                    if (atBat.isOffense === 1) {
+                      addDescription(
+                        `#${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} force out ở home`
+                      );
+                      handleOut(3, atBat.isRunnerThird);
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -2589,11 +3278,14 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      addDescription(`Runner B3 đối phương force out ở home`);
+                      handleOut(3, atBat.isRunnerThird);
                     }
                     if (atBat.isRunnerSecond !== null)
                       setSecondRunnerVisible(true);
                     else if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
+                    else setBatterRunnerVisible(true);
                   }}
                 >
                   <Text style={styles.textButton}>Force out ở home</Text>
@@ -2602,8 +3294,12 @@ const PlayByPlayScreen = () => {
                   style={styles.modelButton}
                   onPress={() => {
                     setThirdRunnerVisible(false);
-                    handleOut(3, atBat.isRunnerThird);
-                    if (atBat.isOffense !== 1) {
+                    if (atBat.isOffense === 1) {
+                      addDescription(
+                        `#${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} bị out vì cản trở fielder`
+                      );
+                      handleOut(3, atBat.isRunnerThird);
+                    } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -2621,11 +3317,16 @@ const PlayByPlayScreen = () => {
                         0,
                         0
                       );
+                      addDescription(
+                        `Runner B3 đối phương bị out vì cản trở fielder`
+                      );
+                      handleOut(3, atBat.isRunnerThird);
                     }
                     if (atBat.isRunnerSecond !== null)
                       setSecondRunnerVisible(true);
                     else if (atBat.isRunnerFirst !== null)
                       setFirstRunnerVisible(true);
+                    else setBatterRunnerVisible(true);
                   }}
                 >
                   <Text style={styles.textButton}>
@@ -2985,10 +3686,12 @@ const PlayByPlayScreen = () => {
           title="Ball"
           onPress={() => {
             if (atBat.ball < 3) {
-              let pitcher = [...myBatting]
-                .reverse()
-                .find((p) => p.position === 1);
-              updatePitcherStat(pitcher, null, 1, 0, 0, 0, 0, 0, 0, 0, 0);
+              if (atBat.isOffense !== 1) {
+                let pitcher = [...myBatting]
+                  .reverse()
+                  .find((p) => p.position === 1);
+                updatePitcherStat(pitcher, null, 1, 0, 0, 0, 0, 0, 0, 0, 0);
+              }
               setAtBat((prev) => {
                 return { ...prev, ball: prev.ball + 1 };
               });
@@ -3002,10 +3705,13 @@ const PlayByPlayScreen = () => {
           title="Strike"
           onPress={() => {
             if (atBat.strike < 2) {
-              let pitcher = [...myBatting]
-                .reverse()
-                .find((p) => p.position === 1);
-              updatePitcherStat(pitcher, null, 0, 1, 0, 0, 0, 0, 0, 0, 0);
+              if (atBat.isOffense !== 1) {
+                let pitcher = [...myBatting]
+                  .reverse()
+                  .find((p) => p.position === 1);
+                updatePitcherStat(pitcher, null, 0, 1, 0, 0, 0, 0, 0, 0, 0);
+              }
+
               setAtBat((prev) => {
                 return { ...prev, strike: prev.strike + 1 };
               });
@@ -3023,10 +3729,12 @@ const PlayByPlayScreen = () => {
                 return { ...prev, strike: prev.strike + 1 };
               });
             }
-            let pitcher = [...myBatting]
-              .reverse()
-              .find((p) => p.position === 1);
-            updatePitcherStat(pitcher, null, 0, 1, 0, 0, 0, 0, 0, 0, 0);
+            if (atBat.isOffense !== 1) {
+              let pitcher = [...myBatting]
+                .reverse()
+                .find((p) => p.position === 1);
+              updatePitcherStat(pitcher, null, 0, 1, 0, 0, 0, 0, 0, 0, 0);
+            }
             playSound(3);
             setShowFoul(true);
           }}
@@ -3062,7 +3770,11 @@ const PlayByPlayScreen = () => {
             <Entypo name="menu" size={24} color="black" />
           </MenuTrigger>
           <MenuOptions>
-            <MenuOption onSelect={() => {}}>
+            <MenuOption
+              onSelect={() => {
+                navigation.navigate("PlayByPlayList", { gameid: gameid });
+              }}
+            >
               <Text>Play by play</Text>
             </MenuOption>
             <MenuOption
@@ -3135,6 +3847,7 @@ const PlayByPlayScreen = () => {
                 }
 
                 myPitchingAll.map((obj) => {
+                  console.log(obj.totalInGameOut);
                   let inning = Math.floor(obj.totalInGameOut / 3);
                   let leftOut = obj.totalInGameOut % 3;
                   let up = obj.earnedRun * game.inningERA * 3;
@@ -3160,6 +3873,9 @@ const PlayByPlayScreen = () => {
               }}
             >
               <Text>Thống kê Pitching</Text>
+            </MenuOption>
+            <MenuOption onSelect={() => console.log("Option 3 clicked")}>
+              <Text>Kết thúc trận đấu</Text>
             </MenuOption>
           </MenuOptions>
         </Menu>
