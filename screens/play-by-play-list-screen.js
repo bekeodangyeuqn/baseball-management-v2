@@ -4,10 +4,12 @@ import { View, StyleSheet, Text, FlatList } from "react-native";
 import { useRecoilValue } from "recoil";
 import { atBatsSelectorByGameId } from "../atom/AtBats";
 import EmptyList from "../component/EmptyList";
+import PlayByPlayItem from "../component/PlayByPlayItem";
 
 const PlayByPlayListScreen = () => {
   const route = useRoute();
   const gameid = route.params.gameid;
+  const teamName = route.params.teamName;
   const atBats = useRecoilValue(atBatsSelectorByGameId(gameid));
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -16,11 +18,9 @@ const PlayByPlayListScreen = () => {
           data={atBats}
           ListEmptyComponent={<EmptyList />}
           showsVerticalScrollIndicator={false}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => index}
           renderItem={({ item }) => (
-            <Text>
-              {item.ball}-{item.strike} {item.description}
-            </Text>
+            <PlayByPlayItem atBat={item} teamName={teamName} />
           )}
         />
       </View>

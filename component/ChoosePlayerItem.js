@@ -16,8 +16,16 @@ const ChoosePlayerItem = (props) => {
 
   const onPress = (pos) => {
     setMyPlayers((curPlayers) => {
-      if (curPlayers.some((obj) => obj.player.id === player.id)) {
-        return curPlayers.filter((obj) => obj.player.id !== player.id);
+      if (
+        curPlayers.some(
+          (obj) => obj.player.id === player.id && obj.gameid === gameid
+        )
+      ) {
+        return curPlayers.filter(
+          (obj) =>
+            obj.player.id !== player.id ||
+            (obj.gameid !== gameid && obj.player.id === player.id)
+        );
       }
       if (
         curPlayers.some((obj) => {
