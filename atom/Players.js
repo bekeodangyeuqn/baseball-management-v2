@@ -39,20 +39,12 @@ export const playersAsyncSelector = selectorFamily({
   get:
     (teamid) =>
     async ({ get }) => {
-      const storedPlayers = await AsyncStorage.getItem("players");
-      if (storedPlayers) {
-        const data = JSON.parse(storedPlayers);
-        return data;
-      } else {
+      try {
         const { data } = await axiosInstance.get(`/players/team/${teamid}/`);
-        AsyncStorage.setItem("players", JSON.stringify(data), (error) => {
-          if (error) {
-            console.error(error);
-          } else {
-            console.log("Players stored successfully.");
-          }
-        });
+        console.log("Get players successfully");
         return data;
+      } catch (error) {
+        console.error(error);
       }
     },
 });

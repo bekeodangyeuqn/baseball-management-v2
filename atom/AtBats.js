@@ -25,5 +25,7 @@ export const lastStatusSelectorByGameId = selectorFamily({
   get:
     (id) =>
     ({ get }) =>
-      get(lastStatusState).find((status) => status.atBat.gameid == id),
+      get(lastStatusState)
+        .reverse()
+        .find((status) => status.atBat.gameid == id),
 });

@@ -4,6 +4,7 @@ import { Table, Row } from "react-native-table-component";
 
 const HorizontalTable = ({ data }) => {
   //   const [data, setData] = React.useState(tableDataSample);
+  if (!data.tableData) return <View></View>;
   return (
     <View style={styles.container}>
       <ScrollView horizontal={true}>

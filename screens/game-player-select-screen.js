@@ -180,7 +180,10 @@ const GamePlayerSelectScreen = () => {
               animationType: "zoom-in",
             });
           } else {
-            navigation.navigate("BattingOrderSelect", { gameid: gameid });
+            navigation.navigate("BattingOrderSelect", {
+              gameid: gameid,
+              teamid: teamid,
+            });
           }
         }}
         style={{ ...styles.button, backgroundColor: "green" }}

@@ -10,14 +10,25 @@ import DraggableFlatList from "react-native-draggable-flatlist";
 import { Text } from "react-native";
 import BattingOrderItem from "../component/BattingOrderItem";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import axiosInstance from "../lib/axiosClient";
+import { useToast } from "react-native-toast-notifications";
+import { ActivityIndicator } from "react-native";
+import { playersAsyncSelector } from "../atom/Players";
+import { gamesState } from "../atom/Games";
+import { atBatsState } from "../atom/AtBats";
 
 const BattingOrderSelectScreen = () => {
   const route = useRoute();
   const gameid = route.params.gameid;
+  const teamid = route.params.teamid;
   const navigation = useNavigation();
   const players = useRecoilValue(myGamePlayersByGameId(gameid));
   const [myPlayers, setMyPlayers] = useState(players);
-
+  const [isLoading, setIsLoading] = useState(false);
+  const [recoilAtBat, setRecoilAtBat] = useState(atBatsState);
+  const toast = useToast();
+  const allPlayers = useRecoilValue(playersAsyncSelector(teamid));
+  const [recoilGames, setRecoilGames] = useRecoilState(gamesState);
   useEffect(() => {
     if (myPlayers.length === 10) {
       setMyPlayers((curPlayers) => {
@@ -27,6 +38,142 @@ const BattingOrderSelectScreen = () => {
     }
   }, []);
 
+  const updateGameInProgress = async () => {
+    try {
+      setIsLoading(true);
+      const response = await axiosInstance.patch(`/game/updates/${gameid}/`, {
+        status: 0,
+      });
+      console.log("Game updated:", response.data);
+      setRecoilGames((prev) => [
+        ...prev.filter((game) => game.id != gameid),
+        response.data,
+      ]);
+      const initAtBat = {
+        game_id: gameid,
+        teamScore: 0,
+        isLastState: false,
+        oppScore: 0,
+        out: 0,
+        inning: 1,
+        isTop: true,
+        ball: 0,
+        strike: 0,
+        isOffense: 1,
+        isRunnerFirstOff_id: null,
+        isRunnerSecondOff_id: null,
+        isRunnerThirdOff_id: null,
+        currentPitcher_id: null,
+        isRunnerFirstDef: null,
+        isRunnerSecondDef: null,
+        isRunnerThirdDef: null,
+        currentPlayer: 0,
+        oppCurPlayer: 0,
+        outcomeType: null,
+        description: "Game start",
+      };
+      const { data } = await axiosInstance.post("/atbat/create/", initAtBat);
+      setRecoilAtBat((prev) => {
+        return [...prev, data];
+      });
+      setIsLoading(false);
+    } catch (error) {
+      setIsLoading(false);
+      toast.show(`Lỗi khi gửi dữ liệu lên server: ${error.message}`, {
+        type: "danger",
+        placement: "bottom",
+        duration: 4000,
+        offset: 30,
+        animationType: "zoom-in",
+      });
+    }
+  };
+  const savePlayerToServer = async () => {
+    setIsLoading(true);
+    try {
+      const promises = myPlayers.map(async (mp, index) => {
+        try {
+          const response = await axiosInstance.post(`/playergame/create/`, {
+            player_id: mp.player.id,
+            game_id: gameid,
+            plateApperance: mp.plateApperance,
+            battingOrder: index + 1,
+            runBattedIn: mp.runBattedIn,
+            single: mp.single,
+            double: mp.double,
+            triple: mp.triple,
+            homeRun: mp.homeRun,
+            baseOnBall: mp.baseOnBall,
+            intentionalBB: mp.intentionalBB,
+            hitByPitch: mp.hitByPitch,
+            strikeOut: mp.strikeOut,
+            fielderChoice: mp.fielderChoice,
+            sacrificeFly: mp.sacrificeFly,
+            sacrificeBunt: mp.sacrificeBunt,
+            stolenBase: mp.stolenBase,
+            leftOnBase: mp.leftOnBase,
+            doublePlay: mp.doublePlay,
+            triplePlay: mp.triplePlay,
+            run: mp.run,
+            onBaseByError: mp.onBaseByError,
+            position: mp.position,
+            playedPos: mp.playedPos,
+            putOut: mp.putOut,
+            assist: mp.assist,
+            error: mp.error,
+            pitchBall: mp.pitchBall,
+            pitchStrike: mp.pitchStrike,
+            totalBatterFaced: mp.totalBatterFaced,
+            totalInGameOut: mp.totalInGameOut,
+            oppHit: mp.oppHit,
+            oppRun: mp.oppRun,
+            earnedRun: mp.earnedRun,
+            oppBaseOnBall: mp.oppBaseOnBall,
+            oppStrikeOut: mp.oppStrikeOut,
+            hitBatter: mp.hitBatter,
+            balk: mp.balk,
+            wildPitch: mp.wildPitch,
+            oppHomeRun: mp.oppHomeRun,
+            firstPitchStrike: mp.firstPitchStrike,
+            pickOff: mp.pickOff,
+          });
+          return response;
+        } catch (error) {
+          console.error(`Error with player ${index}:`, error);
+          return error;
+        }
+      });
+      const responses = await Promise.all(promises);
+      const haveError = false;
+      for (const response of responses) {
+        if (!response.data) {
+          haveError = true;
+          break;
+        }
+      }
+      setMyPlayers((prev) => {
+        if (haveError) return prev;
+        else
+          return responses.map((obj) => {
+            return {
+              ...obj.data,
+              player: allPlayers.find((p) => p.id === obj.data.player_id),
+              gameid: obj.data.game_id,
+            };
+          });
+      });
+      setIsLoading(false);
+    } catch (e) {
+      setIsLoading(false);
+      toast.show(`Lỗi khi gửi dữ liệu lên server: ${e.message}`, {
+        type: "danger",
+        placement: "bottom",
+        duration: 4000,
+        offset: 30,
+        animationType: "zoom-in",
+      });
+    }
+  };
   return (
     <SafeAreaView style={styles.container}>
       <Text
@@ -70,6 +217,8 @@ const BattingOrderSelectScreen = () => {
       <Pressable
         style={{ ...styles.button }}
         onPress={() => {
+          savePlayerToServer();
+          updateGameInProgress();
           navigation.navigate("PlayBall", {
             gameid: gameid,
             myBatting: myPlayers,
@@ -78,6 +227,11 @@ const BattingOrderSelectScreen = () => {
       >
         <Text style={{ fontWeight: "bold" }}>Let's play</Text>
       </Pressable>
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#0000ff" />
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -97,6 +251,12 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     alignItems: "center",
     marginTop: "auto",
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 
