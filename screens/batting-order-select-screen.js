@@ -15,7 +15,7 @@ import { useToast } from "react-native-toast-notifications";
 import { ActivityIndicator } from "react-native";
 import { playersAsyncSelector } from "../atom/Players";
 import { gamesState } from "../atom/Games";
-import { atBatsState } from "../atom/AtBats";
+import { atBatsState, lastStatusState } from "../atom/AtBats";
 
 const BattingOrderSelectScreen = () => {
   const route = useRoute();
@@ -25,10 +25,12 @@ const BattingOrderSelectScreen = () => {
   const players = useRecoilValue(myGamePlayersByGameId(gameid));
   const [myPlayers, setMyPlayers] = useState(players);
   const [isLoading, setIsLoading] = useState(false);
-  const [recoilAtBat, setRecoilAtBat] = useState(atBatsState);
+  const [recoilAtBat, setRecoilAtBat] = useRecoilState(atBatsState);
   const toast = useToast();
   const allPlayers = useRecoilValue(playersAsyncSelector(teamid));
   const [recoilGames, setRecoilGames] = useRecoilState(gamesState);
+  const [lastState, setLastState] = useRecoilState(lastStatusState);
+
   useEffect(() => {
     if (myPlayers.length === 10) {
       setMyPlayers((curPlayers) => {
@@ -49,33 +51,6 @@ const BattingOrderSelectScreen = () => {
         ...prev.filter((game) => game.id != gameid),
         response.data,
       ]);
-      const initAtBat = {
-        game_id: gameid,
-        teamScore: 0,
-        isLastState: false,
-        oppScore: 0,
-        out: 0,
-        inning: 1,
-        isTop: true,
-        ball: 0,
-        strike: 0,
-        isOffense: 1,
-        isRunnerFirstOff_id: null,
-        isRunnerSecondOff_id: null,
-        isRunnerThirdOff_id: null,
-        currentPitcher_id: null,
-        isRunnerFirstDef: null,
-        isRunnerSecondDef: null,
-        isRunnerThirdDef: null,
-        currentPlayer: 0,
-        oppCurPlayer: 0,
-        outcomeType: null,
-        description: "Game start",
-      };
-      const { data } = await axiosInstance.post("/atbat/create/", initAtBat);
-      setRecoilAtBat((prev) => {
-        return [...prev, data];
-      });
       setIsLoading(false);
     } catch (error) {
       setIsLoading(false);
@@ -151,18 +126,38 @@ const BattingOrderSelectScreen = () => {
           break;
         }
       }
+      let newPlayers = responses.map((obj) => {
+        return {
+          ...obj.data,
+          player: allPlayers.find((p) => p.id === obj.data.player_id),
+          gameid: obj.data.game_id,
+        };
+      });
       setMyPlayers((prev) => {
         if (haveError) return prev;
-        else
-          return responses.map((obj) => {
+        else {
+          let newPlayers = responses.map((obj) => {
             return {
               ...obj.data,
               player: allPlayers.find((p) => p.id === obj.data.player_id),
               gameid: obj.data.game_id,
             };
           });
+          if (prev.length > 0)
+            return [
+              ...prev.filter((obj) => obj.gameid !== gameid),
+              ...newPlayers,
+            ];
+          else return [...newPlayers];
+        }
       });
       setIsLoading(false);
+      if (!haveError) {
+        navigation.navigate("PlayBall", {
+          gameid: gameid,
+          myBatting: newPlayers,
+        });
+      }
     } catch (e) {
       setIsLoading(false);
       toast.show(`Lỗi khi gửi dữ liệu lên server: ${e.message}`, {
@@ -217,12 +212,8 @@ const BattingOrderSelectScreen = () => {
       <Pressable
         style={{ ...styles.button }}
         onPress={() => {
-          savePlayerToServer();
           updateGameInProgress();
-          navigation.navigate("PlayBall", {
-            gameid: gameid,
-            myBatting: myPlayers,
-          });
+          savePlayerToServer();
         }}
       >
         <Text style={{ fontWeight: "bold" }}>Let's play</Text>

@@ -5,7 +5,9 @@ import { useRecoilValue } from "recoil";
 import { gameByIdState } from "../atom/Games";
 
 const PlayByPlayItem = ({ atBat, teamName }) => {
-  const game = useRecoilValue(gameByIdState(atBat.gameid));
+  const game = useRecoilValue(
+    gameByIdState(atBat.game_id ? atBat.game_id : atBat.gameid)
+  );
 
   return (
     <View

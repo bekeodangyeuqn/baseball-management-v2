@@ -43,6 +43,8 @@ import {
   lastStatusState,
 } from "../atom/AtBats";
 import axiosInstance from "../lib/axiosClient";
+import BottomSheet, { BottomSheetFlatList } from "@gorhom/bottom-sheet";
+import ChoosePlayerItem from "../component/ChoosePlayerItem";
 
 const PlayByPlayScreen = () => {
   const toast = useToast();
@@ -101,6 +103,8 @@ const PlayByPlayScreen = () => {
   const [secondRunnerVisible, setSecondRunnerVisible] = useState(false);
   const [thirdRunnerVisible, setThirdRunnerVisible] = useState(false);
   const [batterRunnerVisible, setBatterRunnerVisible] = useState(false);
+
+  const [posRun, setPosRun] = useState(null);
 
   const [firstRunnerStatusVisible, setFirstRunnerStatusVisible] =
     useState(false);
@@ -165,7 +169,7 @@ const PlayByPlayScreen = () => {
   const [lastState, setLastState] = useRecoilState(lastStatusState);
   const recoilLastState = useRecoilValue(lastStatusSelectorByGameId(gameid));
   const [myBatting, setMyBatting] = useState(
-    recoilAtBat.length === 0
+    recoilAtBat.length <= 1
       ? myFirstBatting
       : lastState.find((state) => state.atBat.gameid === gameid).myBatting
   );
@@ -173,7 +177,7 @@ const PlayByPlayScreen = () => {
     recoilAtBat.filter((b) => !b.id)
   );
   const [atBat, setAtBat] = useState(
-    recoilAtBat.length === 0
+    recoilAtBat.length <= 1
       ? {
           gameid: gameid,
           teamScore: 0,
@@ -208,19 +212,19 @@ const PlayByPlayScreen = () => {
   const [showFoul, setShowFoul] = useState(false);
 
   const [tempRunnerFirst, setTempRunnerFirst] = useState(
-    recoilAtBat.length === 0
+    recoilAtBat.length <= 1
       ? null
       : lastState.find((state) => state.atBat.gameid === gameid).atBat
           .isRunnerFirst
   );
   const [tempRunnerSecond, setTempRunnerSecond] = useState(
-    recoilAtBat.length === 0
+    recoilAtBat.length <= 1
       ? null
       : lastState.find((state) => state.atBat.gameid === gameid).atBat
           .isRunnerSecond
   );
   const [tempRunnerThird, setTempRunnerThird] = useState(
-    recoilAtBat.length === 0
+    recoilAtBat.length <= 1
       ? null
       : lastState.find((state) => state.atBat.gameid === gameid).atBat
           .isRunnerThird
@@ -314,25 +318,46 @@ const PlayByPlayScreen = () => {
             isRunnerFirstOff_id:
               obj.isOffense == 1
                 ? obj.isRunnerFirst
-                  ? obj.isRunnerFirst.id
+                  ? Array.isArray(obj.isRunnerFirst)
+                    ? obj.isRunnerFirst[0].id
+                    : obj.isRunnerFirst.id
                   : null
                 : null,
             isRunnerSecondOff_id:
               obj.isOffense == 1
                 ? obj.isRunnerSecond
-                  ? obj.isRunnerSecond.id
+                  ? Array.isArray(obj.isRunnerSecond)
+                    ? obj.isRunnerSecond[0].id
+                    : obj.isRunnerSecond.id
                   : null
                 : null,
             isRunnerThirdOff_id:
               obj.isOffense == 1
                 ? obj.isRunnerThird
-                  ? obj.isRunnerThird.id
+                  ? Array.isArray(obj.isRunnerThird)
+                    ? obj.isRunnerThird[0].id
+                    : obj.isRunnerThird.id
                   : null
                 : null,
             currentPitcher_id: obj.currentPitcher.id,
-            isRunnerFirstDef: obj.isOffense == 0 ? obj.isRunnerFirst : null,
-            isRunnerSecondDef: obj.isOffense == 0 ? obj.isRunnerSecond : null,
-            isRunnerThirdDef: obj.isOffense == 0 ? obj.isRunnerThird : null,
+            isRunnerFirstDef:
+              obj.isOffense == 0
+                ? Array.isArray(obj.isRunnerFirst)
+                  ? obj.isRunnerFirst[0]
+                  : obj.isRunnerFirst
+                : null,
+            isRunnerSecondDef:
+              obj.isOffense == 0
+                ? Array.isArray(obj.isRunnerSecond)
+                  ? obj.isRunnerSecond[0]
+                  : obj.isRunnerSecond
+                : null,
+            isRunnerThirdDef:
+              obj.isOffense == 0
+                ? Array.isArray(obj.isRunnerThird)
+                  ? obj.isRunnerThird[0]
+                  : obj.isRunnerThird
+                : null,
             currentPlayer: obj.currentPlayer,
             oppCurPlayer: obj.oppCurPlayer,
             outcomeType: obj.outcomeType,
@@ -475,7 +500,7 @@ const PlayByPlayScreen = () => {
       let newBatting = [
         ...prev.filter((obj) => obj.player.id !== pitcher.player.id),
       ];
-      newBatting.splice(9 * numPitchers, 0, updatePitcher);
+      newBatting.splice(9, 0, updatePitcher);
       return newBatting;
     });
   };
@@ -596,7 +621,7 @@ const PlayByPlayScreen = () => {
         return false;
     }
   };
-  console.log(notSavedAtBats);
+
   const endTheAtBat = (des = null, isOut = false, isScore = false) => {
     setAtBatsList((prev) => [
       ...prev,
@@ -706,10 +731,11 @@ const PlayByPlayScreen = () => {
     setIsLoading(true);
     try {
       const promises = myBatting.map(async (obj, index) => {
+        if (obj === null) return null;
         try {
-          const response = await axiosInstance.put(
-            `/playergame/updates/${obj.id}/`,
-            {
+          let response = null;
+          if (!obj.id) {
+            response = await axiosInstance.post(`/playergame/create/`, {
               game_id: gameid,
               player_id: obj.player.id,
               plateApperance: obj.plateApperance,
@@ -751,8 +777,55 @@ const PlayByPlayScreen = () => {
               oppHomeRun: obj.oppHomeRun,
               firstPitchStrike: obj.firstPitchStrike,
               pickOff: obj.pickOff,
-            }
-          );
+            });
+          } else {
+            response = await axiosInstance.put(
+              `/playergame/updates/${obj.id}/`,
+              {
+                game_id: gameid,
+                player_id: obj.player.id,
+                plateApperance: obj.plateApperance,
+                runBattedIn: obj.runBattedIn,
+                single: obj.single,
+                double: obj.double,
+                triple: obj.triple,
+                homeRun: obj.homeRun,
+                baseOnBall: obj.baseOnBall,
+                intentionalBB: obj.intentionalBB,
+                hitByPitch: obj.hitByPitch,
+                strikeOut: obj.strikeOut,
+                fielderChoice: obj.fielderChoice,
+                sacrificeFly: obj.sacrificeFly,
+                sacrificeBunt: obj.sacrificeBunt,
+                stolenBase: obj.stolenBase,
+                leftOnBase: obj.leftOnBase,
+                doublePlay: obj.doublePlay,
+                triplePlay: obj.triplePlay,
+                run: obj.run,
+                onBaseByError: obj.onBaseByError,
+                position: obj.position,
+                playedPos: obj.playedPos,
+                putOut: obj.putOut,
+                assist: obj.assist,
+                error: obj.error,
+                pitchBall: obj.pitchBall,
+                pitchStrike: obj.pitchStrike,
+                totalBatterFaced: obj.totalBatterFaced,
+                totalInGameOut: obj.totalInGameOut,
+                oppHit: obj.oppHit,
+                oppRun: obj.oppRun,
+                earnedRun: obj.earnedRun,
+                oppBaseOnBall: obj.oppBaseOnBall,
+                oppStrikeOut: obj.oppStrikeOut,
+                hitBatter: obj.hitBatter,
+                balk: obj.balk,
+                wildPitch: obj.wildPitch,
+                oppHomeRun: obj.oppHomeRun,
+                firstPitchStrike: obj.firstPitchStrike,
+                pickOff: obj.pickOff,
+              }
+            );
+          }
           return response;
         } catch (error) {
           console.error(`Error with player ${index}:`, error);
@@ -764,7 +837,7 @@ const PlayByPlayScreen = () => {
 
       let haveError = false;
       for (const response of responses) {
-        if (!response.data) {
+        if (response !== null && !response.data) {
           haveError = true;
           break;
         }
@@ -838,7 +911,7 @@ const PlayByPlayScreen = () => {
                         myBatting[atBat.currentPlayer - 1].player.lastName
                       } bị strikeout looking`;
                       endTheAtBat(description, true);
-                      handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                      // handleOut(true, myBatting[atBat.currentPlayer - 1]);
                     } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
@@ -859,7 +932,7 @@ const PlayByPlayScreen = () => {
                       );
                       description += `Batter ${atBat.oppCurPlayer} đối phương bị strikeout looking`;
                       endTheAtBat(description, true);
-                      handleOut(true, atBat.oppCurPlayer);
+                      // handleOut(true, atBat.oppCurPlayer);
                     }
                   }}
                   style={styles.modelButton}
@@ -894,7 +967,7 @@ const PlayByPlayScreen = () => {
                         myBatting[atBat.currentPlayer - 1].player.lastName
                       } bị strikeout swinging`;
                       endTheAtBat(description, true);
-                      handleOut(true, myBatting[atBat.currentPlayer - 1]);
+                      // handleOut(true, myBatting[atBat.currentPlayer - 1]);
                     } else {
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
@@ -915,7 +988,7 @@ const PlayByPlayScreen = () => {
                       );
                       description += `Batter ${atBat.oppCurPlayer} đối phương bị strikeout swinging`;
                       endTheAtBat(description, true);
-                      handleOut(true, atBat.oppCurPlayer);
+                      // handleOut(true, atBat.oppCurPlayer);
                     }
                   }}
                   style={styles.modelButton}
@@ -2330,7 +2403,11 @@ const PlayByPlayScreen = () => {
                     setBatterRunnerVisible(false);
                     let des = description;
                     if (atBat.isOffense == 1 && outcomeType > 2) {
-                      setTempRunnerFirst(myBatting[atBat.currentPlayer - 1]);
+                      setTempRunnerFirst(
+                        outcomeType === 18
+                          ? [myBatting[atBat.currentPlayer - 1], "error"]
+                          : myBatting[atBat.currentPlayer - 1]
+                      );
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         outcomeType < 13 || outcomeType > 15
@@ -2349,7 +2426,11 @@ const PlayByPlayScreen = () => {
                         myBatting[atBat.currentPlayer - 1].player.lastName
                       } lên chốt 1.`;
                     } else {
-                      setTempRunnerFirst(atBat.oppCurPlayer);
+                      setTempRunnerFirst(
+                        outcomeType === 18
+                          ? [atBat.oppCurPlayer, "error"]
+                          : atBat.oppCurPlayer
+                      );
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -2405,7 +2486,11 @@ const PlayByPlayScreen = () => {
                     let des = description;
                     setBatterRunnerVisible(false);
                     if (atBat.isOffense == 1) {
-                      setTempRunnerSecond(myBatting[atBat.currentPlayer - 1]);
+                      setTempRunnerSecond(
+                        outcomeType === 18
+                          ? [myBatting[atBat.currentPlayer - 1], "error"]
+                          : myBatting[atBat.currentPlayer - 1]
+                      );
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         outcomeType < 13 || outcomeType > 15
@@ -2424,7 +2509,11 @@ const PlayByPlayScreen = () => {
                         myBatting[atBat.currentPlayer - 1].player.lastName
                       } lên chốt 2.`;
                     } else if (atBat.isOffense == 0) {
-                      setTempRunnerSecond(atBat.oppCurPlayer);
+                      setTempRunnerSecond(
+                        outcomeType === 18
+                          ? [atBat.oppCurPlayer, "error"]
+                          : atBat.oppCurPlayer
+                      );
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -2480,7 +2569,11 @@ const PlayByPlayScreen = () => {
                     let des = description;
                     setBatterRunnerVisible(false);
                     if (atBat.isOffense == 1) {
-                      setTempRunnerThird(myBatting[atBat.currentPlayer - 1]);
+                      setTempRunnerThird(
+                        outcomeType === 18
+                          ? [myBatting[atBat.currentPlayer - 1], "error"]
+                          : myBatting[atBat.currentPlayer - 1]
+                      );
                       updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         outcomeType < 13 || outcomeType > 15
@@ -2499,7 +2592,11 @@ const PlayByPlayScreen = () => {
                         myBatting[atBat.currentPlayer - 1].player.lastName
                       } lên chốt 3.`;
                     } else {
-                      setTempRunnerThird(atBat.oppCurPlayer);
+                      setTempRunnerThird(
+                        outcomeType === 18
+                          ? [atBat.oppCurPlayer, "error"]
+                          : atBat.oppCurPlayer
+                      );
                       let reversedBatting = [...myBatting].reverse();
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
@@ -3703,31 +3800,320 @@ const PlayByPlayScreen = () => {
             <View style={styles.modalButtonList}>
               <View style={styles.modalButtonRow}>
                 <TouchableOpacity
-                  disabled={atBat.isRunnerSecond ? false : true}
                   style={styles.modelButton}
+                  onPress={() => {
+                    setFirstRunnerStatusVisible(false);
+                    setFirstRunnerStatusVisible(false);
+                    let des = "";
+                    if (atBat.isRunnerFirst && !atBat.isRunnerSecond) {
+                      if (atBat.isOffense === 1) {
+                        des = `#${atBat.isRunnerFirst.player.jerseyNumber}.${atBat.isRunnerFirst.player.firstName} ${atBat.isRunnerFirst.player.lastName} cướp chốt 2 thành công`;
+                        updateBatterStat(
+                          atBat.isRunnerFirst,
+                          null,
+                          0,
+                          0,
+                          1,
+                          0,
+                          true
+                        );
+                      } else {
+                        des = "Runner B1 đối phương cướp chốt 2 thành công";
+                      }
+                      setAtBatsList((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          isLastState: false,
+                          description: des,
+                        },
+                      ]);
+                      setNotSavedAtBats((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          id: null,
+                          description: des,
+                        },
+                      ]);
+                      setAtBat((prev) => {
+                        setTempRunnerSecond(prev.isRunnerFirst);
+                        setTempRunnerFirst(null);
+                        return {
+                          ...prev,
+                          isRunnerSecond: prev.isRunnerFirst,
+                          beforeRunnerFirst: prev.isRunnerFirst,
+                          isRunnerFirst: null,
+                        };
+                      });
+                    } else if (!atBat.isRunnerFirst) {
+                      toast.show(
+                        "Không có runner ở chốt 1 để thực hiện cập nhật",
+                        {
+                          type: "warn",
+                          placement: "bottom",
+                          duration: 4000,
+                          offset: 30,
+                          animationType: "zoom-in",
+                        }
+                      );
+                    } else if (atBat.isRunnerSecond) {
+                      toast.show(
+                        "Vì chốt 2 đã có runner nên không thể thực hiện cập nhật. Hãy cập nhật trạng thái của runner ở chốt 2 trước",
+                        {
+                          type: "warn",
+                          placement: "bottom",
+                          duration: 4000,
+                          offset: 30,
+                          animationType: "zoom-in",
+                        }
+                      );
+                    }
+                  }}
                 >
                   <Text style={styles.textButton}>Cướp chốt 2 thành công</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.modelButton}>
+                <TouchableOpacity
+                  style={styles.modelButton}
+                  onPress={() => {
+                    if (atBat.isRunnerFirst) {
+                      setFirstRunnerStatusVisible(false);
+                      let des = "";
+                      if (atBat.isOffense === 1) {
+                        des = `#${atBat.isRunnerFirst.player.jerseyNumber}.${atBat.isRunnerFirst.player.firstName} ${atBat.isRunnerFirst.player.lastName} cướp chốt 2 thất bại`;
+                      } else {
+                        des = "Runner B1 đối phương cướp chốt 2 thất bại";
+                      }
+                      setAtBatsList((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          isLastState: false,
+                          description: des,
+                        },
+                      ]);
+                      setNotSavedAtBats((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          id: null,
+                          description: des,
+                        },
+                      ]);
+                      setAtBat((prev) => {
+                        setTempRunnerFirst(null);
+                        if (prev.out + 1 > 2) {
+                          setTempRunnerSecond(null);
+                          setTempRunnerThird(null);
+                        }
+                        let inning = prev.inning;
+                        if (!prev.isTop && prev.out + 1 > 2) inning++;
+                        return {
+                          ...prev,
+                          isRunnerFirst: null,
+                          isRunnerSecond:
+                            prev.out + 1 > 2 ? null : prev.isRunnerSecond,
+                          isRunnerThird:
+                            prev.out + 1 > 2 ? null : prev.isRunnerThird,
+                          out: prev.out + 1 > 2 ? 0 : prev.out + 1,
+                          isOffense:
+                            prev.out + 1 > 2
+                              ? prev.isOffense == 1
+                                ? 0
+                                : 1
+                              : prev.isOffense,
+                          isTop: prev.out + 1 > 2 ? !prev.isTop : prev.isTop,
+                          inning: inning,
+                        };
+                      });
+                    } else {
+                      toast.show(
+                        "Không có runner ở chốt 1 để thực hiện cập nhật",
+                        {
+                          type: "warn",
+                          placement: "bottom",
+                          duration: 4000,
+                          offset: 30,
+                          animationType: "zoom-in",
+                        }
+                      );
+                    }
+                  }}
+                >
                   <Text style={styles.textButton}>Cướp chốt 2 thất bại</Text>
                 </TouchableOpacity>
               </View>
               <View style={styles.modalButtonRow}>
                 <TouchableOpacity
-                  disabled={atBat.isRunnerSecond ? false : true}
                   style={styles.modelButton}
+                  onPress={() => {
+                    setFirstRunnerStatusVisible(false);
+                    let des = "";
+                    if (atBat.isRunnerFirst && !atBat.isRunnerSecond) {
+                      if (atBat.isOffense === 1) {
+                        des = `#${atBat.isRunnerFirst.player.jerseyNumber}.${atBat.isRunnerFirst.player.firstName} ${atBat.isRunnerFirst.player.lastName} lên chốt 2 do pitcher balk`;
+                      } else {
+                        des = "Runner B1 đối phương lên chốt 2 do pitcher balk";
+                        let reversedBatting = [...myBatting].reverse();
+                        let pitcher = reversedBatting.find(
+                          (p) => p.position === 1
+                        );
+                        updatePitcherStat(
+                          pitcher,
+                          null,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          1,
+                          0,
+                          0,
+                          0
+                        );
+                      }
+                      setAtBatsList((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          isLastState: false,
+                          description: des,
+                        },
+                      ]);
+                      setNotSavedAtBats((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          id: null,
+                          description: des,
+                        },
+                      ]);
+                      setAtBat((prev) => {
+                        setTempRunnerSecond(prev.isRunnerFirst);
+                        setTempRunnerFirst(null);
+                        return {
+                          ...prev,
+                          isRunnerSecond: prev.isRunnerFirst,
+                          beforeRunnerFirst: prev.isRunnerFirst,
+                          isRunnerFirst: null,
+                        };
+                      });
+                    } else if (!atBat.isRunnerFirst) {
+                      toast.show(
+                        "Không có runner ở chốt 1 để thực hiện cập nhật",
+                        {
+                          type: "warn",
+                          placement: "bottom",
+                          duration: 4000,
+                          offset: 30,
+                          animationType: "zoom-in",
+                        }
+                      );
+                    } else if (atBat.isRunnerSecond) {
+                      toast.show(
+                        "Vì chốt 2 đã có runner nên không thể thực hiện cập nhật. Hãy cập nhật trạng thái của runner ở chốt 2 trước",
+                        {
+                          type: "warn",
+                          placement: "bottom",
+                          duration: 4000,
+                          offset: 30,
+                          animationType: "zoom-in",
+                        }
+                      );
+                    }
+                  }}
                 >
                   <Text style={styles.textButton}>
                     Lên chốt 2 do pitcher balk
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.modelButton}>
+                <TouchableOpacity
+                  style={styles.modelButton}
+                  onPress={() => {
+                    if (atBat.isRunnerFirst) {
+                      setFirstRunnerStatusVisible(false);
+                      let des = "";
+                      if (atBat.isOffense === 1) {
+                        des = `#${atBat.isRunnerFirst.player.jerseyNumber}.${atBat.isRunnerFirst.player.firstName} ${atBat.isRunnerFirst.player.lastName} out vì bị pickoff ở chốt 1`;
+                      } else {
+                        des = "Runner B1 đối phương out vì bị pickoff ở chốt 1";
+                        let reversedBatting = [...myBatting].reverse();
+                        let pitcher = reversedBatting.find(
+                          (p) => p.position === 1
+                        );
+                        updatePitcherStat(
+                          pitcher,
+                          null,
+                          0,
+                          0,
+                          1,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          1
+                        );
+                      }
+                      setAtBatsList((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          isLastState: false,
+                          description: des,
+                        },
+                      ]);
+
+                      setNotSavedAtBats((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          id: null,
+                          description: des,
+                        },
+                      ]);
+
+                      setAtBat((prev) => {
+                        setTempRunnerFirst(null);
+                        if (prev.out + 1 > 2) {
+                          setTempRunnerSecond(null);
+                          setTempRunnerThird(null);
+                        }
+                        let inning = prev.inning;
+                        if (!prev.isTop && prev.out + 1 > 2) inning++;
+                        return {
+                          ...prev,
+                          isRunnerFirst: null,
+                          isRunnerSecond:
+                            prev.out + 1 > 2 ? null : prev.isRunnerSecond,
+                          isRunnerThird:
+                            prev.out + 1 > 2 ? null : prev.isRunnerThird,
+                          out: prev.out + 1 > 2 ? 0 : prev.out + 1,
+                          isOffense:
+                            prev.out + 1 > 2
+                              ? prev.isOffense == 1
+                                ? 0
+                                : 1
+                              : prev.isOffense,
+                          isTop: prev.out + 1 > 2 ? !prev.isTop : prev.isTop,
+                          inning: inning,
+                        };
+                      });
+                    } else {
+                      toast.show(
+                        "Không có runner ở chốt 1 để thực hiện cập nhật",
+                        {
+                          type: "warn",
+                          placement: "bottom",
+                          duration: 4000,
+                          offset: 30,
+                          animationType: "zoom-in",
+                        }
+                      );
+                    }
+                  }}
+                >
                   <Text style={styles.textButton}>Out vì bị pickoff</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.modalButtonRow}>
-                <TouchableOpacity style={styles.modelButton}>
-                  <Text style={styles.textButton}>Thay runner</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -3754,31 +4140,320 @@ const PlayByPlayScreen = () => {
             <View style={styles.modalButtonList}>
               <View style={styles.modalButtonRow}>
                 <TouchableOpacity
-                  disabled={atBat.isRunnerThird ? false : true}
                   style={styles.modelButton}
+                  onPress={() => {
+                    setSecondRunnerStatusVisible(false);
+                    setSecondRunnerStatusVisible(false);
+                    let des = "";
+                    if (atBat.isRunnerSecond && !atBat.isRunnerThird) {
+                      if (atBat.isOffense === 1) {
+                        des = `#${atBat.isRunnerSecond.player.jerseyNumber}.${atBat.isRunnerSecond.player.firstName} ${atBat.isRunnerSecond.player.lastName} cướp chốt 3 thành công`;
+                        updateBatterStat(
+                          atBat.isRunnerFirst,
+                          null,
+                          0,
+                          0,
+                          1,
+                          0,
+                          true
+                        );
+                      } else {
+                        des = "Runner B2 đối phương cướp chốt 3 thành công";
+                      }
+                      setAtBatsList((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          isLastState: false,
+                          description: des,
+                        },
+                      ]);
+                      setNotSavedAtBats((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          id: null,
+                          description: des,
+                        },
+                      ]);
+                      setAtBat((prev) => {
+                        setTempRunnerThird(prev.isRunnerSecond);
+                        setTempRunnerSecond(null);
+                        return {
+                          ...prev,
+                          isRunnerThird: prev.isRunnerSecond,
+                          beforeRunnerSecond: prev.isRunnerSecond,
+                          isRunnerSecond: null,
+                        };
+                      });
+                    } else if (!atBat.isRunnerFirst) {
+                      toast.show(
+                        "Không có runner ở chốt 2 để thực hiện cập nhật",
+                        {
+                          type: "warn",
+                          placement: "bottom",
+                          duration: 4000,
+                          offset: 30,
+                          animationType: "zoom-in",
+                        }
+                      );
+                    } else if (atBat.isRunnerSecond) {
+                      toast.show(
+                        "Vì chốt 3 đã có runner nên không thể thực hiện cập nhật. Hãy cập nhật trạng thái của runner ở chốt 3 trước",
+                        {
+                          type: "warn",
+                          placement: "bottom",
+                          duration: 4000,
+                          offset: 30,
+                          animationType: "zoom-in",
+                        }
+                      );
+                    }
+                  }}
                 >
                   <Text style={styles.textButton}>Cướp chốt 3 thành công</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.modelButton}>
+                <TouchableOpacity
+                  style={styles.modelButton}
+                  onPress={() => {
+                    if (atBat.isRunnerSecond) {
+                      setSecondRunnerStatusVisible(false);
+                      let des = "";
+                      if (atBat.isOffense === 1) {
+                        des = `#${atBat.isRunnerSecond.player.jerseyNumber}.${atBat.isRunnerSecond.player.firstName} ${atBat.isRunnerSecond.player.lastName} cướp chốt 3 thất bại`;
+                      } else {
+                        des = "Runner B2 đối phương cướp chốt 3 thất bại";
+                      }
+                      setAtBatsList((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          isLastState: false,
+                          description: des,
+                        },
+                      ]);
+                      setNotSavedAtBats((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          id: null,
+                          description: des,
+                        },
+                      ]);
+                      setAtBat((prev) => {
+                        setTempRunnerSecond(null);
+                        if (prev.out + 1 > 2) {
+                          setTempRunnerFirst(null);
+                          setTempRunnerThird(null);
+                        }
+                        let inning = prev.inning;
+                        if (!prev.isTop && prev.out + 1 > 2) inning++;
+                        return {
+                          ...prev,
+                          isRunnerSecond: null,
+                          isRunnerFirst:
+                            prev.out + 1 > 2 ? null : prev.isRunnerFirst,
+                          isRunnerThird:
+                            prev.out + 1 > 2 ? null : prev.isRunnerThird,
+                          out: prev.out + 1 > 2 ? 0 : prev.out + 1,
+                          isOffense:
+                            prev.out + 1 > 2
+                              ? prev.isOffense == 1
+                                ? 0
+                                : 1
+                              : prev.isOffense,
+                          isTop: prev.out + 1 > 2 ? !prev.isTop : prev.isTop,
+                          inning: inning,
+                        };
+                      });
+                    } else {
+                      toast.show(
+                        "Không có runner ở chốt 2 để thực hiện cập nhật",
+                        {
+                          type: "warn",
+                          placement: "bottom",
+                          duration: 4000,
+                          offset: 30,
+                          animationType: "zoom-in",
+                        }
+                      );
+                    }
+                  }}
+                >
                   <Text style={styles.textButton}>Cướp chốt 3 thất bại</Text>
                 </TouchableOpacity>
               </View>
               <View style={styles.modalButtonRow}>
                 <TouchableOpacity
-                  disabled={atBat.isRunnerSecond ? false : true}
                   style={styles.modelButton}
+                  onPress={() => {
+                    setSecondRunnerStatusVisible(false);
+                    let des = "";
+                    if (atBat.isRunnerSecond && !atBat.isRunnerThird) {
+                      if (atBat.isOffense === 1) {
+                        des = `#${atBat.isRunnerSecond.player.jerseyNumber}.${atBat.isRunnerSecond.player.firstName} ${atBat.isRunnerSecond.player.lastName} lên chốt 3 do pitcher balk`;
+                      } else {
+                        des = "Runner B2 đối phương lên chốt 3 do pitcher balk";
+                        let reversedBatting = [...myBatting].reverse();
+                        let pitcher = reversedBatting.find(
+                          (p) => p.position === 1
+                        );
+                        updatePitcherStat(
+                          pitcher,
+                          null,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          1,
+                          0,
+                          0,
+                          0
+                        );
+                      }
+                      setAtBatsList((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          isLastState: false,
+                          description: des,
+                        },
+                      ]);
+                      setNotSavedAtBats((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          id: null,
+                          description: des,
+                        },
+                      ]);
+                      setAtBat((prev) => {
+                        setTempRunnerThird(prev.isRunnerSecond);
+                        setTempRunnerSecond(null);
+                        return {
+                          ...prev,
+                          isRunnerThird: prev.isRunnerSecond,
+                          beforeRunnerFirst: prev.isRunnerFirst,
+                          isRunnerSecond: null,
+                        };
+                      });
+                    } else if (!atBat.isRunnerFirst) {
+                      toast.show(
+                        "Không có runner ở chốt 2 để thực hiện cập nhật",
+                        {
+                          type: "warn",
+                          placement: "bottom",
+                          duration: 4000,
+                          offset: 30,
+                          animationType: "zoom-in",
+                        }
+                      );
+                    } else if (atBat.isRunnerSecond) {
+                      toast.show(
+                        "Vì chốt 3 đã có runner nên không thể thực hiện cập nhật. Hãy cập nhật trạng thái của runner ở chốt 3 trước",
+                        {
+                          type: "warn",
+                          placement: "bottom",
+                          duration: 4000,
+                          offset: 30,
+                          animationType: "zoom-in",
+                        }
+                      );
+                    }
+                  }}
                 >
                   <Text style={styles.textButton}>
                     Lên chốt 3 do pitcher balk
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.modelButton}>
+                <TouchableOpacity
+                  style={styles.modelButton}
+                  onPress={() => {
+                    if (atBat.isRunnerSecond) {
+                      setSecondRunnerStatusVisible(false);
+                      let des = "";
+                      if (atBat.isOffense === 1) {
+                        des = `#${atBat.isRunnerSecond.player.jerseyNumber}.${atBat.isRunnerSecond.player.firstName} ${atBat.isRunnerSecond.player.lastName} out vì bị pickoff ở chốt 2`;
+                      } else {
+                        des = "Runner B2 đối phương out vì bị pickoff ở chốt 2";
+                        let reversedBatting = [...myBatting].reverse();
+                        let pitcher = reversedBatting.find(
+                          (p) => p.position === 1
+                        );
+                        updatePitcherStat(
+                          pitcher,
+                          null,
+                          0,
+                          0,
+                          1,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          1
+                        );
+                      }
+                      setAtBatsList((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          isLastState: false,
+                          description: des,
+                        },
+                      ]);
+
+                      setNotSavedAtBats((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          id: null,
+                          description: des,
+                        },
+                      ]);
+
+                      setAtBat((prev) => {
+                        setTempRunnerSecond(null);
+                        if (prev.out + 1 > 2) {
+                          setTempRunnerFirst(null);
+                          setTempRunnerThird(null);
+                        }
+                        let inning = prev.inning;
+                        if (!prev.isTop && prev.out + 1 > 2) inning++;
+                        return {
+                          ...prev,
+                          isRunnerSecond: null,
+                          isRunnerFirst:
+                            prev.out + 1 > 2 ? null : prev.isRunnerFirst,
+                          isRunnerThird:
+                            prev.out + 1 > 2 ? null : prev.isRunnerThird,
+                          out: prev.out + 1 > 2 ? 0 : prev.out + 1,
+                          isOffense:
+                            prev.out + 1 > 2
+                              ? prev.isOffense == 1
+                                ? 0
+                                : 1
+                              : prev.isOffense,
+                          isTop: prev.out + 1 > 2 ? !prev.isTop : prev.isTop,
+                          inning: inning,
+                        };
+                      });
+                    } else {
+                      toast.show(
+                        "Không có runner ở chốt 2 để thực hiện cập nhật",
+                        {
+                          type: "warn",
+                          placement: "bottom",
+                          duration: 4000,
+                          offset: 30,
+                          animationType: "zoom-in",
+                        }
+                      );
+                    }
+                  }}
+                >
                   <Text style={styles.textButton}>Out vì bị pickoff</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.modalButtonRow}>
-                <TouchableOpacity style={styles.modelButton}>
-                  <Text style={styles.textButton}>Thay runner</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -3804,10 +4479,161 @@ const PlayByPlayScreen = () => {
             </Text>
             <View style={styles.modalButtonList}>
               <View style={styles.modalButtonRow}>
-                <TouchableOpacity style={styles.modelButton}>
+                <TouchableOpacity
+                  style={styles.modelButton}
+                  onPress={() => {
+                    setThirdRunnerStatusVisible(false);
+                    setThirdRunnerStatusVisible(false);
+                    let des = "";
+                    if (atBat.isRunnerThird) {
+                      if (atBat.isOffense === 1) {
+                        des = `#${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} cướp home thành công. #${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} ghi điểm`;
+                        updateBatterStat(
+                          atBat.isRunnerThird,
+                          null,
+                          0,
+                          1,
+                          1,
+                          0,
+                          true
+                        );
+                      } else {
+                        des =
+                          "Runner B3 đối phương cướp home thành công. Runner B3 ghi điểm";
+                        let reversedBatting = [...myBatting].reverse();
+                        let pitcher = reversedBatting.find(
+                          (p) => p.position === 1
+                        );
+                        updatePitcherStat(
+                          pitcher,
+                          null,
+                          0,
+                          0,
+                          0,
+                          1,
+                          Array.isArray(atBat.isRunnerThird) ? 0 : 1,
+                          0,
+                          0,
+                          0,
+                          0
+                        );
+                      }
+                      setAtBatsList((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          isLastState: false,
+                          description: des,
+                        },
+                      ]);
+                      setNotSavedAtBats((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          id: null,
+                          description: des,
+                        },
+                      ]);
+                      setAtBat((prev) => {
+                        setTempRunnerThird(null);
+                        return {
+                          ...prev,
+                          isRunnerThird: null,
+                          beforeRunnerThird: prev.isRunnerThird,
+                          teamScore:
+                            prev.isOffense === 1
+                              ? prev.teamScore + 1
+                              : prev.teamScore,
+                          oppScore:
+                            prev.isOffense === 0
+                              ? prev.oppScore + 1
+                              : prev.oppScore,
+                        };
+                      });
+                    } else {
+                      toast.show(
+                        "Không có runner ở chốt 3 để thực hiện cập nhật",
+                        {
+                          type: "warn",
+                          placement: "bottom",
+                          duration: 4000,
+                          offset: 30,
+                          animationType: "zoom-in",
+                        }
+                      );
+                    }
+                  }}
+                >
                   <Text style={styles.textButton}>Cướp home thành công</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.modelButton}>
+                <TouchableOpacity
+                  style={styles.modelButton}
+                  onPress={() => {
+                    if (atBat.isRunnerThird) {
+                      setThirdRunnerStatusVisible(false);
+                      let des = "";
+                      if (atBat.isOffense === 1) {
+                        des = `#${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} cướp home thất bại`;
+                      } else {
+                        des = "Runner B3 đối phương cướp home thất bại";
+                      }
+                      setAtBatsList((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          isLastState: false,
+                          description: des,
+                        },
+                      ]);
+                      setNotSavedAtBats((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          id: null,
+                          description: des,
+                        },
+                      ]);
+                      setAtBat((prev) => {
+                        setTempRunnerThird(null);
+                        if (prev.out + 1 > 2) {
+                          setTempRunnerFirst(null);
+                          setTempRunnerSecond(null);
+                        }
+                        let inning = prev.inning;
+                        if (!prev.isTop && prev.out + 1 > 2) inning++;
+                        return {
+                          ...prev,
+                          isRunnerThird: null,
+                          beforeRunnerSecond: prev.isRunnerSecond,
+                          isRunnerFirst:
+                            prev.out + 1 > 2 ? null : prev.isRunnerFirst,
+                          isRunnerSecond:
+                            prev.out + 1 > 2 ? null : prev.isRunnerThird,
+                          out: prev.out + 1 > 2 ? 0 : prev.out + 1,
+                          isOffense:
+                            prev.out + 1 > 2
+                              ? prev.isOffense == 1
+                                ? 0
+                                : 1
+                              : prev.isOffense,
+                          isTop: prev.out + 1 > 2 ? !prev.isTop : prev.isTop,
+                          inning: inning,
+                        };
+                      });
+                    } else {
+                      toast.show(
+                        "Không có runner ở chốt 3 để thực hiện cập nhật",
+                        {
+                          type: "warn",
+                          placement: "bottom",
+                          duration: 4000,
+                          offset: 30,
+                          animationType: "zoom-in",
+                        }
+                      );
+                    }
+                  }}
+                >
                   <Text style={styles.textButton}>Cướp home thất bại</Text>
                 </TouchableOpacity>
               </View>
@@ -3815,16 +4641,177 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   disabled={atBat.isRunnerSecond ? false : true}
                   style={styles.modelButton}
+                  onPress={() => {
+                    setThirdRunnerStatusVisible(false);
+                    let des = "";
+                    if (atBat.isRunnerThird) {
+                      if (atBat.isOffense === 1) {
+                        des = `#${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} về home do pitcher balk. #${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} ghi điểm`;
+                        updateBatterStat(
+                          atBat.isRunnerThird,
+                          null,
+                          0,
+                          1,
+                          0,
+                          0,
+                          true
+                        );
+                      } else {
+                        des =
+                          "Runner B3 đối phương về home do pitcher balk. Runner B3 ghi điểm";
+                        let reversedBatting = [...myBatting].reverse();
+                        let pitcher = reversedBatting.find(
+                          (p) => p.position === 1
+                        );
+                        updatePitcherStat(
+                          pitcher,
+                          null,
+                          0,
+                          0,
+                          0,
+                          1,
+                          Array.isArray(atBat.isRunnerThird) ? 0 : 1,
+                          1,
+                          0,
+                          0,
+                          0
+                        );
+                      }
+                      setAtBatsList((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          isLastState: false,
+                          description: des,
+                        },
+                      ]);
+                      setNotSavedAtBats((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          id: null,
+                          description: des,
+                        },
+                      ]);
+                      setAtBat((prev) => {
+                        setTempRunnerThird(null);
+                        return {
+                          ...prev,
+                          isRunnerThird: null,
+                          beforeRunnerThird: prev.isRunnerThird,
+                          teamScore:
+                            prev.isOffense === 1
+                              ? prev.teamScore + 1
+                              : prev.teamScore,
+                          oppScore:
+                            prev.isOffense === 0
+                              ? prev.oppScore + 1
+                              : prev.oppScore,
+                        };
+                      });
+                    } else {
+                      toast.show(
+                        "Không có runner ở chốt 3 để thực hiện cập nhật",
+                        {
+                          type: "warn",
+                          placement: "bottom",
+                          duration: 4000,
+                          offset: 30,
+                          animationType: "zoom-in",
+                        }
+                      );
+                    }
+                  }}
                 >
                   <Text style={styles.textButton}>Về home do pitcher balk</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.modelButton}>
+                <TouchableOpacity
+                  style={styles.modelButton}
+                  onPress={() => {
+                    if (atBat.isRunnerThird) {
+                      setThirdRunnerStatusVisible(false);
+                      let des = "";
+                      if (atBat.isOffense === 1) {
+                        des = `#${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} out vì bị pickoff ở chốt 3`;
+                      } else {
+                        des = "Runner B3 đối phương out vì bị pickoff ở chốt 3";
+                        let reversedBatting = [...myBatting].reverse();
+                        let pitcher = reversedBatting.find(
+                          (p) => p.position === 1
+                        );
+                        updatePitcherStat(
+                          pitcher,
+                          null,
+                          0,
+                          0,
+                          1,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          1
+                        );
+                      }
+                      setAtBatsList((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          isLastState: false,
+                          description: des,
+                        },
+                      ]);
+
+                      setNotSavedAtBats((prev) => [
+                        ...prev,
+                        {
+                          ...atBat,
+                          id: null,
+                          description: des,
+                        },
+                      ]);
+
+                      setAtBat((prev) => {
+                        setTempRunnerThird(null);
+                        if (prev.out + 1 > 2) {
+                          setTempRunnerFirst(null);
+                          setTempRunnerSecond(null);
+                        }
+                        let inning = prev.inning;
+                        if (!prev.isTop && prev.out + 1 > 2) inning++;
+                        return {
+                          ...prev,
+                          isRunnerThird: null,
+                          isRunnerFirst:
+                            prev.out + 1 > 2 ? null : prev.isRunnerFirst,
+                          isRunnerSecond:
+                            prev.out + 1 > 2 ? null : prev.isRunnerThird,
+                          out: prev.out + 1 > 2 ? 0 : prev.out + 1,
+                          isOffense:
+                            prev.out + 1 > 2
+                              ? prev.isOffense == 1
+                                ? 0
+                                : 1
+                              : prev.isOffense,
+                          isTop: prev.out + 1 > 2 ? !prev.isTop : prev.isTop,
+                          inning: inning,
+                        };
+                      });
+                    } else {
+                      toast.show(
+                        "Không có runner ở chốt 3 để thực hiện cập nhật",
+                        {
+                          type: "warn",
+                          placement: "bottom",
+                          duration: 4000,
+                          offset: 30,
+                          animationType: "zoom-in",
+                        }
+                      );
+                    }
+                  }}
+                >
                   <Text style={styles.textButton}>Out vì bị pickoff</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.modalButtonRow}>
-                <TouchableOpacity style={styles.modelButton}>
-                  <Text style={styles.textButton}>Thay runner</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -4019,7 +5006,7 @@ const PlayByPlayScreen = () => {
                     size={35}
                     color={isSelected(posNumber) ? "green" : "white"}
                   ></FontAwesome5>
-                  {myPlayers ? (
+                  {myBatting ? (
                     <Text
                       style={{
                         color: "white",
@@ -4032,8 +5019,8 @@ const PlayByPlayScreen = () => {
                         alignItems: "center",
                       }}
                     >
-                      {myPlayers.find((obj) => obj.position === posNumber)
-                        ? myPlayers.find((obj) => obj.position === posNumber)
+                      {myBatting.find((obj) => obj.position === posNumber)
+                        ? myBatting.find((obj) => obj.position === posNumber)
                             .player.jerseyNumber
                         : null}
                     </Text>
@@ -4064,8 +5051,20 @@ const PlayByPlayScreen = () => {
             {runnerPos.map((posNumber) => (
               <TouchableOpacity
                 key={posNumber}
+                disabled={
+                  (posNumber === 11 && !atBat.isRunnerFirst) ||
+                  (posNumber === 12 && !atBat.isRunnerSecond) ||
+                  (posNumber === 13 && !atBat.isRunnerThird)
+                }
                 onPress={() => {
-                  setPos(posNumber);
+                  setPos(
+                    posNumber === 13
+                      ? atBat.isRunnerThird.position
+                      : posNumber === 12
+                      ? atBat.isRunnerSecond.position
+                      : atBat.isRunnerFirst.position
+                  );
+                  setPosRun(posNumber);
                   choosePlayerBottomSheet.current?.expand();
                 }}
                 style={{
@@ -4327,19 +5326,16 @@ const PlayByPlayScreen = () => {
             <MenuOption
               onSelect={() => {
                 let offData = [];
-                let numPlayerEachOrder = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-                let myBattingAll = [];
-                for (let i = 0; i < myBatting.length; i++) {
-                  if (i % 9 === 0 && i !== 0) continue;
-                  else if (myBatting[i] !== null) numPlayerEachOrder[i % 10]++;
-                }
+                let myBattingAll = myBatting
+                  .filter((obj) => obj.battingOrder !== 10)
+                  .map((obj, index) => ({ ...obj, index }))
+                  .sort((a, b) => {
+                    if (a.battingOrder === b.battingOrder) {
+                      return b.index - a.index;
+                    }
+                    return a.battingOrder - b.battingOrder;
+                  });
 
-                for (let i = 0; i < 9; i++) {
-                  for (let j = 0; j < numPlayerEachOrder[i]; j++) {
-                    if (myBatting[i + 10 * j] !== null)
-                      myBattingAll.push(myBatting[i + 10 * j]);
-                  }
-                }
                 myBattingAll.map((obj) => {
                   const atBat =
                     obj.plateApperance -
@@ -4350,8 +5346,14 @@ const PlayByPlayScreen = () => {
                     obj.intentionalBB;
                   const hit =
                     obj.single + obj.double + obj.triple + obj.homeRun;
+                  let posString = "";
+                  obj.playedPos.forEach((pos, index) => {
+                    if (index < obj.playedPos.length - 1)
+                      posString += positionStr[pos] + "-";
+                    else posString += positionStr[pos];
+                  });
                   offData.push([
-                    `#${obj.player.jerseyNumber}.${obj.player.lastName}`,
+                    `${obj.battingOrder}.#${obj.player.jerseyNumber}.${obj.player.lastName}  ${posString}`,
                     atBat,
                     obj.run,
                     hit,
@@ -4442,6 +5444,27 @@ const PlayByPlayScreen = () => {
           </MenuOptions>
         </Menu>
       </View>
+      <BottomSheet
+        snapPoints={snapPoints}
+        enablePanDownToClose={true}
+        ref={choosePlayerBottomSheet}
+        index={-1}
+      >
+        <BottomSheetFlatList
+          data={players}
+          renderItem={({ item }) => (
+            <ChoosePlayerItem
+              player={item}
+              pos={pos}
+              gameid={gameid}
+              ingame={true}
+              functions={[myBatting, setMyBatting]}
+              functionsAB={[atBat, setAtBat]}
+              posRun={posRun}
+            />
+          )}
+        />
+      </BottomSheet>
       {isLoading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#0000ff" />

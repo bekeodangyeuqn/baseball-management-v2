@@ -1,7 +1,16 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { StyleSheet, Text, View, Button, TouchableOpacity } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  Button,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import RadioGroup from "react-native-radio-buttons-group";
+import { atBatsState } from "../atom/AtBats";
+import { useToast } from "react-native-toast-notifications";
 
 const PlayBallTypeScreen = () => {
   const navigaton = useNavigation();
@@ -9,6 +18,55 @@ const PlayBallTypeScreen = () => {
   const gameid = route.params.gameid;
   const myBatting = route.params.myBatting;
   const [beforeId, setBeforeId] = useState();
+  const [isLoading, setIsLoading] = useState(false);
+  const [recoilAtBat, setRecoilAtBat] = useRecoilState(atBatsState);
+  const toast = useToast();
+
+  const addInitAtBat = async () => {
+    try {
+      setIsLoading(true);
+      const initAtBat = {
+        game_id: gameid,
+        teamScore: 0,
+        isLastState: false,
+        oppScore: 0,
+        out: 0,
+        inning: 1,
+        isTop: true,
+        ball: 0,
+        strike: 0,
+        isOffense: beforeId,
+        isRunnerFirstOff_id: null,
+        isRunnerSecondOff_id: null,
+        isRunnerThirdOff_id: null,
+        currentPitcher_id: null,
+        isRunnerFirstDef: null,
+        isRunnerSecondDef: null,
+        isRunnerThirdDef: null,
+        currentPlayer: 0,
+        oppCurPlayer: 0,
+        outcomeType: null,
+        description: "Game start",
+      };
+      const { data } = await axiosInstance.post("/atbat/create/", initAtBat);
+      setRecoilAtBat((prev) => [...prev, data]);
+      navigaton.navigate("PlayByPlay", {
+        gameid: gameid,
+        beforeId: beforeId,
+        myBatting: myBatting,
+      });
+      setIsLoading(false);
+    } catch (error) {
+      toast.show(`Lỗi khi gửi dữ liệu lên server: ${error.message}`, {
+        type: "danger",
+        placement: "bottom",
+        duration: 4000,
+        offset: 30,
+        animationType: "zoom-in",
+      });
+      setIsLoading(false);
+    }
+  };
 
   const radioButtons = useMemo(
     () => [
@@ -30,16 +88,7 @@ const PlayBallTypeScreen = () => {
       <Text style={styles.header}>Play ball</Text>
       <Text style={styles.body}>Hãy lựa chọn cách thức cập nhật trận đấu</Text>
       <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() =>
-            navigaton.navigate("PlayByPlay", {
-              gameid: gameid,
-              beforeId: beforeId,
-              myBatting: myBatting,
-            })
-          }
-        >
+        <TouchableOpacity style={styles.button} onPress={() => addInitAtBat()}>
           <Text style={styles.textButton}>Play by play</Text>
           <Text style={styles.subTextButton}>
             Cập nhật theo thời gian thực diễn biến trên sân của trận đấu
@@ -67,6 +116,11 @@ const PlayBallTypeScreen = () => {
           layout="row"
         />
       </View>
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#0000ff" />
+        </View>
+      )}
     </View>
   );
 };
@@ -124,5 +178,11 @@ const styles = StyleSheet.create({
   lgbuttonText: {
     color: "white",
     fontWeight: "bold",
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

@@ -6,7 +6,10 @@ import { useRecoilState } from "recoil";
 import { myGamePlayers } from "../atom/GamePlayers";
 
 const ChoosePlayerItem = (props) => {
-  const { player, pos, gameid } = props;
+  const { player, pos, gameid, ingame, posRun } = props;
+
+  const [myBatting, setMyBatting] = ingame ? props.functions : useState(null);
+  const [atBat, setAtBat] = ingame ? props.functionsAB : useState(null);
   const position = ["DH", "P", "C", "1B", "2B", "3B", "SS", "OF", "None"];
   const splitAvatarURI = (str) => {
     const arr = str.split("?");
@@ -15,17 +18,127 @@ const ChoosePlayerItem = (props) => {
   const [myPlayers, setMyPlayers] = useRecoilState(myGamePlayers);
 
   const onPress = (pos) => {
+    if (ingame) {
+      const samePosPLayer = myBatting.find((obj) => obj.position === pos);
+      const samePosPlayerId = myBatting.findIndex(
+        (obj) => obj.position === pos
+      );
+      let newPlayer = {
+        player: player,
+        position: pos,
+        gameid: gameid,
+        battingOrder: samePosPLayer.battingOrder,
+        plateApperance: 0,
+        runBattedIn: 0,
+        single: 0,
+        double: 0,
+        triple: 0,
+        homeRun: 0,
+        baseOnBall: 0,
+        intentionalBB: 0,
+        hitByPitch: 0,
+        strikeOut: 0,
+        fielderChoice: 0,
+        sacrificeFly: 0,
+        sacrificeBunt: 0,
+        stolenBase: 0,
+        leftOnBase: 0,
+        doublePlay: 0,
+        triplePlay: 0,
+        run: 0,
+        onBaseByError: 0,
+        putOut: 0,
+        assist: 0,
+        error: 0,
+        playedPos: [pos],
+        pitchBall: 0,
+        pitchStrike: 0,
+        totalBatterFaced: 0,
+        totalInGameOut: 0,
+        oppHit: 0,
+        oppRun: 0,
+        earnedRun: 0,
+        oppBaseOnBall: 0,
+        oppStrikeOut: 0,
+        hitBatter: 0,
+        balk: 0,
+        wildPitch: 0,
+        oppHomeRun: 0,
+        firstPitchStrike: 0,
+        pickOff: 0,
+      };
+      setMyBatting((prev) => {
+        if (!prev.some((obj) => obj.player.id === player.id)) {
+          let newBatting = [...prev];
+          newBatting.push(samePosPLayer);
+          newBatting.splice(samePosPlayerId, 1, newPlayer);
+          return newBatting;
+        } else {
+          const curPlayerInGame = prev
+            .map((obj, index) => {
+              return { ...obj, index: index };
+            })
+            .find((obj, index) => player.id === obj.player.id);
+          console.log(curPlayerInGame);
+          if (player.id !== samePosPLayer.player.id) {
+            let newBatting = [...prev];
+            let newPlayer = {
+              ...curPlayerInGame,
+              playedPos:
+                pos !==
+                curPlayerInGame.playedPos[curPlayerInGame.playedPos.length - 1]
+                  ? [...curPlayerInGame.playedPos, pos]
+                  : [...curPlayerInGame.playedPos],
+              position: pos,
+            };
+            if (curPlayerInGame.index <= 9) {
+              let changedPlayer = {
+                ...samePosPLayer,
+                position: curPlayerInGame.position,
+                playedPos:
+                  curPlayerInGame.position !==
+                  samePosPLayer.playedPos[samePosPLayer.playedPos.length - 1]
+                    ? [...samePosPLayer.playedPos, curPlayerInGame.position]
+                    : [...samePosPLayer.playedPos],
+              };
+              newBatting.splice(curPlayerInGame.index, 1, newPlayer);
+              newBatting.splice(samePosPlayerId, 1, changedPlayer);
+            } else {
+              newBatting.splice(samePosPlayerId, 1, newPlayer);
+              newBatting.push(samePosPLayer);
+            }
+            return newBatting;
+          } else return myBatting;
+        }
+      });
+    }
+
+    if (posRun && ingame) {
+      setAtBat((prev) => {
+        if (!myBatting.some((obj) => obj.player.id === player.id))
+          return {
+            ...prev,
+            isRunnerFirst: posRun === 11 ? newPlayer : prev.isRunnerFirst,
+            isRunnerSecond: posRun === 12 ? newPlayer : prev.isRunnerSecond,
+            isRunnerThird: posRun === 13 ? newPlayer : prev.isRunnerThird,
+          };
+        else return { ...prev };
+      });
+    }
+
     setMyPlayers((curPlayers) => {
       if (
         curPlayers.some(
           (obj) => obj.player.id === player.id && obj.gameid === gameid
         )
       ) {
-        return curPlayers.filter(
-          (obj) =>
-            obj.player.id !== player.id ||
-            (obj.gameid !== gameid && obj.player.id === player.id)
-        );
+        if (!ingame)
+          return curPlayers.filter(
+            (obj) =>
+              obj.player.id !== player.id ||
+              (obj.gameid !== gameid && obj.player.id === player.id)
+          );
+        else return curPlayers;
       }
       if (
         curPlayers.some((obj) => {
@@ -34,6 +147,7 @@ const ChoosePlayerItem = (props) => {
       ) {
         return [
           ...curPlayers.filter((obj) => {
+            if (ingame) return true;
             if (obj.gameid !== gameid) return true;
             else {
               if (obj.position === pos) return false;

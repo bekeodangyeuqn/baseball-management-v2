@@ -25,7 +25,7 @@ const tableHead = [
   "LOB",
 ];
 
-const widthArr = [100, 50, 50, 50, 50, 50, 50, 50, 75, 75, 50];
+const widthArr = [130, 50, 50, 50, 50, 50, 50, 50, 75, 75, 50];
 
 const BattingStatScreen = () => {
   const route = useRoute();

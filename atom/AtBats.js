@@ -12,7 +12,9 @@ export const atBatsSelectorByGameId = selectorFamily({
   get:
     (id) =>
     ({ get }) =>
-      get(atBatsState).filter((atBat) => atBat.gameid == id),
+      get(atBatsState).filter(
+        (atBat) => atBat.game_id == id || atBat.gameid == id
+      ),
 });
 
 export const lastStatusState = atom({

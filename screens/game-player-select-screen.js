@@ -228,7 +228,12 @@ const GamePlayerSelectScreen = () => {
         <BottomSheetFlatList
           data={players}
           renderItem={({ item }) => (
-            <ChoosePlayerItem player={item} pos={pos} gameid={gameid} />
+            <ChoosePlayerItem
+              player={item}
+              pos={pos}
+              gameid={gameid}
+              ingame={false}
+            />
           )}
         />
       </BottomSheet>

@@ -326,7 +326,7 @@ const GameDetailScreen = () => {
       setIsLoadingToGame(false);
     }
   };
-  console.log(isLoading, gameData);
+
   if (isLoading || !gameData) {
     return (
       <View style={styles.loadingOverlay}>
