@@ -7,6 +7,21 @@ export const atBatsState = atom({
   default: [],
 });
 
+export const atBatsStatusState = atom({
+  key: "AtBatsStatusState",
+  default: [],
+});
+
+export const atBatsStatusSelectorByGameId = selectorFamily({
+  key: "AtBatsStatusSelectorByGameId",
+  get:
+    (id) =>
+    ({ get }) =>
+      get(atBatsState).filter(
+        (status) => status.atBat.game_id == id || status.atBat.gameid == id
+      ),
+});
+
 export const atBatsSelectorByGameId = selectorFamily({
   key: "AtBatsSelectorByGameId",
   get:

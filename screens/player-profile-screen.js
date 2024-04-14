@@ -14,68 +14,8 @@ import axiosInstance from "../lib/axiosClient";
 import { useToast } from "react-native-toast-notifications";
 import { useRoute } from "@react-navigation/native";
 import jwtDecode from "jwt-decode";
-
-const tableDataSample = {
-  tableHead: [
-    "Giai đoạn",
-    "AB",
-    "R",
-    "H",
-    "HR",
-    "RBI",
-    "BB",
-    "SO",
-    "SB",
-    "AVG",
-    "OBP",
-    "SLG",
-  ],
-  widthArr: [200, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50],
-  tableData: [
-    [
-      "3 trận qua",
-      "12",
-      "1",
-      "4",
-      "0",
-      "1",
-      "0",
-      "3",
-      "3",
-      ".375",
-      ".375",
-      ".542",
-    ],
-    [
-      "7 trận qua",
-      "12",
-      "1",
-      "4",
-      "0",
-      "1",
-      "0",
-      "3",
-      "3",
-      ".375",
-      ".375",
-      ".542",
-    ],
-    [
-      "15 trận qua",
-      "12",
-      "1",
-      "4",
-      "0",
-      "1",
-      "0",
-      "3",
-      "3",
-      ".375",
-      ".375",
-      ".542",
-    ],
-  ],
-};
+import { useRecoilState } from "recoil";
+import { playersState } from "../atom/Players";
 
 const careerData = {
   tableHead: [
@@ -132,6 +72,7 @@ const PlayerProfileScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
   const [teamName, setTeamName] = useState("");
+  const [recoilPlayers, setRecoilPlayers] = useRecoilState(playersState);
 
   const splitAvatarURI = (str) => {
     const arr = str.split("?");
@@ -146,24 +87,141 @@ const PlayerProfileScreen = () => {
         const decoded = jwtDecode(token);
         setTeamName(decoded.teamName);
 
-        const storedPlayer = await AsyncStorage.getItem(`player_${id}`);
+        const storedPlayer = recoilPlayers.find(
+          (p) => p.id == id && p.plateApperance
+        );
         if (storedPlayer) {
-          const data = JSON.parse(storedPlayer);
-          setPlayer(data);
+          setPlayer(storedPlayer);
+          setBattingData((prev) => {
+            return {
+              ...prev,
+              tableData: [
+                [
+                  storedPlayer.plateApperance,
+                  storedPlayer.atBat,
+                  storedPlayer.hit,
+                  storedPlayer.homeRun,
+                  storedPlayer.runBattedIn,
+                  storedPlayer.run,
+                  storedPlayer.baseOnBall,
+                  storedPlayer.strikeOut,
+                  storedPlayer.stolenBase,
+                  storedPlayer.battingAverage,
+                  storedPlayer.onBasePercentage,
+                  storedPlayer.sluggingPercentage,
+                  storedPlayer.onBasePlusSlugging,
+                  storedPlayer.weightedOnBasePercentage,
+                ],
+              ],
+            };
+          });
+
+          setFieldingData((prev) => {
+            return {
+              ...prev,
+              tableData: [
+                [
+                  storedPlayer.putOut,
+                  storedPlayer.assist,
+                  storedPlayer.error,
+                  storedPlayer.fieldingPercentage,
+                ],
+              ],
+            };
+          });
+
+          setPitchingData((prev) => {
+            return {
+              ...prev,
+              tableData: [
+                [
+                  storedPlayer.totalBatterFaced,
+                  `${Math.floor(storedPlayer.totalInGameOut / 3)}.${
+                    storedPlayer.totalInGameOut % 3
+                  }`,
+                  storedPlayer.oppHit,
+                  storedPlayer.oppRun,
+                  storedPlayer.earnedRun,
+                  storedPlayer.oppHomeRun,
+                  storedPlayer.oppBaseOnBall,
+                  storedPlayer.hitBatter,
+                  storedPlayer.oppStrikeOut,
+                  storedPlayer.balk,
+                  storedPlayer.earnedRunAverage,
+                  storedPlayer.walkAndHitPerInning,
+                ],
+              ],
+            };
+          });
         } else {
           const { data } = await axiosInstance.get(`/player/profile/${id}/`);
           setPlayer(data);
-          AsyncStorage.setItem(
-            `player_${id}`,
-            JSON.stringify(data),
-            (error) => {
-              if (error) {
-                console.error(error);
-              } else {
-                console.log("Player stored successfully.");
-              }
-            }
-          );
+          setRecoilPlayers((prev) => [
+            ...prev.filter((p) => p.id != data.id),
+            data,
+          ]);
+          let storedPlayer = data;
+          setBattingData((prev) => {
+            return {
+              ...prev,
+              tableData: [
+                [
+                  storedPlayer.plateApperance,
+                  storedPlayer.atBat,
+                  storedPlayer.hit,
+                  storedPlayer.homeRun,
+                  storedPlayer.runBattedIn,
+                  storedPlayer.run,
+                  storedPlayer.baseOnBall,
+                  storedPlayer.strikeOut,
+                  storedPlayer.stolenBase,
+                  storedPlayer.battingAverage,
+                  storedPlayer.onBasePercentage,
+                  storedPlayer.sluggingPercentage,
+                  storedPlayer.onBasePlusSlugging,
+                  storedPlayer.weightedOnBasePercentage,
+                ],
+              ],
+            };
+          });
+
+          setFieldingData((prev) => {
+            return {
+              ...prev,
+              tableData: [
+                [
+                  storedPlayer.putOut,
+                  storedPlayer.assist,
+                  storedPlayer.error,
+                  storedPlayer.fieldingPercentage,
+                ],
+              ],
+            };
+          });
+
+          setPitchingData((prev) => {
+            return {
+              ...prev,
+              tableData: [
+                [
+                  storedPlayer.totalBatterFaced,
+                  `${Math.floor(storedPlayer.totalInGameOut / 3)}.${
+                    storedPlayer.totalInGameOut % 3
+                  }`,
+                  storedPlayer.oppHit,
+                  storedPlayer.oppRun,
+                  storedPlayer.earnedRun,
+                  storedPlayer.oppHomeRun,
+                  storedPlayer.oppBaseOnBall,
+                  storedPlayer.hitBatter,
+                  storedPlayer.oppStrikeOut,
+                  storedPlayer.balk,
+                  storedPlayer.earnedRunAverage,
+                  storedPlayer.walkAndHitPerInning,
+                ],
+              ],
+            };
+          });
         }
         setIsLoading(false);
       } catch (error) {
@@ -180,6 +238,85 @@ const PlayerProfileScreen = () => {
     };
     getInfo().catch((error) => console.error(error));
   }, []);
+
+  const [battingData, setBattingData] = useState({
+    tableHead: [
+      "PA",
+      "AB",
+      "H",
+      "HR",
+      "RBI",
+      "R",
+      "BB",
+      "SO",
+      "SB",
+      "AVG",
+      "OBP",
+      "SLG",
+      "OPS",
+      "wOBA",
+    ],
+    widthArr: [50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50],
+    tableData: [["-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-"]],
+  });
+
+  const [fieldingData, setFieldingData] = useState({
+    tableHead: ["PO", "A", "E", "FPCT"],
+    widthArr: [50, 50, 50, 50],
+    tableData: [["-", "-", "-", "-"]],
+  });
+
+  const [pitchingData, setPitchingData] = useState({
+    tableHead: [
+      "TBF",
+      "IP",
+      "H",
+      "R",
+      "ER",
+      "HR",
+      "BB",
+      "HBP",
+      "SO",
+      "BLK",
+      "ERA",
+      "WHIP",
+    ],
+    widthArr: [50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50],
+    tableData: [["-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-"]],
+  });
+  // const battingData = {
+  //   tableHead: [
+  //     "AB",
+  //     "R",
+  //     "H",
+  //     "HR",
+  //     "RBI",
+  //     "BB",
+  //     "SO",
+  //     "SB",
+  //     "AVG",
+  //     "OBP",
+  //     "SLG",
+  //   ],
+  //   widthArr: [50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50],
+  //   tableData: [
+  //     [
+  //       "3 trận qua",
+  //       "12",
+  //       "1",
+  //       "4",
+  //       "0",
+  //       "1",
+  //       "0",
+  //       "3",
+  //       "3",
+  //       ".375",
+  //       ".375",
+  //       ".542",
+  //     ],
+
+  //   ],
+  // };
 
   return (
     <ScrollView>
@@ -264,9 +401,14 @@ const PlayerProfileScreen = () => {
               </Text>
             </View>
           </View>
-          <HorizontalTable data={tableDataSample} />
-          <Text style={styles.title}>Sự nghiệp</Text>
-          <HorizontalTable data={careerData} />
+          <View>
+            <Text style={styles.title}>Thành tích tấn công</Text>
+            <HorizontalTable data={battingData} />
+            <Text style={styles.title}>Thành tích phòng ngự</Text>
+            <HorizontalTable data={fieldingData} />
+            <Text style={styles.title}>Thành tích ném bóng</Text>
+            <HorizontalTable data={pitchingData} />
+          </View>
         </View>
       )}
     </ScrollView>
@@ -274,9 +416,11 @@ const PlayerProfileScreen = () => {
 };
 const styles = StyleSheet.create({
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "bold",
     marginLeft: 15,
+    alignItems: "center",
+    justifyContent: "center",
   },
   profilePicture: {
     width: 200,

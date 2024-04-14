@@ -39,6 +39,8 @@ import { Audio } from "expo-av";
 import {
   atBatsSelectorByGameId,
   atBatsState,
+  atBatsStatusSelectorByGameId,
+  atBatsStatusState,
   lastStatusSelectorByGameId,
   lastStatusState,
 } from "../atom/AtBats";
@@ -165,9 +167,98 @@ const PlayByPlayScreen = () => {
   const [description, setDescription] = useState("");
   const [numPitchers, setNumPitchers] = useState(1);
 
+  const undo = () => {
+    console.log(pastState[pastState.length - 1]);
+    if (pastState.length === 0) return;
+
+    const newPast = [...pastState];
+    const newPresent = newPast.pop();
+
+    setPastState(newPast);
+    setAtBatStatus(newPresent);
+    setFutureState([atBatStatus, ...futureState]);
+    setAtBat(newPresent.atBat);
+    setMyBatting(newPresent.myBatting);
+    setAtBatsList((prev) => {
+      let newArray = [...prev];
+
+      let future = newArray.pop();
+      const newPast = [...pastList];
+      newPast.pop();
+      setPastList(newPast);
+      setFutureList((prev) => [future, ...prev]);
+      return newArray;
+    });
+    setNotSavedAtBats((prev) => {
+      let newArray = [...prev];
+
+      let future = newArray.pop();
+      const newPast = [...pastNotSaved];
+      newPast.pop();
+      setPastNotSaved(newPast);
+      setFutureNotSaved((prev) => [future, ...prev]);
+      return newArray;
+    });
+  };
+
+  const redo = () => {
+    console.log(futureState[0]);
+    if (futureState.length === 0) return;
+
+    const newFuture = [...futureState];
+    const newPresent = newFuture.shift();
+
+    setPastState([...pastState, atBatStatus]);
+    setFutureState(newFuture);
+    setAtBatStatus(newPresent);
+    setAtBat(newPresent.atBat);
+    setMyBatting(newPresent.myBatting);
+    setAtBatsList((prev) => {
+      let newFuture = [...futureList];
+      const newPresent = newFuture.shift();
+      let newArray = [...prev, newPresent];
+      setFutureList(newFuture);
+      setPastList([...pastList, prev[prev.length - 1]]);
+      return newArray;
+    });
+    setNotSavedAtBats((prev) => {
+      let newFuture = [...futureNotSaved];
+      const newPresent = newFuture.shift();
+      let newArray = [...prev, newPresent];
+      setFutureNotSaved(newFuture);
+      setPastNotSaved([...pastList, prev[prev.length - 1]]);
+      return newArray;
+    });
+  };
+
   let recoilAtBat = useRecoilValue(atBatsSelectorByGameId(gameid));
   const [lastState, setLastState] = useRecoilState(lastStatusState);
   const recoilLastState = useRecoilValue(lastStatusSelectorByGameId(gameid));
+  const [recoilAtBatStatus, setRecoilAtBatStatus] =
+    useRecoilState(atBatsStatusState);
+  const [atBatStatus, setAtBatStatus] = useState(recoilLastState);
+  const [pastState, setPastState] = useState(async () => {
+    const lastPastState = await AsyncStorage.getItem(`pastState-${gameid}`);
+    return lastPastState ? JSON.parse(lastPastState) : [];
+  });
+
+  const [futureState, setFutureState] = useState(async () => {
+    const lastFutureState = await AsyncStorage.getItem(`futureState-${gameid}`);
+    return lastFutureState ? JSON.parse(lastFutureState) : [];
+  });
+
+  const [pastList, setPastList] = useState([]);
+  const [futureList, setFutureList] = useState([]);
+  const [pastNotSaved, setPastNotSaved] = useState([]);
+  const [futureNotSaved, setFutureNotSaved] = useState([]);
+  useEffect(() => {
+    AsyncStorage.setItem(`pastState-${gameid}`, JSON.stringify(pastState));
+  }, [pastState]);
+
+  useEffect(() => {
+    AsyncStorage.setItem(`futureState-${gameid}`, JSON.stringify(futureState));
+  }, [futureState]);
+
   const [myBatting, setMyBatting] = useState(
     recoilAtBat.length <= 1
       ? myFirstBatting
@@ -244,6 +335,11 @@ const PlayByPlayScreen = () => {
     getInfo().catch((error) => console.error(error));
   }, []);
 
+  // useEffect(() => {
+  //   if (outcomeType !== 9 && outcomeType !== 10)
+  //     setAtBatStatus({ atBat: atBat, myBatting: myBatting });
+  // }, [myBatting]);
+
   useEffect(() => {
     setLastState((prev) => {
       return [
@@ -302,73 +398,75 @@ const PlayByPlayScreen = () => {
   const saveNotSavedAtBats = async () => {
     setIsLoading(true);
     try {
-      const promises = notSavedAtBats.map(async (obj, index) => {
-        try {
-          const response = await axiosInstance.post(`/atbat/create/`, {
-            game_id: gameid,
-            isLastState: false,
-            teamScore: obj.teamScore,
-            oppScore: obj.oppScore,
-            out: obj.out,
-            inning: obj.inning,
-            isTop: obj.isTop,
-            ball: obj.ball,
-            strike: obj.strike,
-            isOffense: obj.isOffense,
-            isRunnerFirstOff_id:
-              obj.isOffense == 1
-                ? obj.isRunnerFirst
+      const promises = notSavedAtBats
+        .filter((obj) => !obj.inTheAtBat)
+        .map(async (obj, index) => {
+          try {
+            const response = await axiosInstance.post(`/atbat/create/`, {
+              game_id: gameid,
+              isLastState: false,
+              teamScore: obj.teamScore,
+              oppScore: obj.oppScore,
+              out: obj.out,
+              inning: obj.inning,
+              isTop: obj.isTop,
+              ball: obj.ball,
+              strike: obj.strike,
+              isOffense: obj.isOffense,
+              isRunnerFirstOff_id:
+                obj.isOffense == 1
+                  ? obj.isRunnerFirst
+                    ? Array.isArray(obj.isRunnerFirst)
+                      ? obj.isRunnerFirst[0].id
+                      : obj.isRunnerFirst.id
+                    : null
+                  : null,
+              isRunnerSecondOff_id:
+                obj.isOffense == 1
+                  ? obj.isRunnerSecond
+                    ? Array.isArray(obj.isRunnerSecond)
+                      ? obj.isRunnerSecond[0].id
+                      : obj.isRunnerSecond.id
+                    : null
+                  : null,
+              isRunnerThirdOff_id:
+                obj.isOffense == 1
+                  ? obj.isRunnerThird
+                    ? Array.isArray(obj.isRunnerThird)
+                      ? obj.isRunnerThird[0].id
+                      : obj.isRunnerThird.id
+                    : null
+                  : null,
+              currentPitcher_id: obj.currentPitcher.id,
+              isRunnerFirstDef:
+                obj.isOffense == 0
                   ? Array.isArray(obj.isRunnerFirst)
-                    ? obj.isRunnerFirst[0].id
-                    : obj.isRunnerFirst.id
-                  : null
-                : null,
-            isRunnerSecondOff_id:
-              obj.isOffense == 1
-                ? obj.isRunnerSecond
+                    ? obj.isRunnerFirst[0]
+                    : obj.isRunnerFirst
+                  : null,
+              isRunnerSecondDef:
+                obj.isOffense == 0
                   ? Array.isArray(obj.isRunnerSecond)
-                    ? obj.isRunnerSecond[0].id
-                    : obj.isRunnerSecond.id
-                  : null
-                : null,
-            isRunnerThirdOff_id:
-              obj.isOffense == 1
-                ? obj.isRunnerThird
+                    ? obj.isRunnerSecond[0]
+                    : obj.isRunnerSecond
+                  : null,
+              isRunnerThirdDef:
+                obj.isOffense == 0
                   ? Array.isArray(obj.isRunnerThird)
-                    ? obj.isRunnerThird[0].id
-                    : obj.isRunnerThird.id
-                  : null
-                : null,
-            currentPitcher_id: obj.currentPitcher.id,
-            isRunnerFirstDef:
-              obj.isOffense == 0
-                ? Array.isArray(obj.isRunnerFirst)
-                  ? obj.isRunnerFirst[0]
-                  : obj.isRunnerFirst
-                : null,
-            isRunnerSecondDef:
-              obj.isOffense == 0
-                ? Array.isArray(obj.isRunnerSecond)
-                  ? obj.isRunnerSecond[0]
-                  : obj.isRunnerSecond
-                : null,
-            isRunnerThirdDef:
-              obj.isOffense == 0
-                ? Array.isArray(obj.isRunnerThird)
-                  ? obj.isRunnerThird[0]
-                  : obj.isRunnerThird
-                : null,
-            currentPlayer: obj.currentPlayer,
-            oppCurPlayer: obj.oppCurPlayer,
-            outcomeType: obj.outcomeType,
-            description: obj.description,
-          });
-          return response;
-        } catch (error) {
-          console.error(`Error with player ${index}:`, error);
-          return error;
-        }
-      });
+                    ? obj.isRunnerThird[0]
+                    : obj.isRunnerThird
+                  : null,
+              currentPlayer: obj.currentPlayer,
+              oppCurPlayer: obj.oppCurPlayer,
+              outcomeType: obj.outcomeType,
+              description: obj.description,
+            });
+            return response;
+          } catch (error) {
+            console.error(`Error with player ${index}:`, error);
+            return error;
+          }
+        });
 
       const responses = await Promise.all(promises);
       const oneMore = await axiosInstance.post(`/atbat/create/`, {
@@ -496,13 +594,14 @@ const PlayByPlayScreen = () => {
           : pitcher.firstPitchStrike,
       pickOff: pickOff > 0 ? pitcher.pickOff + pickOff : pitcher.pickOff,
     };
+    let newBatting = [
+      ...myBatting.filter((obj) => obj.player.id !== pitcher.player.id),
+    ];
+    newBatting.splice(9, 0, updatePitcher);
     setMyBatting((prev) => {
-      let newBatting = [
-        ...prev.filter((obj) => obj.player.id !== pitcher.player.id),
-      ];
-      newBatting.splice(9, 0, updatePitcher);
       return newBatting;
     });
+    return newBatting;
   };
 
   const updateBatterStat = (
@@ -547,22 +646,24 @@ const PlayByPlayScreen = () => {
       onBaseByError:
         type === 18 ? player.onBaseByError + 1 : player.onBaseByError,
     };
-    setMyBatting((prev) => {
-      let newBatting = [
-        ...prev.filter((obj) => obj.player.id !== player.player.id),
-      ];
-      if (isRunner) {
-        let index = 0;
-        for (let i = 0; i < prev.length; i++) {
-          if (prev[i].player.id === player.player.id) {
-            index = i;
-            break;
-          }
+
+    let newBatting = [
+      ...myBatting.filter((obj) => obj.player.id !== player.player.id),
+    ];
+    if (isRunner) {
+      let index = 0;
+      for (let i = 0; i < myBatting.length; i++) {
+        if (myBatting[i].player.id === player.player.id) {
+          index = i;
+          break;
         }
-        newBatting.splice(index, 0, updatePlayer);
-      } else newBatting.splice(atBat.currentPlayer - 1, 0, updatePlayer);
+      }
+      newBatting.splice(index, 0, updatePlayer);
+    } else newBatting.splice(atBat.currentPlayer - 1, 0, updatePlayer);
+    setMyBatting((prev) => {
       return newBatting;
     });
+    return newBatting;
   };
 
   const handleOut = (isBatter = null, player) => {
@@ -622,7 +723,12 @@ const PlayByPlayScreen = () => {
     }
   };
 
-  const endTheAtBat = (des = null, isOut = false, isScore = false) => {
+  const endTheAtBat = (
+    des = null,
+    isOut = false,
+    isScore = false,
+    newBatting = myBatting
+  ) => {
     setAtBatsList((prev) => [
       ...prev,
       {
@@ -631,15 +737,126 @@ const PlayByPlayScreen = () => {
         description: des === null ? description : des,
       },
     ]);
+    setPastList((prev) => [
+      ...prev,
+      {
+        ...atBat,
+        isLastState: false,
+        description: des === null ? description : des,
+      },
+    ]);
+    setFutureList([]);
     setNotSavedAtBats((prev) => [
       ...prev,
       {
         ...atBat,
+        isLastState: false,
         id: null,
         description: des === null ? description : des,
       },
     ]);
+    setPastNotSaved((prev) => [
+      ...prev,
+      {
+        ...atBat,
+        isLastState: false,
+        id: null,
+        description: des === null ? description : des,
+      },
+    ]);
+    setFutureNotSaved([]);
     setDescription("");
+    setFutureState([]);
+    setRecoilAtBatStatus((prev) => {
+      let newArray = [...prev];
+      return [...newArray, { atBat: atBat, myBatting: newBatting }];
+    });
+    setPastState(() => {
+      let newAtBat = {
+        ...atBat,
+        isLastState: false,
+        description: des === null ? description : des,
+      };
+      if (Array.isArray(pastState)) {
+        return [...pastState, { atBat: newAtBat, myBatting: newBatting }];
+      } else return [{ atBat: newAtBat, myBatting: newBatting }];
+    });
+
+    setAtBatStatus((prev) => {
+      let player = atBat.currentPlayer;
+      let oppCurPlayer = atBat.oppCurPlayer;
+      if (atBat.isOffense === 1) {
+        if (atBat.currentPlayer === 9) player = 1;
+        else player = atBat.currentPlayer + 1;
+      } else {
+        if (atBat.oppCurPlayer === 9) oppCurPlayer = 1;
+        else oppCurPlayer = atBat.oppCurPlayer + 1;
+      }
+      if (isOut && atBat.out + out + 1 >= 3) {
+        setTempRunnerFirst(null);
+        setTempRunnerSecond(null);
+        setTempRunnerThird(null);
+      }
+      let inn = atBat.inning;
+      if (!atBat.isTop) inn = inn + 1;
+      let newAtBat = {
+        ...atBat,
+        isLastState: false,
+        description: des === null ? description : des,
+        id: null,
+        ball: 0,
+        strike: 0,
+        isLastState: false,
+        oppScore: isScore
+          ? atBat.oppScore + oppScore + 1
+          : atBat.oppScore + oppScore,
+        teamScore: isScore
+          ? atBat.teamScore + teamScore + 1
+          : atBat.teamScore + teamScore,
+        beforeBall: atBat.ball,
+        beforeStrike: atBat.strike,
+        currentPlayer: isOut ? player : atBat.currentPlayer,
+        oppCurPlayer: isOut ? oppCurPlayer : atBat.oppCurPlayer,
+        isRunnerFirst: isOut
+          ? atBat.out + out + 1 < 3
+            ? tempRunnerFirst
+            : null
+          : tempRunnerFirst,
+        isRunnerSecond: isOut
+          ? atBat.out + out + 1 < 3
+            ? tempRunnerSecond
+            : null
+          : tempRunnerSecond,
+        isRunnerThird: isOut
+          ? atBat.out + out + 1 < 3
+            ? tempRunnerThird
+            : null
+          : tempRunnerThird,
+        out: isOut
+          ? atBat.out + out + 1 < 3
+            ? atBat.out + out + 1
+            : 0
+          : atBat.out,
+        isOffense: isOut
+          ? atBat.out + out + 1 >= 3
+            ? atBat.isOffense == 0
+              ? 1
+              : 0
+            : atBat.isOffense
+          : atBat.isOffense,
+        isTop: isOut
+          ? atBat.out + out + 1 >= 3
+            ? !atBat.isTop
+            : atBat.isTop
+          : atBat.isTop,
+        inning: isOut
+          ? atBat.out + out + 1 >= 3
+            ? inn
+            : atBat.inning
+          : atBat.inning,
+      };
+      return { atBat: newAtBat, myBatting: newBatting };
+    });
 
     setAtBat((prev) => {
       let player = atBat.currentPlayer;
@@ -663,6 +880,7 @@ const PlayByPlayScreen = () => {
         id: null,
         ball: 0,
         strike: 0,
+        isLastState: false,
         oppScore: isScore
           ? atBat.oppScore + oppScore + 1
           : atBat.oppScore + oppScore,
@@ -893,9 +1111,10 @@ const PlayByPlayScreen = () => {
                     if (atBat.isRunnerThird) lob++;
 
                     let description = "";
+                    let newBatting = myBatting;
 
                     if (atBat.isOffense === 1) {
-                      updateBatterStat(
+                      newBatting = updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         1,
                         0,
@@ -917,7 +1136,7 @@ const PlayByPlayScreen = () => {
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      updatePitcherStat(
+                      newBatting = updatePitcherStat(
                         pitcher,
                         1,
                         0,
@@ -931,7 +1150,7 @@ const PlayByPlayScreen = () => {
                         0
                       );
                       description += `Batter ${atBat.oppCurPlayer} đối phương bị strikeout looking`;
-                      endTheAtBat(description, true);
+                      endTheAtBat(description, true, false, newBatting);
                       // handleOut(true, atBat.oppCurPlayer);
                     }
                   }}
@@ -949,9 +1168,10 @@ const PlayByPlayScreen = () => {
                     if (atBat.isRunnerThird) lob++;
 
                     let description = "";
+                    let newBatting = myBatting;
 
                     if (atBat.isOffense === 1) {
-                      updateBatterStat(
+                      newBatting = updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         2,
                         0,
@@ -973,7 +1193,7 @@ const PlayByPlayScreen = () => {
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      updatePitcherStat(
+                      newBatting = updatePitcherStat(
                         pitcher,
                         2,
                         0,
@@ -987,7 +1207,7 @@ const PlayByPlayScreen = () => {
                         0
                       );
                       description += `Batter ${atBat.oppCurPlayer} đối phương bị strikeout swinging`;
-                      endTheAtBat(description, true);
+                      endTheAtBat(description, true, false, newBatting);
                       // handleOut(true, atBat.oppCurPlayer);
                     }
                   }}
@@ -1413,6 +1633,8 @@ const PlayByPlayScreen = () => {
                     setSafeModalVisible(false);
                     setOutcomeType(11);
 
+                    let newBatting = myBatting;
+
                     let player = atBat.currentPlayer;
                     let oppPlayer = atBat.oppCurPlayer;
                     let runner1 = atBat.isRunnerFirst;
@@ -1468,7 +1690,7 @@ const PlayByPlayScreen = () => {
                     }
 
                     if (atBat.isOffense === 1) {
-                      updateBatterStat(
+                      newBatting = updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         11,
                         rbi,
@@ -1498,7 +1720,7 @@ const PlayByPlayScreen = () => {
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      updatePitcherStat(
+                      newBatting = updatePitcherStat(
                         pitcher,
                         11,
                         4 - atBat.ball,
@@ -1526,7 +1748,7 @@ const PlayByPlayScreen = () => {
                         description += `Runner B3 đối phương ghi điểm.`;
                       }
                     }
-                    endTheAtBat(description);
+                    endTheAtBat(description, false, false, newBatting);
                     setTempRunnerFirst(runner1);
                     setTempRunnerSecond(runner2);
                     setTempRunnerThird(runner3);
@@ -1548,6 +1770,25 @@ const PlayByPlayScreen = () => {
                         outcomeType: 11,
                       };
                     });
+                    setAtBatStatus((prev) => {
+                      let newAtBat = {
+                        ...prev.atBat,
+                        currentPlayer: player,
+                        oppCurPlayer: oppPlayer,
+                        isRunnerFirst: runner1,
+                        isRunnerSecond: runner2,
+                        isRunnerThird: runner3,
+                        beforeRunnerFirst: prev.atBat.isRunnerFirst,
+                        beforeRunnerSecond: prev.atBat.isRunnerSecond,
+                        beforeRunnerThird: prev.atBat.isRunnerThird,
+                        teamScore: teamscore,
+                        oppScore: oppScore,
+                        ball: 0,
+                        strike: 0,
+                        outcomeType: 11,
+                      };
+                      return { atBat: newAtBat, myBatting: newBatting };
+                    });
                   }}
                   style={styles.modelButton}
                 >
@@ -1557,6 +1798,7 @@ const PlayByPlayScreen = () => {
                   onPress={() => {
                     setSafeModalVisible(false);
                     setOutcomeType(12);
+                    let newBatting = myBatting;
                     let player = atBat.currentPlayer;
                     let oppPlayer = atBat.oppCurPlayer;
                     let runner1 = atBat.isRunnerFirst;
@@ -1612,7 +1854,7 @@ const PlayByPlayScreen = () => {
                     }
 
                     if (atBat.isOffense === 1) {
-                      updateBatterStat(
+                      newBatting = updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         12,
                         rbi,
@@ -1642,7 +1884,7 @@ const PlayByPlayScreen = () => {
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      updatePitcherStat(
+                      newBatting = updatePitcherStat(
                         pitcher,
                         12,
                         4 - atBat.ball,
@@ -1670,7 +1912,7 @@ const PlayByPlayScreen = () => {
                         description += `Runner B3 đối phương ghi điểm.`;
                       }
                     }
-                    endTheAtBat(description);
+                    endTheAtBat(description, false, false, newBatting);
                     setTempRunnerFirst(runner1);
                     setTempRunnerSecond(runner2);
                     setTempRunnerThird(runner3);
@@ -1693,6 +1935,25 @@ const PlayByPlayScreen = () => {
                         beforeStrike: prev.strike,
                         outcomeType: 12,
                       };
+                    });
+                    setAtBatStatus((prev) => {
+                      let newAtBat = {
+                        ...prev.atBat,
+                        currentPlayer: player,
+                        oppCurPlayer: oppPlayer,
+                        isRunnerFirst: runner1,
+                        isRunnerSecond: runner2,
+                        isRunnerThird: runner3,
+                        beforeRunnerFirst: prev.atBat.isRunnerFirst,
+                        beforeRunnerSecond: prev.atBat.isRunnerSecond,
+                        beforeRunnerThird: prev.atBat.isRunnerThird,
+                        teamScore: teamscore,
+                        oppScore: oppScore,
+                        ball: 0,
+                        strike: 0,
+                        outcomeType: 12,
+                      };
+                      return { atBat: newAtBat, myBatting: newBatting };
                     });
                   }}
                   style={styles.modelButton}
@@ -1860,6 +2121,7 @@ const PlayByPlayScreen = () => {
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => {
+                    let newBatting = myBatting;
                     let teamscore = atBat.teamScore;
                     let oppScore = atBat.oppScore;
                     let rbi = 1;
@@ -1911,7 +2173,7 @@ const PlayByPlayScreen = () => {
                     setSafeModalVisible(false);
                     setOutcomeType(16);
                     if (atBat.isOffense === 1) {
-                      updateBatterStat(
+                      newBatting = updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         16,
                         rbi,
@@ -1943,7 +2205,7 @@ const PlayByPlayScreen = () => {
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      updatePitcherStat(
+                      newBatting = updatePitcherStat(
                         pitcher,
                         16,
                         0,
@@ -1972,7 +2234,7 @@ const PlayByPlayScreen = () => {
                       if (atBat.isRunnerThird)
                         description += `Runner B3 đối phương ghi điểm. `;
                     }
-                    endTheAtBat(description);
+                    endTheAtBat(description, false, false, newBatting);
                     setAtBat((prev) => {
                       return {
                         ...prev,
@@ -1990,6 +2252,25 @@ const PlayByPlayScreen = () => {
                         oppCurPlayer: oppPlayer,
                         outcomeType: 16,
                       };
+                    });
+                    setAtBatStatus((prev) => {
+                      let newAtBat = {
+                        ...prev.atBat,
+                        currentPlayer: player,
+                        oppCurPlayer: oppPlayer,
+                        isRunnerFirst: null,
+                        isRunnerSecond: null,
+                        isRunnerThird: null,
+                        beforeRunnerFirst: prev.atBat.isRunnerFirst,
+                        beforeRunnerSecond: prev.atBat.isRunnerSecond,
+                        beforeRunnerThird: prev.atBat.isRunnerThird,
+                        teamScore: teamscore,
+                        oppScore: oppScore,
+                        ball: 0,
+                        strike: 0,
+                        outcomeType: 16,
+                      };
+                      return { atBat: newAtBat, myBatting: newBatting };
                     });
                   }}
                   style={styles.modelButton}
@@ -2053,6 +2334,7 @@ const PlayByPlayScreen = () => {
                     let earnRun = 0;
                     let run = 0;
                     let description = "";
+                    let newBatting = myBatting;
 
                     if (atBat.isOffense === 1) {
                       if (player === 9) player = 1;
@@ -2098,7 +2380,7 @@ const PlayByPlayScreen = () => {
                     setSafeModalVisible(false);
                     setOutcomeType(19);
                     if (atBat.isOffense === 1) {
-                      updateBatterStat(
+                      newBatting = updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         19,
                         rbi,
@@ -2128,7 +2410,7 @@ const PlayByPlayScreen = () => {
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      updatePitcherStat(
+                      newBatting = updatePitcherStat(
                         pitcher,
                         12,
                         1,
@@ -2156,7 +2438,7 @@ const PlayByPlayScreen = () => {
                         description += `Runner B3 đối phương ghi điểm.`;
                       }
                     }
-                    endTheAtBat(description);
+                    endTheAtBat(description, false, false, newBatting);
                     setTempRunnerFirst(runner1);
                     setTempRunnerSecond(runner2);
                     setTempRunnerThird(runner3);
@@ -2177,6 +2459,25 @@ const PlayByPlayScreen = () => {
                         strike: 0,
                         outcomeType: 19,
                       };
+                    });
+                    setAtBatStatus((prev) => {
+                      let newAtBat = {
+                        ...prev.atBat,
+                        currentPlayer: player,
+                        oppCurPlayer: oppPlayer,
+                        isRunnerFirst: runner1,
+                        isRunnerSecond: runner2,
+                        isRunnerThird: runner3,
+                        beforeRunnerFirst: prev.atBat.isRunnerFirst,
+                        beforeRunnerSecond: prev.atBat.isRunnerSecond,
+                        beforeRunnerThird: prev.atBat.isRunnerThird,
+                        teamScore: teamscore,
+                        oppScore: oppScore,
+                        ball: 0,
+                        strike: 0,
+                        outcomeType: 19,
+                      };
+                      return { atBat: newAtBat, myBatting: newBatting };
                     });
                   }}
                   style={styles.modelButton}
@@ -2247,6 +2548,7 @@ const PlayByPlayScreen = () => {
                     let earnRun = 0;
                     let run = 0;
                     let description = "";
+                    let newBatting = myBatting;
 
                     if (atBat.isOffense === 1) {
                       if (player === 9) player = 1;
@@ -2292,7 +2594,7 @@ const PlayByPlayScreen = () => {
                     setSafeModalVisible(false);
                     setOutcomeType(21);
                     if (atBat.isOffense === 1) {
-                      updateBatterStat(
+                      newBatting = updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         21,
                         rbi,
@@ -2322,7 +2624,7 @@ const PlayByPlayScreen = () => {
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      updatePitcherStat(
+                      newBatting = updatePitcherStat(
                         pitcher,
                         12,
                         0,
@@ -2350,7 +2652,7 @@ const PlayByPlayScreen = () => {
                         description += `Runner B3 đối phương ghi điểm.`;
                       }
                     }
-                    endTheAtBat(description);
+                    endTheAtBat(description, false, false, newBatting);
                     setTempRunnerFirst(runner1);
                     setTempRunnerSecond(runner2);
                     setTempRunnerThird(runner3);
@@ -2370,6 +2672,25 @@ const PlayByPlayScreen = () => {
                         strike: 0,
                         outcomeType: 21,
                       };
+                    });
+                    setAtBatStatus((prev) => {
+                      let newAtBat = {
+                        ...prev.atBat,
+                        currentPlayer: player,
+                        oppCurPlayer: oppPlayer,
+                        isRunnerFirst: runner1,
+                        isRunnerSecond: runner2,
+                        isRunnerThird: runner3,
+                        beforeRunnerFirst: prev.atBat.isRunnerFirst,
+                        beforeRunnerSecond: prev.atBat.isRunnerSecond,
+                        beforeRunnerThird: prev.atBat.isRunnerThird,
+                        teamScore: teamscore,
+                        oppScore: oppScore,
+                        ball: 0,
+                        strike: 0,
+                        outcomeType: 21,
+                      };
+                      return { atBat: newAtBat, myBatting: myBatting };
                     });
                   }}
                   style={styles.modelButton}
@@ -2400,6 +2721,7 @@ const PlayByPlayScreen = () => {
                 <TouchableOpacity
                   style={{ ...styles.modelButton, marginBottom: 4 }}
                   onPress={() => {
+                    let newBatting = myBatting;
                     setBatterRunnerVisible(false);
                     let des = description;
                     if (atBat.isOffense == 1 && outcomeType > 2) {
@@ -2408,7 +2730,7 @@ const PlayByPlayScreen = () => {
                           ? [myBatting[atBat.currentPlayer - 1], "error"]
                           : myBatting[atBat.currentPlayer - 1]
                       );
-                      updateBatterStat(
+                      newBatting = updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         outcomeType < 13 || outcomeType > 15
                           ? outcomeType
@@ -2452,7 +2774,31 @@ const PlayByPlayScreen = () => {
                       // );
                       des += `Batter ${atBat.oppCurPlayer} đối phương lên chốt 1.`;
                     }
-                    endTheAtBat(des);
+                    endTheAtBat(des, false, false, newBatting);
+                    setAtBatStatus((prev) => {
+                      let newAtBat = {
+                        ...prev.atBat,
+                        isRunnerFirst:
+                          atBat.isOffense == 1
+                            ? myBatting[atBat.currentPlayer - 1]
+                            : outcomeType === 18
+                            ? [atBat.oppCurPlayer]
+                            : atBat.oppCurPlayer,
+                        currentPlayer:
+                          atBat.isOffense == 1
+                            ? atBat.currentPlayer >= 9
+                              ? 1
+                              : atBat.currentPlayer + 1
+                            : atBat.currentPlayer,
+                        oppCurPlayer:
+                          atBat.isOffense == 0
+                            ? atBat.oppCurPlayer >= 9
+                              ? 1
+                              : atBat.oppCurPlayer + 1
+                            : atBat.oppCurPlayer,
+                      };
+                      return { atBat: newAtBat, myBatting: newBatting };
+                    });
                     setAtBat((prev) => {
                       return {
                         ...prev,
@@ -2484,6 +2830,7 @@ const PlayByPlayScreen = () => {
                   style={{ ...styles.modelButton, marginBottom: 4 }}
                   onPress={() => {
                     let des = description;
+                    let newBatting = myBatting;
                     setBatterRunnerVisible(false);
                     if (atBat.isOffense == 1) {
                       setTempRunnerSecond(
@@ -2491,7 +2838,7 @@ const PlayByPlayScreen = () => {
                           ? [myBatting[atBat.currentPlayer - 1], "error"]
                           : myBatting[atBat.currentPlayer - 1]
                       );
-                      updateBatterStat(
+                      newBatting = updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         outcomeType < 13 || outcomeType > 15
                           ? outcomeType
@@ -2535,7 +2882,31 @@ const PlayByPlayScreen = () => {
                       // );
                       des += `Batter ${atBat.oppCurPlayer} đối phương lên chốt 2.`;
                     }
-                    endTheAtBat(des);
+                    endTheAtBat(des, false, false, newBatting);
+                    setAtBatStatus((prev) => {
+                      let newAtBat = {
+                        ...prev.atBat,
+                        isRunnerSecond:
+                          atBat.isOffense == 1
+                            ? myBatting[atBat.currentPlayer - 1]
+                            : outcomeType === 18
+                            ? [atBat.oppCurPlayer]
+                            : atBat.oppCurPlayer,
+                        currentPlayer:
+                          atBat.isOffense == 1
+                            ? atBat.currentPlayer >= 9
+                              ? 1
+                              : atBat.currentPlayer + 1
+                            : atBat.currentPlayer,
+                        oppCurPlayer:
+                          atBat.isOffense == 0
+                            ? atBat.oppCurPlayer >= 9
+                              ? 1
+                              : atBat.oppCurPlayer + 1
+                            : atBat.oppCurPlayer,
+                      };
+                      return { atBat: newAtBat, myBatting: newBatting };
+                    });
                     setAtBat((prev) => {
                       return {
                         ...prev,
@@ -2567,6 +2938,7 @@ const PlayByPlayScreen = () => {
                   style={styles.modelButton}
                   onPress={() => {
                     let des = description;
+                    let newBatting = myBatting;
                     setBatterRunnerVisible(false);
                     if (atBat.isOffense == 1) {
                       setTempRunnerThird(
@@ -2574,7 +2946,7 @@ const PlayByPlayScreen = () => {
                           ? [myBatting[atBat.currentPlayer - 1], "error"]
                           : myBatting[atBat.currentPlayer - 1]
                       );
-                      updateBatterStat(
+                      newBatting = updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         outcomeType < 13 || outcomeType > 15
                           ? outcomeType
@@ -2618,7 +2990,31 @@ const PlayByPlayScreen = () => {
                       // );
                       des += `Batter ${atBat.oppCurPlayer} đối phương lên chốt 3.`;
                     }
-                    endTheAtBat(des);
+                    endTheAtBat(des, false, false, newBatting);
+                    setAtBatStatus((prev) => {
+                      let newAtBat = {
+                        ...prev.atBat,
+                        isRunnerThird:
+                          atBat.isOffense == 1
+                            ? myBatting[atBat.currentPlayer - 1]
+                            : outcomeType == 18
+                            ? [atBat.oppCurPlayer]
+                            : atBat.oppCurPlayer,
+                        currentPlayer:
+                          atBat.isOffense == 1
+                            ? atBat.currentPlayer >= 9
+                              ? 1
+                              : atBat.currentPlayer + 1
+                            : atBat.currentPlayer,
+                        oppCurPlayer:
+                          atBat.isOffense == 0
+                            ? atBat.oppCurPlayer >= 9
+                              ? 1
+                              : atBat.oppCurPlayer + 1
+                            : atBat.oppCurPlayer,
+                      };
+                      return { atBat: newAtBat, myBatting: newBatting };
+                    });
                     setAtBat((prev) => {
                       return {
                         ...prev,
@@ -2651,8 +3047,9 @@ const PlayByPlayScreen = () => {
                   onPress={() => {
                     let des = description;
                     setBatterRunnerVisible(false);
+                    let newBatting = myBatting;
                     if (atBat.isOffense == 1) {
-                      updateBatterStat(
+                      newBatting = updateBatterStat(
                         myBatting[atBat.currentPlayer - 1],
                         outcomeType,
                         1,
@@ -2672,7 +3069,7 @@ const PlayByPlayScreen = () => {
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      updatePitcherStat(
+                      newBatting = updatePitcherStat(
                         pitcher,
                         outcomeType,
                         0,
@@ -2687,7 +3084,25 @@ const PlayByPlayScreen = () => {
                       );
                       des += `Batter ${atBat.oppCurPlayer} ghi điểm.`;
                     }
-                    endTheAtBat(des, false, true);
+                    endTheAtBat(des, false, true, newBatting);
+                    setAtBatStatus((prev) => {
+                      let newAtBat = {
+                        ...prev.atBat,
+                        currentPlayer:
+                          atBat.isOffense == 1
+                            ? atBat.currentPlayer >= 9
+                              ? 1
+                              : atBat.currentPlayer + 1
+                            : atBat.currentPlayer,
+                        oppCurPlayer:
+                          atBat.isOffense == 0
+                            ? atBat.oppCurPlayer >= 9
+                              ? 1
+                              : atBat.oppCurPlayer + 1
+                            : atBat.oppCurPlayer,
+                      };
+                      return { atBat: newAtBat, myBatting: newBatting };
+                    });
                     setAtBat((prev) => {
                       return {
                         ...prev,
@@ -2715,6 +3130,7 @@ const PlayByPlayScreen = () => {
                   style={{ ...styles.modelButton, marginBottom: 4 }}
                   onPress={() => {
                     let des = description;
+                    let newBatting = myBatting;
                     setBatterRunnerVisible(false);
                     console.log(outcomeType);
                     if (atBat.isOffense === 1) {
@@ -2733,7 +3149,7 @@ const PlayByPlayScreen = () => {
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      updatePitcherStat(
+                      newBatting = updatePitcherStat(
                         pitcher,
                         null,
                         0,
@@ -2748,7 +3164,7 @@ const PlayByPlayScreen = () => {
                       );
                       des += `Batter ${atBat.oppCurPlayer} out ở chốt 1.`;
                       handleOut(true, atBat.oppCurPlayer);
-                      endTheAtBat(des, true);
+                      endTheAtBat(des, true, false, newBatting);
                     }
                   }}
                 >
@@ -2758,6 +3174,7 @@ const PlayByPlayScreen = () => {
                   style={{ ...styles.modelButton, marginBottom: 4 }}
                   onPress={() => {
                     let des = description;
+                    let newBatting = myBatting;
                     setBatterRunnerVisible(false);
                     if (atBat.isOffense === 1) {
                       des += `#${
@@ -2775,7 +3192,7 @@ const PlayByPlayScreen = () => {
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      updatePitcherStat(
+                      newBatting = updatePitcherStat(
                         pitcher,
                         null,
                         0,
@@ -2790,7 +3207,7 @@ const PlayByPlayScreen = () => {
                       );
                       des += `Batter ${atBat.oppCurPlayer} bị tag out ở chốt 2.`;
                       handleOut(true, atBat.oppCurPlayer);
-                      endTheAtBat(des, true);
+                      endTheAtBat(des, true, false, newBatting);
                     }
                   }}
                 >
@@ -2800,6 +3217,7 @@ const PlayByPlayScreen = () => {
                   style={{ ...styles.modelButton, marginBottom: 4 }}
                   onPress={() => {
                     let des = description;
+                    let newBatting = myBatting;
                     setBatterRunnerVisible(false);
                     if (atBat.isOffense === 1) {
                       des += `#${
@@ -2817,7 +3235,7 @@ const PlayByPlayScreen = () => {
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      updatePitcherStat(
+                      newBatting = updatePitcherStat(
                         pitcher,
                         null,
                         0,
@@ -2832,7 +3250,7 @@ const PlayByPlayScreen = () => {
                       );
                       des += `Batter ${atBat.oppCurPlayer} bị tag out ở chốt 3.`;
                       handleOut(true, atBat.oppCurPlayer);
-                      endTheAtBat(des, true);
+                      endTheAtBat(des, true, false, newBatting);
                     }
                   }}
                 >
@@ -2842,6 +3260,7 @@ const PlayByPlayScreen = () => {
                   style={styles.modelButton}
                   onPress={() => {
                     let des = description;
+                    let newBatting = myBatting;
                     setBatterRunnerVisible(false);
                     if (atBat.isOffense === 1) {
                       des += `#${
@@ -2859,7 +3278,7 @@ const PlayByPlayScreen = () => {
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      updatePitcherStat(
+                      newBatting = updatePitcherStat(
                         pitcher,
                         null,
                         0,
@@ -2875,7 +3294,7 @@ const PlayByPlayScreen = () => {
                       des += `Batter ${atBat.oppCurPlayer} bị tag out ở home.`;
 
                       handleOut(true, atBat.oppCurPlayer);
-                      endTheAtBat(des, true);
+                      endTheAtBat(des, true, false, newBatting);
                     }
                   }}
                 >
@@ -2885,6 +3304,7 @@ const PlayByPlayScreen = () => {
                   style={styles.modelButton}
                   onPress={() => {
                     let des = description;
+                    let newBatting = myBatting;
                     setBatterRunnerVisible(false);
                     if (atBat.isOffense === 1) {
                       des += `#${
@@ -2901,7 +3321,7 @@ const PlayByPlayScreen = () => {
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      updatePitcherStat(
+                      newBatting = updatePitcherStat(
                         pitcher,
                         null,
                         0,
@@ -2916,7 +3336,7 @@ const PlayByPlayScreen = () => {
                       );
                       des += `Batter ${atBat.oppCurPlayer} out vì cản trở fielder.`;
                       handleOut(true, atBat.oppCurPlayer);
-                      endTheAtBat(des, true);
+                      endTheAtBat(des, true, false, newBatting);
                     }
                   }}
                 >
@@ -3805,10 +4225,11 @@ const PlayByPlayScreen = () => {
                     setFirstRunnerStatusVisible(false);
                     setFirstRunnerStatusVisible(false);
                     let des = "";
+                    let newBatting = myBatting;
                     if (atBat.isRunnerFirst && !atBat.isRunnerSecond) {
                       if (atBat.isOffense === 1) {
                         des = `#${atBat.isRunnerFirst.player.jerseyNumber}.${atBat.isRunnerFirst.player.firstName} ${atBat.isRunnerFirst.player.lastName} cướp chốt 2 thành công`;
-                        updateBatterStat(
+                        newBatting = updateBatterStat(
                           atBat.isRunnerFirst,
                           null,
                           0,
@@ -3832,10 +4253,35 @@ const PlayByPlayScreen = () => {
                         ...prev,
                         {
                           ...atBat,
+                          isLastState: false,
                           id: null,
                           description: des,
                         },
                       ]);
+                      setFutureState([]);
+                      setRecoilAtBatStatus((prev) => {
+                        let newArray = [...prev];
+                        return [
+                          ...newArray,
+                          { atBat: atBat, myBatting: newBatting },
+                        ];
+                      });
+                      setPastState(() => {
+                        if (Array.isArray(pastState))
+                          return [...pastState, atBatStatus];
+                        else return [];
+                      });
+                      setAtBatStatus((prev) => {
+                        return {
+                          atBat: {
+                            ...prev.atBat,
+                            isRunnerSecond: prev.atBat.isRunnerFirst,
+                            beforeRunnerFirst: prev.atBat.isRunnerFirst,
+                            isRunnerFirst: null,
+                          },
+                          myBatting: newBatting,
+                        };
+                      });
                       setAtBat((prev) => {
                         setTempRunnerSecond(prev.isRunnerFirst);
                         setTempRunnerFirst(null);
@@ -3896,10 +4342,55 @@ const PlayByPlayScreen = () => {
                         ...prev,
                         {
                           ...atBat,
+                          isLastState: false,
                           id: null,
                           description: des,
                         },
                       ]);
+                      setFutureState([]);
+                      setRecoilAtBatStatus((prev) => {
+                        let newArray = [...prev];
+                        return [
+                          ...newArray,
+                          { atBat: atBat, myBatting: myBatting },
+                        ];
+                      });
+                      setPastState(() => {
+                        if (Array.isArray(pastState))
+                          return [...pastState, atBatStatus];
+                        else return [];
+                      });
+                      setAtBatStatus((prev) => {
+                        let inning = prev.atBat.inning;
+                        if (!prev.atBat.isTop && prev.atBat.out + 1 > 2)
+                          inning++;
+                        let newAtBat = {
+                          ...prev,
+                          atBat,
+                          isRunnerFirst: null,
+                          isRunnerSecond:
+                            prev.atBat.out + 1 > 2
+                              ? null
+                              : prev.atBat.isRunnerSecond,
+                          isRunnerThird:
+                            prev.atBat.out + 1 > 2
+                              ? null
+                              : prev.atBat.isRunnerThird,
+                          out: prev.atBat.out + 1 > 2 ? 0 : prev.atBat.out + 1,
+                          isOffense:
+                            prev.atBat.out + 1 > 2
+                              ? prev.atBat.isOffense == 1
+                                ? 0
+                                : 1
+                              : prev.atBat.isOffense,
+                          isTop:
+                            prev.atBat.out + 1 > 2
+                              ? !prev.atBat.isTop
+                              : prev.atBat.isTop,
+                          inning: inning,
+                        };
+                        return { atBat: newAtBat, myBatting: myBatting };
+                      });
                       setAtBat((prev) => {
                         setTempRunnerFirst(null);
                         if (prev.out + 1 > 2) {
@@ -3949,6 +4440,7 @@ const PlayByPlayScreen = () => {
                   onPress={() => {
                     setFirstRunnerStatusVisible(false);
                     let des = "";
+                    let newBatting = myBatting;
                     if (atBat.isRunnerFirst && !atBat.isRunnerSecond) {
                       if (atBat.isOffense === 1) {
                         des = `#${atBat.isRunnerFirst.player.jerseyNumber}.${atBat.isRunnerFirst.player.firstName} ${atBat.isRunnerFirst.player.lastName} lên chốt 2 do pitcher balk`;
@@ -3958,7 +4450,7 @@ const PlayByPlayScreen = () => {
                         let pitcher = reversedBatting.find(
                           (p) => p.position === 1
                         );
-                        updatePitcherStat(
+                        newBatting = updatePitcherStat(
                           pitcher,
                           null,
                           0,
@@ -3984,10 +4476,35 @@ const PlayByPlayScreen = () => {
                         ...prev,
                         {
                           ...atBat,
+                          isLastState: false,
                           id: null,
                           description: des,
                         },
                       ]);
+                      setFutureState([]);
+                      setRecoilAtBatStatus((prev) => {
+                        let newArray = [...prev];
+                        return [
+                          ...newArray,
+                          { atBat: atBat, myBatting: newBatting },
+                        ];
+                      });
+                      setPastState(() => {
+                        if (Array.isArray(pastState))
+                          return [...pastState, atBatStatus];
+                        else return [];
+                      });
+                      setAtBatStatus((prev) => {
+                        return {
+                          atBat: {
+                            ...prev.atBat,
+                            isRunnerSecond: prev.atBat.isRunnerFirst,
+                            beforeRunnerFirst: prev.atBat.isRunnerFirst,
+                            isRunnerFirst: null,
+                          },
+                          myBatting: newBatting,
+                        };
+                      });
                       setAtBat((prev) => {
                         setTempRunnerSecond(prev.isRunnerFirst);
                         setTempRunnerFirst(null);
@@ -4033,6 +4550,7 @@ const PlayByPlayScreen = () => {
                     if (atBat.isRunnerFirst) {
                       setFirstRunnerStatusVisible(false);
                       let des = "";
+                      let newBatting = myBatting;
                       if (atBat.isOffense === 1) {
                         des = `#${atBat.isRunnerFirst.player.jerseyNumber}.${atBat.isRunnerFirst.player.firstName} ${atBat.isRunnerFirst.player.lastName} out vì bị pickoff ở chốt 1`;
                       } else {
@@ -4041,7 +4559,7 @@ const PlayByPlayScreen = () => {
                         let pitcher = reversedBatting.find(
                           (p) => p.position === 1
                         );
-                        updatePitcherStat(
+                        newBatting = updatePitcherStat(
                           pitcher,
                           null,
                           0,
@@ -4068,10 +4586,55 @@ const PlayByPlayScreen = () => {
                         ...prev,
                         {
                           ...atBat,
+                          isLastState: false,
                           id: null,
                           description: des,
                         },
                       ]);
+                      setFutureState([]);
+                      setRecoilAtBatStatus((prev) => {
+                        let newArray = [...prev];
+                        return [
+                          ...newArray,
+                          { atBat: atBat, myBatting: newBatting },
+                        ];
+                      });
+                      setPastState(() => {
+                        if (Array.isArray(pastState))
+                          return [...pastState, atBatStatus];
+                        else return [];
+                      });
+                      setAtBatStatus((prev) => {
+                        let inning = prev.atBat.inning;
+                        if (!prev.atBat.isTop && prev.atBat.out + 1 > 2)
+                          inning++;
+                        let newAtBat = {
+                          ...prev,
+                          atBat,
+                          isRunnerFirst: null,
+                          isRunnerSecond:
+                            prev.atBat.out + 1 > 2
+                              ? null
+                              : prev.atBat.isRunnerSecond,
+                          isRunnerThird:
+                            prev.atBat.out + 1 > 2
+                              ? null
+                              : prev.atBat.isRunnerThird,
+                          out: prev.atBat.out + 1 > 2 ? 0 : prev.atBat.out + 1,
+                          isOffense:
+                            prev.atBat.out + 1 > 2
+                              ? prev.atBat.isOffense == 1
+                                ? 0
+                                : 1
+                              : prev.atBat.isOffense,
+                          isTop:
+                            prev.atBat.out + 1 > 2
+                              ? !prev.atBat.isTop
+                              : prev.atBat.isTop,
+                          inning: inning,
+                        };
+                        return { atBat: newAtBat, myBatting: newBatting };
+                      });
 
                       setAtBat((prev) => {
                         setTempRunnerFirst(null);
@@ -4145,10 +4708,11 @@ const PlayByPlayScreen = () => {
                     setSecondRunnerStatusVisible(false);
                     setSecondRunnerStatusVisible(false);
                     let des = "";
+                    let newBatting = myBatting;
                     if (atBat.isRunnerSecond && !atBat.isRunnerThird) {
                       if (atBat.isOffense === 1) {
                         des = `#${atBat.isRunnerSecond.player.jerseyNumber}.${atBat.isRunnerSecond.player.firstName} ${atBat.isRunnerSecond.player.lastName} cướp chốt 3 thành công`;
-                        updateBatterStat(
+                        newBatting = updateBatterStat(
                           atBat.isRunnerFirst,
                           null,
                           0,
@@ -4172,10 +4736,36 @@ const PlayByPlayScreen = () => {
                         ...prev,
                         {
                           ...atBat,
+                          isLastState: false,
                           id: null,
                           description: des,
                         },
                       ]);
+                      setFutureState([]);
+                      setRecoilAtBatStatus((prev) => {
+                        let newArray = [...prev];
+                        return [
+                          ...newArray,
+                          { atBat: atBat, myBatting: newBatting },
+                        ];
+                      });
+                      setPastState(() => {
+                        if (Array.isArray(pastState))
+                          return [...pastState, atBatStatus];
+                        else return [];
+                      });
+                      setAtBatStatus((prev) => {
+                        return {
+                          atBat: {
+                            ...prev.atBat,
+                            ...prev,
+                            isRunnerThird: prev.atBat.isRunnerSecond,
+                            beforeRunnerSecond: prev.atBat.isRunnerSecond,
+                            isRunnerSecond: null,
+                          },
+                          myBatting: newBatting,
+                        };
+                      });
                       setAtBat((prev) => {
                         setTempRunnerThird(prev.isRunnerSecond);
                         setTempRunnerSecond(null);
@@ -4236,10 +4826,54 @@ const PlayByPlayScreen = () => {
                         ...prev,
                         {
                           ...atBat,
+                          isLastState: false,
                           id: null,
                           description: des,
                         },
                       ]);
+                      setFutureState([]);
+                      setRecoilAtBatStatus((prev) => {
+                        let newArray = [...prev];
+                        return [
+                          ...newArray,
+                          { atBat: atBat, myBatting: myBatting },
+                        ];
+                      });
+                      setPastState(() => {
+                        if (Array.isArray(pastState))
+                          return [...pastState, atBatStatus];
+                        else return [];
+                      });
+                      setAtBatStatus((prev) => {
+                        let inning = prev.atBat.inning;
+                        if (!prev.atBat.isTop && prev.atBat.out + 1 > 2)
+                          inning++;
+                        let newAtBat = {
+                          ...prev.atBat,
+                          isRunnerSecond: null,
+                          isRunnerFirst:
+                            prev.atBat.out + 1 > 2
+                              ? null
+                              : prev.atBat.isRunnerFirst,
+                          isRunnerThird:
+                            prev.atBat.out + 1 > 2
+                              ? null
+                              : prev.atBat.isRunnerThird,
+                          out: prev.atBat.out + 1 > 2 ? 0 : prev.atBat.out + 1,
+                          isOffense:
+                            prev.atBat.out + 1 > 2
+                              ? prev.atBat.isOffense == 1
+                                ? 0
+                                : 1
+                              : prev.atBat.isOffense,
+                          isTop:
+                            prev.atBat.out + 1 > 2
+                              ? !prev.atBat.isTop
+                              : prev.atBat.isTop,
+                          inning: inning,
+                        };
+                        return { atBat: newAtBat, myBatting: myBatting };
+                      });
                       setAtBat((prev) => {
                         setTempRunnerSecond(null);
                         if (prev.out + 1 > 2) {
@@ -4289,6 +4923,7 @@ const PlayByPlayScreen = () => {
                   onPress={() => {
                     setSecondRunnerStatusVisible(false);
                     let des = "";
+                    let newBatting = myBatting;
                     if (atBat.isRunnerSecond && !atBat.isRunnerThird) {
                       if (atBat.isOffense === 1) {
                         des = `#${atBat.isRunnerSecond.player.jerseyNumber}.${atBat.isRunnerSecond.player.firstName} ${atBat.isRunnerSecond.player.lastName} lên chốt 3 do pitcher balk`;
@@ -4298,7 +4933,7 @@ const PlayByPlayScreen = () => {
                         let pitcher = reversedBatting.find(
                           (p) => p.position === 1
                         );
-                        updatePitcherStat(
+                        newBatting = updatePitcherStat(
                           pitcher,
                           null,
                           0,
@@ -4324,10 +4959,36 @@ const PlayByPlayScreen = () => {
                         ...prev,
                         {
                           ...atBat,
+                          isLastState: false,
                           id: null,
                           description: des,
                         },
                       ]);
+                      setFutureState([]);
+                      setRecoilAtBatStatus((prev) => {
+                        let newArray = [...prev];
+                        return [
+                          ...newArray,
+                          { atBat: atBat, myBatting: newBatting },
+                        ];
+                      });
+                      setPastState(() => {
+                        if (Array.isArray(pastState))
+                          return [...pastState, atBatStatus];
+                        else return [];
+                      });
+                      setAtBatStatus((prev) => {
+                        return {
+                          atBat: {
+                            ...prev.atBat,
+                            ...prev,
+                            isRunnerThird: prev.atBat.isRunnerSecond,
+                            beforeRunnerSecond: prev.atBat.isRunnerSecond,
+                            isRunnerSecond: null,
+                          },
+                          myBatting: newBatting,
+                        };
+                      });
                       setAtBat((prev) => {
                         setTempRunnerThird(prev.isRunnerSecond);
                         setTempRunnerSecond(null);
@@ -4373,6 +5034,7 @@ const PlayByPlayScreen = () => {
                     if (atBat.isRunnerSecond) {
                       setSecondRunnerStatusVisible(false);
                       let des = "";
+                      let newBatting = myBatting;
                       if (atBat.isOffense === 1) {
                         des = `#${atBat.isRunnerSecond.player.jerseyNumber}.${atBat.isRunnerSecond.player.firstName} ${atBat.isRunnerSecond.player.lastName} out vì bị pickoff ở chốt 2`;
                       } else {
@@ -4381,7 +5043,7 @@ const PlayByPlayScreen = () => {
                         let pitcher = reversedBatting.find(
                           (p) => p.position === 1
                         );
-                        updatePitcherStat(
+                        newBatting = updatePitcherStat(
                           pitcher,
                           null,
                           0,
@@ -4408,10 +5070,54 @@ const PlayByPlayScreen = () => {
                         ...prev,
                         {
                           ...atBat,
+                          isLastState: false,
                           id: null,
                           description: des,
                         },
                       ]);
+                      setFutureState([]);
+                      setRecoilAtBatStatus((prev) => {
+                        let newArray = [...prev];
+                        return [
+                          ...newArray,
+                          { atBat: atBat, myBatting: newBatting },
+                        ];
+                      });
+                      setPastState(() => {
+                        if (Array.isArray(pastState))
+                          return [...pastState, atBatStatus];
+                        else return [];
+                      });
+                      setAtBatStatus((prev) => {
+                        let inning = prev.atBat.inning;
+                        if (!prev.atBat.isTop && prev.atBat.out + 1 > 2)
+                          inning++;
+                        let newAtBat = {
+                          ...prev.atBat,
+                          isRunnerSecond: null,
+                          isRunnerFirst:
+                            prev.atBat.out + 1 > 2
+                              ? null
+                              : prev.atBat.isRunnerFirst,
+                          isRunnerThird:
+                            prev.atBat.out + 1 > 2
+                              ? null
+                              : prev.atBat.isRunnerThird,
+                          out: prev.atBat.out + 1 > 2 ? 0 : prev.atBat.out + 1,
+                          isOffense:
+                            prev.atBat.out + 1 > 2
+                              ? prev.atBat.isOffense == 1
+                                ? 0
+                                : 1
+                              : prev.atBat.isOffense,
+                          isTop:
+                            prev.atBat.out + 1 > 2
+                              ? !prev.atBat.isTop
+                              : prev.atBat.isTop,
+                          inning: inning,
+                        };
+                        return { atBat: newAtBat, myBatting: newBatting };
+                      });
 
                       setAtBat((prev) => {
                         setTempRunnerSecond(null);
@@ -4485,10 +5191,11 @@ const PlayByPlayScreen = () => {
                     setThirdRunnerStatusVisible(false);
                     setThirdRunnerStatusVisible(false);
                     let des = "";
+                    let newBatting = myBatting;
                     if (atBat.isRunnerThird) {
                       if (atBat.isOffense === 1) {
                         des = `#${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} cướp home thành công. #${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} ghi điểm`;
-                        updateBatterStat(
+                        newBatting = updateBatterStat(
                           atBat.isRunnerThird,
                           null,
                           0,
@@ -4504,7 +5211,7 @@ const PlayByPlayScreen = () => {
                         let pitcher = reversedBatting.find(
                           (p) => p.position === 1
                         );
-                        updatePitcherStat(
+                        newBatting = updatePitcherStat(
                           pitcher,
                           null,
                           0,
@@ -4530,10 +5237,42 @@ const PlayByPlayScreen = () => {
                         ...prev,
                         {
                           ...atBat,
+                          isLastState: false,
                           id: null,
                           description: des,
                         },
                       ]);
+                      setFutureState([]);
+                      setRecoilAtBatStatus((prev) => {
+                        let newArray = [...prev];
+                        return [
+                          ...newArray,
+                          { atBat: atBat, myBatting: newBatting },
+                        ];
+                      });
+                      setPastState(() => {
+                        if (Array.isArray(pastState))
+                          return [...pastState, atBatStatus];
+                        else return [];
+                      });
+                      setAtBatStatus((prev) => {
+                        return {
+                          atBat: {
+                            ...prev.atBat,
+                            isRunnerThird: null,
+                            beforeRunnerThird: prev.atBat.isRunnerThird,
+                            teamScore:
+                              prev.atBat.isOffense === 1
+                                ? prev.atBat.teamScore + 1
+                                : prev.atBat.teamScore,
+                            oppScore:
+                              prev.atBat.isOffense === 0
+                                ? prev.atBat.oppScore + 1
+                                : prev.atBat.oppScore,
+                          },
+                          myBatting: newBatting,
+                        };
+                      });
                       setAtBat((prev) => {
                         setTempRunnerThird(null);
                         return {
@@ -4589,10 +5328,55 @@ const PlayByPlayScreen = () => {
                         ...prev,
                         {
                           ...atBat,
+                          isLastState: false,
                           id: null,
                           description: des,
                         },
                       ]);
+                      setFutureState([]);
+                      setRecoilAtBatStatus((prev) => {
+                        let newArray = [...prev];
+                        return [
+                          ...newArray,
+                          { atBat: atBat, myBatting: myBatting },
+                        ];
+                      });
+                      setPastState(() => {
+                        if (Array.isArray(pastState))
+                          return [...pastState, atBatStatus];
+                        else return [];
+                      });
+                      setAtBatStatus((prev) => {
+                        let inning = prev.atBat.inning;
+                        if (!prev.atBat.isTop && prev.atBat.out + 1 > 2)
+                          inning++;
+                        let newAtBat = {
+                          ...prev.atBat,
+                          isRunnerThird: null,
+                          beforeRunnerSecond: prev.atBat.isRunnerSecond,
+                          isRunnerFirst:
+                            prev.atBat.out + 1 > 2
+                              ? null
+                              : prev.atBat.isRunnerFirst,
+                          isRunnerSecond:
+                            prev.atBat.out + 1 > 2
+                              ? null
+                              : prev.atBat.isRunnerThird,
+                          out: prev.atBat.out + 1 > 2 ? 0 : prev.atBat.out + 1,
+                          isOffense:
+                            prev.atBat.out + 1 > 2
+                              ? prev.atBat.isOffense == 1
+                                ? 0
+                                : 1
+                              : prev.atBat.isOffense,
+                          isTop:
+                            prev.atBat.out + 1 > 2
+                              ? !prev.atBat.isTop
+                              : prev.atBat.isTop,
+                          inning: inning,
+                        };
+                        return { atBat: newAtBat, myBatting: myBatting };
+                      });
                       setAtBat((prev) => {
                         setTempRunnerThird(null);
                         if (prev.out + 1 > 2) {
@@ -4644,10 +5428,11 @@ const PlayByPlayScreen = () => {
                   onPress={() => {
                     setThirdRunnerStatusVisible(false);
                     let des = "";
+                    let newBatting = myBatting;
                     if (atBat.isRunnerThird) {
                       if (atBat.isOffense === 1) {
                         des = `#${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} về home do pitcher balk. #${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} ghi điểm`;
-                        updateBatterStat(
+                        newBatting = updateBatterStat(
                           atBat.isRunnerThird,
                           null,
                           0,
@@ -4663,7 +5448,7 @@ const PlayByPlayScreen = () => {
                         let pitcher = reversedBatting.find(
                           (p) => p.position === 1
                         );
-                        updatePitcherStat(
+                        newBatting = updatePitcherStat(
                           pitcher,
                           null,
                           0,
@@ -4689,10 +5474,42 @@ const PlayByPlayScreen = () => {
                         ...prev,
                         {
                           ...atBat,
+                          isLastState: false,
                           id: null,
                           description: des,
                         },
                       ]);
+                      setFutureState([]);
+                      setRecoilAtBatStatus((prev) => {
+                        let newArray = [...prev];
+                        return [
+                          ...newArray,
+                          { atBat: atBat, myBatting: newBatting },
+                        ];
+                      });
+                      setPastState(() => {
+                        if (Array.isArray(pastState))
+                          return [...pastState, atBatStatus];
+                        else return [];
+                      });
+                      setAtBatStatus((prev) => {
+                        return {
+                          atBat: {
+                            ...prev.atBat,
+                            isRunnerThird: null,
+                            beforeRunnerThird: prev.atBat.isRunnerThird,
+                            teamScore:
+                              prev.atBat.isOffense === 1
+                                ? prev.atBat.teamScore + 1
+                                : prev.atBat.teamScore,
+                            oppScore:
+                              prev.atBat.isOffense === 0
+                                ? prev.atBat.oppScore + 1
+                                : prev.atBat.oppScore,
+                          },
+                          myBatting: newBatting,
+                        };
+                      });
                       setAtBat((prev) => {
                         setTempRunnerThird(null);
                         return {
@@ -4731,6 +5548,7 @@ const PlayByPlayScreen = () => {
                     if (atBat.isRunnerThird) {
                       setThirdRunnerStatusVisible(false);
                       let des = "";
+                      let newBatting = myBatting;
                       if (atBat.isOffense === 1) {
                         des = `#${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} out vì bị pickoff ở chốt 3`;
                       } else {
@@ -4739,7 +5557,7 @@ const PlayByPlayScreen = () => {
                         let pitcher = reversedBatting.find(
                           (p) => p.position === 1
                         );
-                        updatePitcherStat(
+                        newBatting = updatePitcherStat(
                           pitcher,
                           null,
                           0,
@@ -4766,10 +5584,55 @@ const PlayByPlayScreen = () => {
                         ...prev,
                         {
                           ...atBat,
+                          isLastState: false,
                           id: null,
                           description: des,
                         },
                       ]);
+                      setFutureState([]);
+                      setRecoilAtBatStatus((prev) => {
+                        let newArray = [...prev];
+                        return [
+                          ...newArray,
+                          { atBat: atBat, myBatting: newBatting },
+                        ];
+                      });
+                      setPastState(() => {
+                        if (Array.isArray(pastState))
+                          return [...pastState, atBatStatus];
+                        else return [];
+                      });
+                      setAtBatStatus((prev) => {
+                        let inning = prev.atBat.inning;
+                        if (!prev.atBat.isTop && prev.atBat.out + 1 > 2)
+                          inning++;
+                        let newAtBat = {
+                          ...prev.atBat,
+                          isRunnerThird: null,
+                          beforeRunnerSecond: prev.atBat.isRunnerSecond,
+                          isRunnerFirst:
+                            prev.atBat.out + 1 > 2
+                              ? null
+                              : prev.atBat.isRunnerFirst,
+                          isRunnerSecond:
+                            prev.atBat.out + 1 > 2
+                              ? null
+                              : prev.atBat.isRunnerThird,
+                          out: prev.atBat.out + 1 > 2 ? 0 : prev.atBat.out + 1,
+                          isOffense:
+                            prev.atBat.out + 1 > 2
+                              ? prev.atBat.isOffense == 1
+                                ? 0
+                                : 1
+                              : prev.atBat.isOffense,
+                          isTop:
+                            prev.atBat.out + 1 > 2
+                              ? !prev.atBat.isTop
+                              : prev.atBat.isTop,
+                          inning: inning,
+                        };
+                        return { atBat: newAtBat, myBatting: newBatting };
+                      });
 
                       setAtBat((prev) => {
                         setTempRunnerThird(null);
@@ -5111,7 +5974,19 @@ const PlayByPlayScreen = () => {
           style={{
             position: "absolute",
             bottom: 50,
+            left: 20,
+            flexDirection: "row",
+          }}
+        >
+          <Button style={styles.button} title="Undo" onPress={() => undo()} />
+          <Button style={styles.button} title="Redo" onPress={() => redo()} />
+        </View>
+        <View
+          style={{
+            position: "absolute",
+            bottom: 50,
             right: 20,
+            flexDirection: "row",
           }}
         >
           <Menu>
@@ -5228,13 +6103,62 @@ const PlayByPlayScreen = () => {
           style={styles.button}
           title="Ball"
           onPress={() => {
+            let newBatting = myBatting;
             if (atBat.ball < 3) {
               if (atBat.isOffense !== 1) {
                 let pitcher = [...myBatting]
                   .reverse()
                   .find((p) => p.position === 1);
-                updatePitcherStat(pitcher, null, 1, 0, 0, 0, 0, 0, 0, 0, 0);
+                newBatting = updatePitcherStat(
+                  pitcher,
+                  null,
+                  1,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                );
               }
+              setFutureState([]);
+              setRecoilAtBatStatus((prev) => {
+                let newArray = [...prev];
+                return [...newArray, { atBat: atBat, myBatting: newBatting }];
+              });
+              setPastState(() => {
+                if (Array.isArray(pastState))
+                  return [...pastState, atBatStatus];
+                else return [];
+              });
+              setAtBatStatus({
+                atBat: { ...atBat, ball: atBat.ball + 1 },
+                myBatting: newBatting,
+              });
+              setAtBatsList((prev) => [
+                ...prev,
+                {
+                  ...atBat,
+                  isLastState: false,
+                  ball: atBat.ball + 1,
+                  isLastState: false,
+                  description: "Ball",
+                  inTheAtBat: true,
+                },
+              ]);
+              setNotSavedAtBats((prev) => [
+                ...prev,
+                {
+                  ...atBat,
+                  isLastState: false,
+                  ball: atBat.ball + 1,
+                  id: null,
+                  description: "Ball",
+                  inTheAtBat: true,
+                },
+              ]);
               setAtBat((prev) => {
                 return { ...prev, ball: prev.ball + 1 };
               });
@@ -5247,13 +6171,61 @@ const PlayByPlayScreen = () => {
           style={styles.button}
           title="Strike"
           onPress={() => {
+            let newBatting = myBatting;
             if (atBat.strike < 2) {
               if (atBat.isOffense !== 1) {
                 let pitcher = [...myBatting]
                   .reverse()
                   .find((p) => p.position === 1);
-                updatePitcherStat(pitcher, null, 0, 1, 0, 0, 0, 0, 0, 0, 0);
+                newBatting = updatePitcherStat(
+                  pitcher,
+                  null,
+                  0,
+                  1,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                );
               }
+              setFutureState([]);
+              setRecoilAtBatStatus((prev) => {
+                let newArray = [...prev];
+                return [...newArray, { atBat: atBat, myBatting: newBatting }];
+              });
+              setPastState(() => {
+                if (Array.isArray(pastState))
+                  return [...pastState, atBatStatus];
+                else return [];
+              });
+              setAtBatStatus({
+                atBat: { ...atBat, strike: atBat.strike + 1 },
+                myBatting: newBatting,
+              });
+              setAtBatsList((prev) => [
+                ...prev,
+                {
+                  ...atBat,
+                  strike: atBat.strike + 1,
+                  isLastState: false,
+                  description: "Strike",
+                  inTheAtBat: true,
+                },
+              ]);
+              setNotSavedAtBats((prev) => [
+                ...prev,
+                {
+                  ...atBat,
+                  isLastState: false,
+                  strike: atBat.strike + 1,
+                  id: null,
+                  description: "Strike",
+                  inTheAtBat: true,
+                },
+              ]);
 
               setAtBat((prev) => {
                 return { ...prev, strike: prev.strike + 1 };
@@ -5267,16 +6239,66 @@ const PlayByPlayScreen = () => {
           style={styles.button}
           title="Foul"
           onPress={() => {
-            if (atBat.strike < 2) {
-              setAtBat((prev) => {
-                return { ...prev, strike: prev.strike + 1 };
-              });
-            }
+            let newBatting = myBatting;
             if (atBat.isOffense !== 1) {
               let pitcher = [...myBatting]
                 .reverse()
                 .find((p) => p.position === 1);
-              updatePitcherStat(pitcher, null, 0, 1, 0, 0, 0, 0, 0, 0, 0);
+              newBatting = updatePitcherStat(
+                pitcher,
+                null,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              );
+            }
+            setAtBatsList((prev) => [
+              ...prev,
+              {
+                ...atBat,
+                strike: atBat.strike < 2 ? atBat.strike + 1 : atBat.strike,
+                isLastState: false,
+                description: "Foul",
+                inTheAtBat: true,
+              },
+            ]);
+            setFutureState([]);
+            setRecoilAtBatStatus((prev) => {
+              let newArray = [...prev];
+              return [...newArray, { atBat: atBat, myBatting: newBatting }];
+            });
+            setPastState(() => {
+              if (Array.isArray(pastState)) return [...pastState, atBatStatus];
+              else return [];
+            });
+            setAtBatStatus({
+              atBat: {
+                ...atBat,
+                strike: atBat.strike < 2 ? atBat.strike + 1 : atBat.strike,
+              },
+              myBatting: newBatting,
+            });
+            setNotSavedAtBats((prev) => [
+              ...prev,
+              {
+                ...atBat,
+                isLastState: false,
+                strike: atBat.strike < 2 ? atBat.strike + 1 : atBat.strike,
+                id: null,
+                description: "Foul",
+                inTheAtBat: true,
+              },
+            ]);
+            if (atBat.strike < 2) {
+              setAtBat((prev) => {
+                return { ...prev, strike: prev.strike + 1 };
+              });
             }
             playSound(3);
             setShowFoul(true);
@@ -5485,7 +6507,7 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: "green",
-    margin: 5,
+    marginHorizontal: 10,
     padding: 10,
     alignItems: "center",
     marginTop: "auto",

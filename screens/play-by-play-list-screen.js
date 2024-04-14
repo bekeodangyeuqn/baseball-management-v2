@@ -11,12 +11,13 @@ const PlayByPlayListScreen = () => {
   const gameid = route.params.gameid;
   const teamName = route.params.teamName;
   const atBats = useRecoilValue(atBatsSelectorByGameId(gameid));
+  console.log(atBats[atBats.length - 1]);
 
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
       <View>
         <FlatList
-          data={atBats.filter((a) => !a.isLastState)}
+          data={atBats.filter((a) => !a.isLastState && !a.inTheAtBat)}
           ListEmptyComponent={<EmptyList />}
           showsVerticalScrollIndicator={false}
           keyExtractor={(item, index) => index}
