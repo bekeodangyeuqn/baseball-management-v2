@@ -20,7 +20,7 @@ const JoinTeamListScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
   const [teams, setTeams] = useRecoilState(teamsState);
-  const fetchTeams = useRecoilValueLoadable(fetchTeamsState);
+  const [page, setPage] = useState(1);
   const [id, setId] = useState(null);
   const route = useRoute();
   const managerId = route.params.managerId;
@@ -79,31 +79,28 @@ const JoinTeamListScreen = () => {
   };
 
   useEffect(() => {
-    const fetchAndSetTeams = async () => {
-      setIsLoading(true);
-      try {
-        if (fetchTeams.state === "hasValue") {
-          setTeams(fetchTeams.contents);
-          console.log("Load game successfully");
-        } else if (fetchTeams.state === "hasError") {
-          throw fetchTeams.contents; // Throw the error to be caught in the catch block
-        }
-      } catch (error) {
-        toast.show(error.message, {
-          type: "danger",
-          placement: "bottom",
-          duration: 4000,
-          offset: 30,
-          animationType: "zoom-in",
-        });
-      } finally {
-        setIsLoading(false);
-        console.log("Load game completed");
-      }
-    };
+    loadMoreTeams(1);
+  }, []);
 
-    fetchAndSetTeams();
-  }, [fetchTeams, setTeams, toast]);
+  const loadMoreTeams = async (p) => {
+    try {
+      setIsLoading(true);
+      const { data } = await axiosInstance.get(`/teams?page=${p}`);
+      setTeams([...teams, ...data]);
+      setPage(page + 1);
+      setIsLoading(false);
+    } catch (error) {
+      setIsLoading(false);
+      toast.show(error.message, {
+        type: "danger",
+        placement: "bottom",
+        duration: 4000,
+        offset: 30,
+        animationType: "zoom-in",
+      });
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Danh sách các đội</Text>
@@ -138,6 +135,8 @@ const JoinTeamListScreen = () => {
           </View>
         )}
         keyExtractor={(item) => item.id}
+        onEndReached={loadMoreTeams(page)}
+        onEndReachedThreshold={0.5}
       />
     </View>
   );

@@ -47,6 +47,7 @@ import BattingStatScreen from "./screens/batting-stat-screen";
 import PitchingStatScreen from "./screens/pitching-stat-screen";
 import PlayByPlayListScreen from "./screens/play-by-play-list-screen";
 import NotificationProvider from "./provider/NotificationProvider";
+import EditPlayerScreen from "./screens/edit-player-screen";
 
 export default function App() {
   const Stack = createStackNavigator();
@@ -186,6 +187,11 @@ export default function App() {
                       name="PlayerProfile"
                       component={PlayerProfileScreen}
                       options={{ title: "Thông tin cầu thủ" }}
+                    />
+                    <Stack.Screen
+                      name="EditPlayerScreen"
+                      component={EditPlayerScreen}
+                      options={{ title: "Cập nhật thông tin cầu thủ" }}
                     />
                     <Stack.Screen
                       name="PlayBall"

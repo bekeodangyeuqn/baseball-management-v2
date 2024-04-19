@@ -105,6 +105,44 @@ const CreateManagerScreen = () => {
       });
     }
   };
+  const fadeAnim = useRef(new Animated.Value(0)).current; // Initial value for opacity: 0
+  const fadeIn = () => {
+    // Will change fadeAnim value to 1
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const fadeOut = () => {
+    // Will change fadeAnim value to 0
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const nextStep = () => {
+    if (step < 8) {
+      fadeOut();
+      setTimeout(() => {
+        setStep(step + 1);
+        fadeIn();
+      }, 500);
+    }
+  };
+
+  const previousStep = () => {
+    if (step > 1) {
+      fadeOut();
+      setTimeout(() => {
+        setStep(step - 1);
+        fadeIn();
+      }, 500);
+    }
+  };
   return (
     <Formik
       initialValues={{
@@ -142,141 +180,217 @@ const CreateManagerScreen = () => {
           }
         };
         return (
-          <View style={styles.container}>
-            <Text style={styles.title}>Cập nhật thông tin người quản lý</Text>
-            <TextInput
-              style={styles.input}
-              name="firstName"
-              placeholder="Họ và tên đệm"
-              autoCapitalize="none"
-              keyboardType="default"
-              onChangeText={formik.handleChange("firstName")}
-              value={formik.values.firstName}
-            />
-            {formik.errors.firstName && (
-              <Text style={{ color: "red" }}>{formik.errors.firstName}</Text>
-            )}
-            <TextInput
-              style={styles.input}
-              name="lastName"
-              placeholder="Tên"
-              autoCapitalize="none"
-              keyboardType="default"
-              onChangeText={formik.handleChange("lastName")}
-              value={formik.values.lastName}
-            />
-            {formik.errors.lastName && (
-              <Text style={{ color: "red" }}>{formik.errors.lastName}</Text>
-            )}
-            {picker && (
-              <DateTimePicker
-                mode="date"
-                display="calendar"
-                value={date}
-                onChange={({ type }, selectedDate) => {
-                  if (type === "set") {
-                    const currentDate = selectedDate;
-                    setDate(currentDate);
-
-                    if ((Platform.OS = "android")) {
-                      toggleDatePicker();
-                      //formik.values.dateOfBirth = currentDate.toDateString();
-                      setDob(formatDateToISO(currentDate));
-                    }
-                  } else {
-                    toggleDatePicker();
-                  }
-                }}
-              />
-            )}
-            {!picker && (
-              <Pressable onPress={toggleDatePicker}>
-                <TextInput
-                  style={styles.input}
-                  name="dateOfBirth"
-                  placeholder="Ngày sinh"
-                  onChangeText={setDob}
-                  value={dob}
-                  editable={false}
-                />
-              </Pressable>
-            )}
-            {formik.errors.dateOfBirth && (
-              <Text style={{ color: "red" }}>{formik.errors.dateOfBirth}</Text>
-            )}
-            <TextInput
-              style={styles.input}
-              name="homeTown"
-              placeholder="Quê quán"
-              autoCapitalize="none"
-              keyboardType="default"
-              onChangeText={formik.handleChange("homeTown")}
-              value={formik.values.homeTown}
-            />
-            {formik.errors.homeTown && (
-              <Text style={{ color: "red" }}>{formik.errors.homeTown}</Text>
-            )}
-            <TextInput
-              style={styles.input}
-              name="jerseyNumber"
-              placeholder="Số áo"
-              autoCapitalize="none"
-              keyboardType="numeric"
-              onChangeText={formik.handleChange("jerseyNumber")}
-              value={formik.values.jerseyNumber}
-            />
-            {formik.errors.jerseyNumber && (
-              <Text style={{ color: "red" }}>{formik.errors.jerseyNumber}</Text>
-            )}
-            <TextInput
-              style={styles.input}
-              name="phoneNumber"
-              placeholder="Số điện thoại"
-              autoCapitalize="none"
-              keyboardType="numeric"
-              onChangeText={formik.handleChange("phoneNumber")}
-              value={formik.values.phoneNumber}
-            />
-            {formik.errors.phoneNumber && (
-              <Text style={{ color: "red" }}>{formik.errors.phoneNumber}</Text>
-            )}
-            <TextInput
-              style={styles.input}
-              name="email"
-              placeholder="Email"
-              autoCapitalize="none"
-              keyboardType="default"
-              onChangeText={formik.handleChange("email")}
-              value={formik.values.email}
-            />
-            {formik.errors.email && (
-              <Text style={{ color: "red" }}>{formik.errors.email}</Text>
-            )}
-            <Button
-              title="Chọn avatar"
-              onPress={pickImage}
-              style={{ marginBottom: 10 }}
-            />
-            {image && image.uri && (
-              <Image
-                source={{ uri: image.uri }}
-                style={{ width: 200, height: 200 }}
-              />
-            )}
-            {formik.errors.avatar && (
-              <Text style={{ color: "red" }}>{formik.errors.avatar}</Text>
-            )}
-            <Button
-              title="Cập nhật thông tin cá nhân"
-              onPress={formik.handleSubmit}
-              style={{ marginTop: 10 }}
-            />
-            {error && <Text style={{ color: "red" }}>{error}</Text>}
-            {isLoading && (
-              <View style={styles.loadingOverlay}>
-                <ActivityIndicator size="large" color="#0000ff" />
+          <View
+            style={{
+              flex: 1,
+              justifyContent: "space-between",
+              height: "100%",
+              marginHorizontal: 12,
+            }}
+          >
+            <View>
+              <View style={{ position: "relative", marginTop: 16 }}>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: "bold",
+                    alignItems: "center",
+                  }}
+                >
+                  {step === 1
+                    ? "Họ và tên"
+                    : step === 2
+                    ? "Ngày tháng năm sinh và số áo"
+                    : step === 3
+                    ? "Thông tin cá nhân"
+                    : "Chọn ảnh đại diện"}
+                </Text>
               </View>
-            )}
+              <View
+                style={{
+                  marginVertical: 8,
+                }}
+              >
+                {step === 1 && (
+                  <View style={styles.formRow}>
+                    <View>
+                      <TextInput
+                        style={styles.input}
+                        name="firstName"
+                        placeholder="Họ và tên đệm"
+                        autoCapitalize="none"
+                        keyboardType="default"
+                        onChangeText={formik.handleChange("firstName")}
+                        value={formik.values.firstName}
+                      />
+                      {formik.errors.firstName && (
+                        <Text style={{ color: "red", marginLeft: 8 }}>
+                          {formik.errors.firstName}
+                        </Text>
+                      )}
+                    </View>
+                    <View>
+                      <TextInput
+                        style={styles.input}
+                        name="lastName"
+                        placeholder="Tên"
+                        autoCapitalize="none"
+                        keyboardType="default"
+                        onChangeText={formik.handleChange("lastName")}
+                        value={formik.values.lastName}
+                      />
+                      {formik.errors.lastName && (
+                        <Text style={{ color: "red", marginLeft: 8 }}>
+                          {formik.errors.lastName}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                )}
+                {step === 2 && (
+                  <View style={styles.formRow}>
+                    {picker && (
+                      <DateTimePicker
+                        mode="date"
+                        display="calendar"
+                        value={date}
+                        onChange={({ type }, selectedDate) => {
+                          if (type === "set") {
+                            const currentDate = selectedDate;
+                            setDate(currentDate);
+
+                            if ((Platform.OS = "android")) {
+                              toggleDatePicker();
+                              //formik.values.dateOfBirth = currentDate.toDateString();
+                              setDob(formatDateToISO(currentDate));
+                            }
+                          } else {
+                            toggleDatePicker();
+                          }
+                        }}
+                      />
+                    )}
+                    {!picker && (
+                      <Pressable onPress={toggleDatePicker}>
+                        <TextInput
+                          style={styles.input}
+                          name="birthDate"
+                          placeholder="Ngày sinh"
+                          onChangeText={setDob}
+                          value={dob ? dob : player.birthDate}
+                          editable={false}
+                        />
+                      </Pressable>
+                    )}
+                    {formik.errors.birthDate && (
+                      <Text style={{ color: "red" }}>
+                        {formik.errors.birthDate}
+                      </Text>
+                    )}
+                    <TextInput
+                      style={styles.input}
+                      name="jerseyNumber"
+                      placeholder="Số áo"
+                      autoCapitalize="none"
+                      keyboardType="numeric"
+                      onChangeText={formik.handleChange("jerseyNumber")}
+                      value={formik.values.jerseyNumber.toString()}
+                    />
+                    {formik.errors.jerseyNumber && (
+                      <Text style={{ color: "red" }}>
+                        {formik.errors.jerseyNumber}
+                      </Text>
+                    )}
+                  </View>
+                )}
+                {step === 3 && (
+                  <View>
+                    <TextInput
+                      style={styles.inputLong}
+                      name="phoneNumber"
+                      placeholder="Số điện thoại"
+                      autoCapitalize="none"
+                      keyboardType="numeric"
+                      onChangeText={formik.handleChange("phoneNumber")}
+                      value={formik.values.phoneNumber}
+                    />
+                    {formik.errors.phoneNumber && (
+                      <Text style={{ color: "red" }}>
+                        {formik.errors.phoneNumber}
+                      </Text>
+                    )}
+                    <TextInput
+                      style={styles.inputLong}
+                      name="email"
+                      placeholder="Email"
+                      autoCapitalize="none"
+                      keyboardType="default"
+                      onChangeText={formik.handleChange("email")}
+                      value={formik.values.email}
+                    />
+                    {formik.errors.email && (
+                      <Text style={{ color: "red" }}>
+                        {formik.errors.email}
+                      </Text>
+                    )}
+                    <TextInput
+                      style={styles.inputLong}
+                      name="homeTown"
+                      placeholder="Quê quán"
+                      autoCapitalize="none"
+                      keyboardType="default"
+                      onChangeText={formik.handleChange("homeTown")}
+                      value={formik.values.homeTown}
+                    />
+                    {formik.errors.homeTown && (
+                      <Text style={{ color: "red" }}>
+                        {formik.errors.homeTown}
+                      </Text>
+                    )}
+                  </View>
+                )}
+                {step === 4 && (
+                  <View>
+                    <Button
+                      title="Chọn avatar"
+                      onPress={pickImage}
+                      style={{ marginBottom: 10 }}
+                    />
+                    {image && image.uri && (
+                      <Image
+                        source={{ uri: image.uri }}
+                        style={{ width: 200, height: 200 }}
+                      />
+                    )}
+                    {formik.errors.avatar && (
+                      <Text style={{ color: "red" }}>
+                        {formik.errors.avatar}
+                      </Text>
+                    )}
+                  </View>
+                )}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: step > 1 ? "space-between" : "flex-end",
+                    marginTop: 10,
+                  }}
+                >
+                  {step > 1 ? (
+                    <Button title="< Trước" onPress={previousStep} />
+                  ) : null}
+                  {step < 4 ? (
+                    <Button title="Tiếp >" onPress={nextStep} />
+                  ) : (
+                    <Button
+                      color="green"
+                      title="Hoàn tất"
+                      onPress={formik.handleSubmit}
+                    />
+                  )}
+                </View>
+              </View>
+            </View>
           </View>
         );
       }}

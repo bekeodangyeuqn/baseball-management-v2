@@ -17,38 +17,38 @@ import { useToast } from "react-native-toast-notifications";
 import axiosInstance from "../lib/axiosClient";
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRecoilState, useRecoilValue } from "recoil";
+import { playerByIdState, playersState } from "../atom/Players";
 
 const UpdatePlayerAvaScreen = () => {
   const [image, setImage] = useState({
     uri: null,
     base64: "",
   });
+  const [fullPlayers, setFullPlayers] = useRecoilState(playersState);
   const toast = useToast();
   const navigation = useNavigation();
   const route = useRoute();
   const playerid = route.params.playerid;
   const teamid = route.params.teamid;
+  const player = useRecoilValue(playerByIdState(playerid));
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const handleUpdateAvatar = async (values) => {
     try {
       setIsLoading(true);
-      const response = await axiosInstance.patch(
-        `/player/update-avatar/${playerid}/`,
-        {
-          avatar_str: image.base64
-            ? "data:image/jpeg;base64," + image.base64
-            : null,
-        }
-      );
-      const { data } = await axiosInstance.get(`/players/team/${teamid}/`);
-      AsyncStorage.setItem("players", JSON.stringify(data), (error) => {
-        if (error) {
-          console.error(error);
-        } else {
-          console.log("Players stored successfully.");
-        }
-      });
+      if (image.uri) {
+        const response = await axiosInstance.patch(
+          `/player/update-avatar/${playerid}/`,
+          {
+            avatar_str: image.base64
+              ? "data:image/jpeg;base64," + image.base64
+              : null,
+          }
+        );
+        const { data } = await axiosInstance.get(`/players/team/${teamid}/`);
+        setFullPlayers(data);
+      }
       setIsLoading(false);
       toast.show("Cập nhật thông tin thành công", {
         type: "success",
@@ -60,7 +60,6 @@ const UpdatePlayerAvaScreen = () => {
       navigation.navigate("PlayerList", {
         teamid: teamid,
       });
-      return response;
     } catch (error) {
       //Toast.show(error.message);
       setIsLoading(false);
@@ -72,6 +71,10 @@ const UpdatePlayerAvaScreen = () => {
         animationType: "zoom-in",
       });
     }
+  };
+  const splitAvatarURI = (str) => {
+    const arr = str.split("?");
+    return arr[0];
   };
 
   return (
@@ -113,6 +116,13 @@ const UpdatePlayerAvaScreen = () => {
             {image && image.uri ? (
               <Image
                 source={{ uri: image.uri }}
+                style={{ width: 200, height: 200 }}
+              />
+            ) : player.avatar ? (
+              <Image
+                source={{
+                  uri: splitAvatarURI(player.avatar),
+                }}
                 style={{ width: 200, height: 200 }}
               />
             ) : (

@@ -12,10 +12,11 @@ import HorizontalTable from "../component/HorizontalTable";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axiosInstance from "../lib/axiosClient";
 import { useToast } from "react-native-toast-notifications";
-import { useRoute } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import jwtDecode from "jwt-decode";
 import { useRecoilState } from "recoil";
 import { playersState } from "../atom/Players";
+import { TouchableOpacity } from "react-native";
 
 const careerData = {
   tableHead: [
@@ -73,6 +74,8 @@ const PlayerProfileScreen = () => {
   const toast = useToast();
   const [teamName, setTeamName] = useState("");
   const [recoilPlayers, setRecoilPlayers] = useRecoilState(playersState);
+  const navigation = useNavigation();
+  const [teamId, setTeamId] = useState(null);
 
   const splitAvatarURI = (str) => {
     const arr = str.split("?");
@@ -86,7 +89,7 @@ const PlayerProfileScreen = () => {
         const token = await AsyncStorage.getItem("access_token");
         const decoded = jwtDecode(token);
         setTeamName(decoded.teamName);
-
+        setTeamId(decoded.teamid);
         const storedPlayer = recoilPlayers.find(
           (p) => p.id == id && p.plateApperance
         );
@@ -256,13 +259,13 @@ const PlayerProfileScreen = () => {
       "OPS",
       "wOBA",
     ],
-    widthArr: [50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50],
+    widthArr: [50, 50, 50, 50, 50, 50, 50, 50, 50, 60, 60],
     tableData: [["-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-"]],
   });
 
   const [fieldingData, setFieldingData] = useState({
     tableHead: ["PO", "A", "E", "FPCT"],
-    widthArr: [50, 50, 50, 50],
+    widthArr: [50, 50, 50, 60],
     tableData: [["-", "-", "-", "-"]],
   });
 
@@ -284,39 +287,25 @@ const PlayerProfileScreen = () => {
     widthArr: [50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50],
     tableData: [["-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-"]],
   });
-  // const battingData = {
-  //   tableHead: [
-  //     "AB",
-  //     "R",
-  //     "H",
-  //     "HR",
-  //     "RBI",
-  //     "BB",
-  //     "SO",
-  //     "SB",
-  //     "AVG",
-  //     "OBP",
-  //     "SLG",
-  //   ],
-  //   widthArr: [50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50],
-  //   tableData: [
-  //     [
-  //       "3 trận qua",
-  //       "12",
-  //       "1",
-  //       "4",
-  //       "0",
-  //       "1",
-  //       "0",
-  //       "3",
-  //       "3",
-  //       ".375",
-  //       ".375",
-  //       ".542",
-  //     ],
 
-  //   ],
-  // };
+  const pickImage = async () => {
+    // No permissions request is necessary for launching the image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+      base64: true,
+    });
+
+    if (!result.canceled) {
+      setImage({
+        uri: result.assets[0].uri,
+        base64: result.assets[0].base64,
+      });
+      // formik.handleChange("avatar");
+    }
+  };
 
   return (
     <ScrollView>
@@ -326,10 +315,19 @@ const PlayerProfileScreen = () => {
         </View>
       ) : (
         <View>
-          <Image
-            source={{ uri: splitAvatarURI(player.avatar) }}
-            style={styles.profilePicture}
-          />
+          <TouchableOpacity
+            onPress={() => {
+              navigation.navigate("UpdatePlayerAvatar", {
+                playerid: id,
+                teamid: teamId,
+              });
+            }}
+          >
+            <Image
+              source={{ uri: splitAvatarURI(player.avatar) }}
+              style={styles.profilePicture}
+            />
+          </TouchableOpacity>
           <View style={styles.profileInfo}>
             <Text
               style={styles.name}
@@ -337,9 +335,15 @@ const PlayerProfileScreen = () => {
             <Text style={{ fontSize: 24, textAlign: "center" }}>
               Team: {`${teamName}`}
             </Text>
-            <Text style={{ fontSize: 24, textAlign: "center" }}>
-              Role: Player
-            </Text>
+            <Button
+              onPress={() => {
+                navigation.navigate("EditPlayerScreen", {
+                  id: player.id,
+                });
+              }}
+              style={{ alignItems: "center" }}
+              title="Cập nhật thông tin"
+            />
             <View style={styles.profileRow}>
               <Text style={{ marginRight: 8 }}>Chiều cao</Text>
               <Text style={{ marginRight: 8 }}>Cân nặng</Text>
@@ -357,47 +361,59 @@ const PlayerProfileScreen = () => {
           </View>
           <View style={{ marginVertical: 4, marginStart: 10 }}>
             <View style={{ flexDirection: "row" }}>
-              <Text style={{ fontSize: 16, fontWeight: "bold", marginEnd: 4 }}>
+              <Text style={{ fontSize: 20, fontWeight: "bold", marginEnd: 4 }}>
                 Vị trí chính:
               </Text>
-              <Text style={{ fontSize: 16 }}>{position[player.firstPos]}</Text>
+              <Text style={{ fontSize: 20 }}>{position[player.firstPos]}</Text>
             </View>
             <View style={{ flexDirection: "row" }}>
-              <Text style={{ fontSize: 16, fontWeight: "bold", marginEnd: 4 }}>
+              <Text style={{ fontSize: 20, fontWeight: "bold", marginEnd: 4 }}>
                 Vị trí phụ:
               </Text>
-              <Text style={{ fontSize: 16 }}>
+              <Text style={{ fontSize: 20 }}>
                 {player.secondPos ? position[player.secondPos] : "Chưa rõ"}
               </Text>
             </View>
             <View style={{ flexDirection: "row" }}>
-              <Text style={{ fontSize: 16, fontWeight: "bold", marginEnd: 4 }}>
+              <Text style={{ fontSize: 20, fontWeight: "bold", marginEnd: 4 }}>
                 Ngày tháng năm sinh:
               </Text>
-              <Text style={{ fontSize: 16 }}>
+              <Text style={{ fontSize: 20 }}>
                 {player.birthDate ? player.birthDate : "Chưa rõ"}
               </Text>
             </View>
             <View style={{ flexDirection: "row" }}>
-              <Text style={{ fontSize: 16, fontWeight: "bold", marginEnd: 4 }}>
+              <Text style={{ fontSize: 20, fontWeight: "bold", marginEnd: 4 }}>
                 Email:
               </Text>
-              <Text style={{ fontSize: 16 }}>
+              <Text style={{ fontSize: 20 }}>
                 {player.email ? player.email : "Chưa rõ"}
               </Text>
             </View>
             <View style={{ flexDirection: "row" }}>
-              <Text style={{ fontSize: 16, fontWeight: "bold", marginEnd: 4 }}>
+              <Text style={{ fontSize: 20, fontWeight: "bold", marginEnd: 4 }}>
                 Số điện thoại:
               </Text>
-              <Text style={{ fontSize: 16 }}>{player.phoneNumber}</Text>
+              <Text style={{ fontSize: 20 }}>{player.phoneNumber}</Text>
             </View>
             <View style={{ flexDirection: "row" }}>
-              <Text style={{ fontSize: 16, fontWeight: "bold", marginEnd: 4 }}>
+              <Text style={{ fontSize: 20, fontWeight: "bold", marginEnd: 4 }}>
                 Quê quán:
               </Text>
-              <Text style={{ fontSize: 16 }}>
+              <Text style={{ fontSize: 20 }}>
                 {player.homeTown ? player.homeTown : "Chưa rõ"}
+              </Text>
+            </View>
+            <View style={{ flexDirection: "row" }}>
+              <Text style={{ fontSize: 20, fontWeight: "bold", marginEnd: 4 }}>
+                Trạng thái:
+              </Text>
+              <Text style={{ fontSize: 20 }}>
+                {player.status == 1
+                  ? "Đang hoạt động"
+                  : player.status == 0
+                  ? "Tạm ngưng hoạt động"
+                  : "Đã rời đội"}
               </Text>
             </View>
           </View>

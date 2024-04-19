@@ -100,7 +100,7 @@ export const filteredPlayers = selectorFamily({
 export const playerByIdState = selectorFamily({
   key: "playerByIdState",
   get:
-    ({ get }) =>
     (id) =>
+    ({ get }) =>
       get(playersState).find((player) => player.id === id),
 });

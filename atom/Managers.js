@@ -11,8 +11,8 @@ export const managersState = atom({
 export const managerByIdState = selector({
   key: "managerByIdState",
   get:
-    ({ get }) =>
     (id) =>
+    ({ get }) =>
       get(gamesState).find((game) => game.id === id),
 });
 
