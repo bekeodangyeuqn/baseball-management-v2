@@ -17,16 +17,8 @@ const InprogressGameScreen = (props) => {
   const navigation = useNavigation();
   const { games, teamName } = props;
   return (
-    <View>
-      <View style={styles.buttonHeader}>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => navigation.navigate("CreateGame")}
-        >
-          <Text style={styles.textButton}>Thêm trận đấu</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.container}>
+    <View style={styles.container}>
+      <View>
         {games.map((game) => {
           if (game.status === 0) {
             return (
@@ -41,6 +33,11 @@ const InprogressGameScreen = (props) => {
             );
           }
         })}
+      </View>
+      <View style={{ position: "absolute", right: 20, bottom: 50, zIndex: 4 }}>
+        <TouchableOpacity onPress={() => navigation.navigate("CreateGame")}>
+          <AddIcon />
+        </TouchableOpacity>
       </View>
     </View>
   );

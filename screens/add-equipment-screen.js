@@ -282,13 +282,6 @@ const AddEquipmentScreen = () => {
             />
           )}
           {step === 5 && (
-            // <TextInput
-            //   placeholder="Loại dụng cụ"
-            //   value={category}
-            //   onChangeText={setCategory}
-            //   keyboardType="numeric"
-            //   style={styles.input}
-            // />
             <View
               style={{
                 flexDirection: "row",

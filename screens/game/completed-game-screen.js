@@ -8,21 +8,14 @@ import {
 } from "react-native";
 import Scoreboard from "../../component/Scoreboard";
 import { useNavigation } from "@react-navigation/native";
+import AddIcon from "../../component/AddIcon";
 
 const CompletedGameScreen = (props) => {
   const navigation = useNavigation();
   const { games, teamName } = props;
   return (
-    <View>
-      <View style={styles.buttonHeader}>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => navigation.navigate("CreateGame")}
-        >
-          <Text style={styles.textButton}>Thêm trận đấu</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.container}>
+    <View style={styles.container}>
+      <View>
         {games.map((game) => {
           if (game.status === 1) {
             return (
@@ -38,6 +31,11 @@ const CompletedGameScreen = (props) => {
             );
           }
         })}
+      </View>
+      <View style={{ position: "absolute", right: 20, bottom: 50, zIndex: 4 }}>
+        <TouchableOpacity onPress={() => navigation.navigate("CreateGame")}>
+          <AddIcon />
+        </TouchableOpacity>
       </View>
     </View>
   );

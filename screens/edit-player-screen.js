@@ -1,5 +1,5 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Pressable,
@@ -19,6 +19,8 @@ import { useRecoilState, useRecoilValue } from "recoil";
 import axiosInstance from "../lib/axiosClient";
 import { Formik } from "formik";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import jwtDecode from "jwt-decode";
 
 const EditPlayerScreen = () => {
   const route = useRoute();
@@ -37,6 +39,8 @@ const EditPlayerScreen = () => {
   const [step, setStep] = useState(1);
   const toast = useToast();
   const navigation = useNavigation();
+  const [username, setUsername] = useState("");
+  const [tokens, setTokens] = useState([]);
   const [fullPlayers, setFullPlayers] = useRecoilState(playersState);
   const validationSchema = Yup.object().shape({
     firstName: Yup.string().required("Firstname is required"),
@@ -96,6 +100,52 @@ const EditPlayerScreen = () => {
     return `${year}-${month}-${day}`;
   }
 
+  async function sendPushNotification(expoPushToken, player) {
+    const message = {
+      to: expoPushToken,
+      sound: "default",
+      title: "Baseball Management",
+      body: `Quản lý ${username} đã cập nhật thông tin của cầu thủ #${player.jerseyNumber}.${player.firstName} ${player.lastName}`,
+      data: { player },
+    };
+
+    try {
+      const response = await fetch("https://exp.host/--/api/v2/push/send", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Accept-encoding": "gzip, deflate",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(message),
+      });
+      const data = await response.json();
+      console.log("Push response:", data);
+    } catch (error) {
+      console.error("Error sending push notification:", error);
+    }
+  }
+
+  useEffect(() => {
+    const getInfo = async () => {
+      try {
+        setIsLoading(true);
+        const token = await AsyncStorage.getItem("access_token");
+        const decoded = jwtDecode(token);
+        setUsername(decoded.username);
+        const { data } = await axiosInstance(
+          `/userpushtokens/${decoded.teamid}/`
+        );
+        setTokens(data);
+        setIsLoading(false);
+      } catch (err) {
+        console.log(err);
+        setIsLoading(false);
+      }
+    };
+    getInfo();
+  }, []);
+  console.log(tokens[0]);
   const handleEditPlayer = async (values) => {
     try {
       setIsLoading(true);
@@ -130,6 +180,10 @@ const EditPlayerScreen = () => {
         } else {
           const { data } = await axiosInstance.get(`/players/team/${teamid}/`);
           setFullPlayers(data);
+        }
+        for (i = 0; i < tokens.length; i++) {
+          if (tokens[i].push_token)
+            sendPushNotification(tokens[i].push_token, response.data);
         }
         setIsLoading(false);
       } catch (error) {

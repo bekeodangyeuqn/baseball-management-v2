@@ -32,6 +32,13 @@ import {
 import SearchBox from "../component/SearchBox";
 import filter from "lodash.filter";
 import EmptyList from "../component/EmptyList";
+import AddIcon from "../component/AddIcon";
+import {
+  Menu,
+  MenuOption,
+  MenuOptions,
+  MenuTrigger,
+} from "react-native-popup-menu";
 
 const { width } = Dimensions.get("window");
 const gap = 4;
@@ -129,103 +136,112 @@ const PlayerListScreen = () => {
     );
   }
   return (
-    <ScrollView style={{ marginVertical: 20 }}>
-      <SearchBox
-        searchQuery={searchQuery}
-        handleSearch={(query) => handleSearch(query)}
-      />
-      <SafeAreaView style={styles.buttonHeader}>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() =>
-            navigation.navigate("CreatePlayer", { teamid: teamid })
-          }
+    <View>
+      <ScrollView style={{ marginVertical: 20 }}>
+        <SearchBox
+          searchQuery={searchQuery}
+          handleSearch={(query) => handleSearch(query)}
+        />
+        <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 8 }}>
+          Danh sách cầu thủ
+        </Text>
+        {players.length === 0 ? (
+          <EmptyList />
+        ) : (
+          <View style={styles.itemsWrap}>
+            {players.map((player) => (
+              <TouchableOpacity
+                style={styles.singleItem}
+                key={player.id}
+                onPress={() => {
+                  navigation.navigate("PlayerProfile", { id: player.id });
+                }}
+              >
+                <Card>
+                  <View style={{ position: "relative", alignItems: "center" }}>
+                    <Image
+                      style={{ height: 40, width: 40 }}
+                      resizeMode="contain"
+                      source={{
+                        uri: splitAvatarURI(player.avatar),
+                      }}
+                    />
+                    <Text>{player.lastName}</Text>
+                    <Text>{player.jerseyNumber}</Text>
+                    <Text>{position[player.firstPos]}</Text>
+                  </View>
+                </Card>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+        <Text
+          style={{
+            fontWeight: "bold",
+            fontSize: 16,
+            marginBottom: 8,
+            marginTop: 8,
+          }}
         >
-          <Text style={styles.textButton}>Thêm player</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => navigation.navigate("ImportPlayer")}
-        >
-          <Text style={styles.textButton}>Import excel</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-      <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 8 }}>
-        Danh sách cầu thủ
-      </Text>
-      {players.length === 0 ? (
-        <EmptyList />
-      ) : (
-        <View style={styles.itemsWrap}>
-          {players.map((player) => (
-            <TouchableOpacity
-              style={styles.singleItem}
-              key={player.id}
-              onPress={() => {
-                navigation.navigate("PlayerProfile", { id: player.id });
+          Danh sách quản lý
+        </Text>
+        {managers.length === 0 ? (
+          <EmptyList />
+        ) : (
+          <View style={styles.itemsWrap}>
+            {managers.map((manager) => (
+              <TouchableOpacity
+                style={styles.singleItem}
+                key={manager.id}
+                onPress={() => {
+                  navigation.navigate("ManagerProfile", { id: manager.id });
+                }}
+              >
+                <Card>
+                  <View style={{ position: "relative", alignItems: "center" }}>
+                    <Image
+                      style={{ height: 40, width: 40 }}
+                      resizeMode="contain"
+                      source={{
+                        uri: manager.avatar
+                          ? splitAvatarURI(manager.avatar)
+                          : "https://cdn0.iconfinder.com/data/icons/baseball-filledoutline/64/baseball_player-user-boy-sports-avatar-profile-man-people-coach-512.png",
+                      }}
+                    />
+                    <Text>{manager.lastName}</Text>
+                    <Text></Text>
+                    <Text></Text>
+                  </View>
+                </Card>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </ScrollView>
+      <View style={{ position: "absolute", right: 20, bottom: 50, zIndex: 4 }}>
+        <Menu>
+          <MenuTrigger>
+            <AddIcon />
+          </MenuTrigger>
+          <MenuOptions>
+            <MenuOption
+              onSelect={() => {
+                navigation.navigate("CreatePlayer", { teamid: teamid });
               }}
             >
-              <Card>
-                <View style={{ position: "relative", alignItems: "center" }}>
-                  <Image
-                    style={{ height: 40, width: 40 }}
-                    resizeMode="contain"
-                    source={{
-                      uri: splitAvatarURI(player.avatar),
-                    }}
-                  />
-                  <Text>{player.lastName}</Text>
-                  <Text>{player.jerseyNumber}</Text>
-                  <Text>{position[player.firstPos]}</Text>
-                </View>
-              </Card>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-      <Text
-        style={{
-          fontWeight: "bold",
-          fontSize: 16,
-          marginBottom: 8,
-          marginTop: 8,
-        }}
-      >
-        Danh sách quản lý
-      </Text>
-      {managers.length === 0 ? (
-        <EmptyList />
-      ) : (
-        <View style={styles.itemsWrap}>
-          {managers.map((manager) => (
-            <TouchableOpacity
-              style={styles.singleItem}
-              key={manager.id}
-              onPress={() => {
-                navigation.navigate("ManagerProfile", { id: manager.id });
+              <Text>Thêm player qua form</Text>
+            </MenuOption>
+            <MenuOption
+              onSelect={() => {
+                navigation.navigate("ImportPlayer");
               }}
             >
-              <Card>
-                <View style={{ position: "relative", alignItems: "center" }}>
-                  <Image
-                    style={{ height: 40, width: 40 }}
-                    resizeMode="contain"
-                    source={{
-                      uri: manager.avatar
-                        ? splitAvatarURI(manager.avatar)
-                        : "https://cdn0.iconfinder.com/data/icons/baseball-filledoutline/64/baseball_player-user-boy-sports-avatar-profile-man-people-coach-512.png",
-                    }}
-                  />
-                  <Text>{manager.lastName}</Text>
-                  <Text></Text>
-                  <Text></Text>
-                </View>
-              </Card>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-    </ScrollView>
+              <Text>Import excel</Text>
+            </MenuOption>
+          </MenuOptions>
+        </Menu>
+      </View>
+    </View>
   );
 };
 

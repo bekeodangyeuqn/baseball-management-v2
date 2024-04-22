@@ -19,8 +19,17 @@ import Delete from "./Delete";
 import { useTiming } from "react-native-redash";
 import { Box, Text } from "./theme";
 
-const Expense = ({ index, transition, onTap, onDelete, item, allDates }) => {
-  const isActive = useDerivedValue(() => (transition.value === index ? 1 : 0));
+const Expense = ({
+  index,
+  active,
+  onTap,
+  onDelete,
+  item,
+  allDates,
+  player,
+}) => {
+  // const value = active.__getValue();
+  const isActive = useDerivedValue(() => (active === index ? 1 : 0));
 
   const activeTransition = useTiming(isActive.value, {
     duration: 200,
@@ -29,9 +38,7 @@ const Expense = ({ index, transition, onTap, onDelete, item, allDates }) => {
   const delX = interpolate(activeTransition.value, [0, 1], [-100, 20]);
 
   const hidePrice = interpolate(activeTransition.value, [0, 1], [1, 0]);
-
-  console.log("delX: " + delX);
-  console.log("hidePrice: " + hidePrice);
+  console.log(active, index);
   const tranType = [
     "",
     "Được tặng quà",
@@ -45,77 +52,84 @@ const Expense = ({ index, transition, onTap, onDelete, item, allDates }) => {
   ];
 
   return (
-    <TouchableWithoutFeedback
-      onPress={() => {
-        onTap();
-      }}
-    >
-      <Animated.View>
-        <Box
-          overflow="hidden"
-          paddingHorizontal="l"
-          borderBottomWidth={1}
-          borderBottomColor="silver"
-          height={50}
-          position="relative"
-        >
-          <View style={[StyleSheet.absoluteFill, {}]}>
+    <>
+      <TouchableWithoutFeedback
+        onPress={() => {
+          onTap();
+        }}
+      >
+        <Animated.View>
+          <Box
+            overflow="hidden"
+            paddingHorizontal="l"
+            borderBottomWidth={1}
+            borderBottomColor="silver"
+            height={50}
+            position="relative"
+          >
+            <View style={[StyleSheet.absoluteFill, {}]}>
+              <Animated.View
+                style={{
+                  justifyContent: "space-between",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  height: 50,
+                  padding: 16,
+                }}
+              >
+                <Animated.Text>
+                  {item.type > 0
+                    ? tranType[item.type]
+                    : tranType[tranType.length + item.type]}
+                </Animated.Text>
+                <Animated.Text
+                  style={{
+                    opacity: hidePrice ? hidePrice : 0,
+                    color: item.type > 0 ? "#009BFC" : "#FF4500",
+                  }}
+                >
+                  {item.price > 0
+                    ? `${item.price}₫`
+                    : `- ${Math.abs(item.price)}₫`}
+                </Animated.Text>
+              </Animated.View>
+              {item.type === 3 ? (
+                <Animated.Text>
+                  {`Người đóng quỹ: #${player.jerseyNumber}.${player.firstName} ${player.lastName}`}{" "}
+                </Animated.Text>
+              ) : null}
+            </View>
+
             <Animated.View
               style={{
-                justifyContent: "space-between",
-                flexDirection: "row",
-                alignItems: "center",
+                fontSize: 12,
+                color: "white",
+                fontWeight: "900",
+                position: "absolute",
                 height: 50,
-                padding: 16,
+                width: "14%",
+                right: delX ? delX : 0,
+                alignItems: "center",
+                flexDirection: "row",
+                justifyContent: "center",
+                backgroundColor: "white",
               }}
             >
-              <Animated.Text>
-                {item.type > 0
-                  ? tranType[item.type]
-                  : tranType[tranType.length + item.type]}
-              </Animated.Text>
-              <Animated.Text
-                style={{
-                  opacity: hidePrice ? hidePrice : 0,
-                  color: item.type > 0 ? "#009BFC" : "#FF4500",
-                }}
-              >
-                {item.price > 0
-                  ? `${item.price}₫`
-                  : `- ${Math.abs(item.price)}₫`}
-              </Animated.Text>
+              <Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    onDelete(index);
+                  }}
+                >
+                  <Delete />
+                  {/* <Text>Delete</Text> */}
+                </TouchableOpacity>
+              </Text>
             </Animated.View>
-          </View>
-
-          <Animated.View
-            style={{
-              fontSize: 12,
-              color: "white",
-              fontWeight: "900",
-              position: "absolute",
-              height: 50,
-              width: "14%",
-              right: delX ? delX : 0,
-              alignItems: "center",
-              flexDirection: "row",
-              justifyContent: "center",
-              backgroundColor: "white",
-            }}
-          >
-            <Text>
-              <TouchableOpacity
-                onPress={() => {
-                  onDelete(index);
-                }}
-              >
-                <Delete />
-                {/* <Text>Delete</Text> */}
-              </TouchableOpacity>
-            </Text>
-          </Animated.View>
-        </Box>
-      </Animated.View>
-    </TouchableWithoutFeedback>
+          </Box>
+        </Animated.View>
+      </TouchableWithoutFeedback>
+    </>
   );
 };
 

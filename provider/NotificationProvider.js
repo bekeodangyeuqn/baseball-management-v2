@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { registerForPushNotificationsAsync } from "../lib/notifications";
 import * as Notifications from "expo-notifications";
+import axiosInstance from "../lib/axiosClient";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -10,15 +11,24 @@ Notifications.setNotificationHandler({
   }),
 });
 
-const NotificationProvider = ({ children }) => {
+const NotificationProvider = ({ children, id }) => {
   const [expoPushToken, setExpoPushToken] = useState(null);
   const [notification, setNotification] = useState(false);
   const notificationListener = useRef();
   const responseListener = useRef();
 
+  const savePushToken = async (newToken) => {
+    setExpoPushToken(newToken);
+    if (!newToken && !userid) {
+      return;
+    }
+    await axiosInstance.patch(`/userpushtoken/update/${id}/`, {
+      push_token: newToken,
+    });
+  };
   useEffect(() => {
     registerForPushNotificationsAsync().then((token) => {
-      setExpoPushToken(token);
+      savePushToken(token);
     });
     notificationListener.current =
       Notifications.addNotificationReceivedListener((notification) => {

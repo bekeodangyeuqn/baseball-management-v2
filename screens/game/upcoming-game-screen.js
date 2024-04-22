@@ -13,6 +13,7 @@ import jwtDecode from "jwt-decode";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useToast } from "react-native-toast-notifications";
 import axiosInstance from "../../lib/axiosClient";
+import AddIcon from "../../component/AddIcon";
 
 const UpcomingGameScreen = (props) => {
   const navigation = useNavigation();
@@ -24,15 +25,7 @@ const UpcomingGameScreen = (props) => {
           <ActivityIndicator size="large" color="#0000ff" />
         </View>
       )}
-      <View style={styles.container}>
-        <View style={styles.buttonHeader}>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => navigation.navigate("CreateGame")}
-          >
-            <Text style={styles.textButton}>Thêm trận đấu</Text>
-          </TouchableOpacity>
-        </View>
+      <View>
         {games.map((game) => {
           if (game.status === -1) {
             return (
@@ -48,6 +41,11 @@ const UpcomingGameScreen = (props) => {
             );
           }
         })}
+      </View>
+      <View style={{ position: "absolute", right: 20, bottom: 50, zIndex: 4 }}>
+        <TouchableOpacity onPress={() => navigation.navigate("CreateGame")}>
+          <AddIcon />
+        </TouchableOpacity>
       </View>
     </View>
   );

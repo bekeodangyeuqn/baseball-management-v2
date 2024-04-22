@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -59,8 +59,6 @@ const CreatePlayerScreen = () => {
   const validationSchema = Yup.object().shape({
     firstName: Yup.string().required("Firstname is required"),
     lastName: Yup.string().required("Lastname is required"),
-    weight: Yup.number().typeError("Weight must be a number"),
-    height: Yup.number().typeError("Height must be a number"),
     // email: Yup.string().email().required("Email is required"),
     // phoneNumber: Yup.string().required("Phone number is required"),
   });
@@ -292,7 +290,7 @@ const CreatePlayerScreen = () => {
                   <View style={styles.formRow}>
                     <Picker
                       style={styles.input}
-                      selectedValue={firstPos ? firstPos : player.firstPos}
+                      selectedValue={firstPos}
                       onValueChange={(itemValue, itemIndex) => {
                         if (itemValue != "label") setFirstPos(itemValue);
                       }}
@@ -315,7 +313,7 @@ const CreatePlayerScreen = () => {
                     )}
                     <Picker
                       style={styles.input}
-                      selectedValue={secondPos ? secondPos : player.secondPos}
+                      selectedValue={secondPos}
                       onValueChange={(itemValue, itemIndex) => {
                         if (itemValue != "label") setSecondPos(itemValue);
                       }}
@@ -348,7 +346,11 @@ const CreatePlayerScreen = () => {
                         autoCapitalize="none"
                         keyboardType="numeric"
                         onChangeText={formik.handleChange("weight")}
-                        value={formik.values.weight.toString()}
+                        value={
+                          formik.values.weight
+                            ? formik.values.weight.toString()
+                            : formik.values.weight
+                        }
                       />
                       {formik.errors.weight && (
                         <Text style={{ color: "red", marginLeft: 8 }}>
@@ -364,7 +366,11 @@ const CreatePlayerScreen = () => {
                         autoCapitalize="none"
                         keyboardType="numeric"
                         onChangeText={formik.handleChange("height")}
-                        value={formik.values.height.toString()}
+                        value={
+                          formik.values.height
+                            ? formik.values.height.toString()
+                            : formik.values.height
+                        }
                       />
                       {formik.errors.height && (
                         <Text style={{ color: "red", marginLeft: 8 }}>
@@ -378,7 +384,7 @@ const CreatePlayerScreen = () => {
                   <View style={styles.formRow}>
                     <Picker
                       style={styles.input}
-                      selectedValue={throwHand ? throwHand : player.throwHand}
+                      selectedValue={throwHand}
                       onValueChange={(itemValue, itemIndex) => {
                         if (itemValue != "label") setThrowHand(itemValue);
                       }}
@@ -396,7 +402,7 @@ const CreatePlayerScreen = () => {
                     )}
                     <Picker
                       style={styles.input}
-                      selectedValue={batHand ? batHand : player.batHand}
+                      selectedValue={batHand}
                       onValueChange={(itemValue, itemIndex) => {
                         if (itemValue != "label") setBatHand(itemValue);
                       }}
@@ -444,7 +450,7 @@ const CreatePlayerScreen = () => {
                           name="birthDate"
                           placeholder="Ngày sinh"
                           onChangeText={setDob}
-                          value={dob ? dob : player.birthDate}
+                          value={dob}
                           editable={false}
                         />
                       </Pressable>
@@ -461,7 +467,11 @@ const CreatePlayerScreen = () => {
                       autoCapitalize="none"
                       keyboardType="numeric"
                       onChangeText={formik.handleChange("jerseyNumber")}
-                      value={formik.values.jerseyNumber.toString()}
+                      value={
+                        formik.values.jerseyNumber
+                          ? formik.values.jerseyNumber.toString()
+                          : formik.values.jerseyNumber
+                      }
                     />
                     {formik.errors.jerseyNumber && (
                       <Text style={{ color: "red" }}>

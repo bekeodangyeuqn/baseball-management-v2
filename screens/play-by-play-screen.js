@@ -10,9 +10,9 @@ import {
   SafeAreaView,
   StyleSheet,
 } from "react-native";
-import { useRecoilState, useRecoilValue } from "recoil";
+import { useRecoilCallback, useRecoilState, useRecoilValue } from "recoil";
 import field from "../assets/image/field.jpg";
-import { gameByIdState } from "../atom/Games";
+import { gameByIdState, gamesState } from "../atom/Games";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import jwtDecode from "jwt-decode";
 import {
@@ -135,9 +135,7 @@ const PlayByPlayScreen = () => {
   const gameid = route.params.gameid;
   const beforeId = route.params.beforeId;
   let myFirstBatting = route.params.myBatting;
-  const [teamid, setTeamid] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const players = useRecoilValue(filteredPlayers(teamid));
   const game = useRecoilValue(gameByIdState(gameid));
   const navigation = useNavigation();
   let myPlayers = useRecoilValue(myGamePlayersByGameId(gameid));
@@ -149,6 +147,9 @@ const PlayByPlayScreen = () => {
   const filterBottomSheet = useRef(null);
   const choosePlayerBottomSheet = useRef(null);
   const [teamName, setTeamName] = useState("");
+  const [teamNameLong, setTeamNameLong] = useState("");
+  const [teamId, setTeamId] = useState(null);
+  const players = useRecoilValue(filteredPlayers(teamId));
   const [atBatsList, setAtBatsList] = useRecoilState(atBatsState);
 
   const [teamScore, setTeamScore] = useState(0);
@@ -327,7 +328,8 @@ const PlayByPlayScreen = () => {
         const token = await AsyncStorage.getItem("access_token");
         const decoded = jwtDecode(token);
         setTeamName(decoded.shortName);
-        setTeamid(decoded.teamid);
+        setTeamId(decoded.teamid);
+        setTeamNameLong(decoded.teamName);
       } catch (error) {
         console.log(error);
       }
@@ -943,6 +945,40 @@ const PlayByPlayScreen = () => {
       if (prev.length === 0) return str + ". ";
       else return prev + str + ". ";
     });
+  };
+
+  const [recoilGames, setRecoilGames] = useRecoilState(gamesState);
+  const makeEndGame = async () => {
+    try {
+      const response = await axiosInstance.patch(`/game/updates/${gameid}/`, {
+        status: 1,
+      });
+      if (response.data) {
+        setRecoilGames((prev) => [
+          ...prev.filter((games) => games.id !== gameid),
+          response.data,
+        ]);
+        toast.show("Kết thúc trận đấu thành công", {
+          type: "success",
+          placement: "bottom",
+          duration: 4000,
+          offset: 30,
+          animationType: "zoom-in",
+        });
+        navigation.navigate("Games", {
+          teamid: teamId,
+          teamName: teamNameLong,
+        });
+      }
+    } catch (error) {
+      toast.show(error.message, {
+        type: "danger",
+        placement: "bottom",
+        duration: 4000,
+        offset: 30,
+        animationType: "zoom-in",
+      });
+    }
   };
 
   const saveMyBatting = async () => {
@@ -6460,7 +6496,13 @@ const PlayByPlayScreen = () => {
             >
               <Text>Lưu trạng thái lên server</Text>
             </MenuOption>
-            <MenuOption onSelect={() => console.log("Option 3 clicked")}>
+            <MenuOption
+              onSelect={() => {
+                saveNotSavedAtBats();
+                saveMyBatting();
+                makeEndGame();
+              }}
+            >
               <Text>Kết thúc trận đấu</Text>
             </MenuOption>
           </MenuOptions>

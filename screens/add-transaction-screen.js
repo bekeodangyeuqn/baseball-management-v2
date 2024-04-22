@@ -38,7 +38,7 @@ const AddTransactionScreen = () => {
   const [price, setPrice] = useState(0);
   const [type, setType] = useState(0);
   const [description, setDescription] = useState("");
-  const [playerid, setPlayerId] = useState(null);
+  const [playerid, setPlayerId] = useState(-1);
   const descriptionRef = useRef(null);
   // const players = useRecoilValueLoadable(playersAsyncSelector(teamid));
   const [fullPlayers, setFullPlayers] = useRecoilState(playersState);
@@ -187,7 +187,7 @@ const AddTransactionScreen = () => {
           />
         </View> */}
         <Picker
-          style={styles.input}
+          style={styles.inputLong}
           selectedValue={type}
           onValueChange={(itemValue, itemIndex) => {
             if (itemValue != "label") setType(itemValue);
@@ -199,8 +199,9 @@ const AddTransactionScreen = () => {
             value={0}
             style={{ color: "black" }}
           />
-          {tranType.map((tran) => (
+          {tranType.map((tran, index) => (
             <Picker.Item
+              key={index}
               style={{
                 color:
                   tran.value < 0 ? "red" : tran.value === 0 ? "black" : "green",
@@ -225,22 +226,27 @@ const AddTransactionScreen = () => {
           />
         </View>
 
-        <Picker
-          style={styles.input}
-          selectedValue={playerid}
-          onValueChange={(itemValue, itemIndex) => {
-            if (itemValue != "label") setPlayerId(itemValue);
-          }}
-          dropdownIconColor="#00fc08"
-        >
-          <Picker.Item label="Chọn cầu thủ liên quan" value={-1} />
-          {fullPlayers.map((player) => (
-            <Picker.Item
-              label={`${player.firstName} ${player.lastName}`}
-              value={player.id}
-            />
-          ))}
-        </Picker>
+        {type === 3 ? (
+          <Picker
+            style={styles.inputLong}
+            selectedValue={playerid}
+            onValueChange={(itemValue, itemIndex) => {
+              if (itemValue != "label") setPlayerId(itemValue);
+            }}
+            dropdownIconColor="#00fc08"
+          >
+            <Picker.Item key={-1} label="Chọn người đã đóng quỹ" value={-1} />
+            {fullPlayers.map((player, index) => (
+              <Picker.Item
+                key={index}
+                label={`${player.firstName} ${player.lastName}`}
+                value={player.id}
+              />
+            ))}
+          </Picker>
+        ) : (
+          <></>
+        )}
 
         <View style={{ marginTop: 20 }}>
           <BorderlessButton onPress={onSubmit}>
@@ -278,13 +284,17 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
 
-  input: {
+  inputLong: {
     width: "100%",
     height: 40,
     borderColor: "#ccc",
     borderWidth: 1,
+    padding: 10,
     marginTop: 10,
-    marginBottom: 10,
+    marginLeft: 8,
+    marginRight: 8,
+    borderRadius: 10,
+    backgroundColor: "white",
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,

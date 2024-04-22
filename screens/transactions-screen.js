@@ -23,21 +23,20 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import theme, { Box, Text } from "../component/theme";
 import { useTiming } from "react-native-redash";
 import EmptyList from "../component/EmptyList";
+import { playersState } from "../atom/Players";
 
 const TransactionsScreen = () => {
   const [recoilTransactions, setRecoilTransactions] =
     useRecoilState(transactionsState);
   const [transactions, setTransactions] = useState([]);
+  const [fullPlayers, setFullPlayers] = useRecoilState(playersState);
   const [isLoading, setIsLoading] = useState(false);
   const route = useRoute();
   const teamid = route.params.teamid;
   const toast = useToast();
 
-  const [active, setActive] = useState(0);
+  const active = new Animated.Value(0);
 
-  const transition = useTiming(active, {
-    duration: 200,
-  });
   const navigation = useNavigation();
 
   const onDelete = (id) => {};
@@ -53,11 +52,14 @@ const TransactionsScreen = () => {
           setTransactions(data);
           setRecoilTransactions(data);
           console.log("Transactions stored successfully");
-          setIsLoading(false);
         } else if (recoilTransactions.length > 0) {
           setTransactions(recoilTransactions);
-          setIsLoading(false);
         }
+        if (fullPlayers.length === 0) {
+          const { data } = await axiosInstance.get(`/players/team/${teamid}/`);
+          setFullPlayers(data);
+        }
+        setIsLoading(false);
       } catch (error) {
         toast.show(error.message, {
           type: "danger",
@@ -122,6 +124,10 @@ const TransactionsScreen = () => {
     );
   };
 
+  useEffect(() => {
+    console.log("Effect: ", active);
+  }, [active]);
+
   const DATA = Object.values(
     transactions.reduce((acc, item) => {
       if (!acc[getDate(item.time)])
@@ -175,9 +181,10 @@ const TransactionsScreen = () => {
           ListEmptyComponent={<EmptyList />}
           scrollEventThrottle={16}
           bounces={false}
-          keyExtractor={(item, index) => item + index}
+          keyExtractor={(item, index) => item.id + index}
           renderItem={({ item }) => {
             const index = item.id;
+            const player = fullPlayers.find((p) => p.id == item.player_id);
             return (
               <Animated.View
                 style={{ borderRadius: 20, backgroundColor: "red" }}
@@ -191,16 +198,17 @@ const TransactionsScreen = () => {
                   backgroundColor="white"
                 >
                   <Animated.View style={styles.deleteIcon}>
-                    {/* <Text>
+                    <Text>
                       <Delete />
-                    </Text> */}
+                    </Text>
                   </Animated.View>
                   <Animated.View style={{ backgroundColor: "white" }}>
                     <Expense
                       onTap={() => {
-                        setActive(index);
+                        active.setValue(index);
+                        console.log("Tap: ", active);
                       }}
-                      {...{ transition, index, onDelete, item, allDates }}
+                      {...{ active, index, onDelete, item, allDates, player }}
                     >
                       <Box
                         overflow="hidden"

@@ -14,7 +14,8 @@ import { Formik, Field, Form } from "formik";
 import * as Yup from "yup";
 import { useToast } from "react-native-toast-notifications";
 import axiosInstance from "../lib/axiosClient";
-import DocumentPicker from "react-native-document-picker";
+import * as DocumentPicker from "expo-document-picker";
+import { color } from "react-native-reanimated";
 
 const ImportExcelPlayerScreen = () => {
   const [error, setError] = useState("");
@@ -25,35 +26,29 @@ const ImportExcelPlayerScreen = () => {
 
   const pickDocument = async () => {
     try {
-      const result = await new DocumentPicker.pick({
-        type: [DocumentPicker.types.xls, DocumentPicker.types.xlsx],
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // Filter for Excel files (XLSX)
       });
+      console.log(result);
 
-      console.log(
-        result[0].uri,
-        result[0].type, // mime type
-        result[0].name,
-        result[0].size
-      );
-      setPickedDocument(result[0]);
-    } catch (err) {
-      if (DocumentPicker.isCancel(err)) {
-        toast.show(
-          "Định dạng file không đúng (chỉ chấp nhận .xls hoặc .xlsx)",
-          {
-            type: "warning",
-            placement: "bottom",
-            duration: 4000,
-            offset: 30,
-            animationType: "zoom-in",
-          }
-        );
+      if (result.type === "success") {
+        console.log("Excel file URI:", result.uri);
+        setPickedDocument(result);
+        // Handle the selected file (more on this later)
       } else {
-        throw err;
+        console.log("User canceled file picker");
       }
+    } catch (error) {
+      toast.show(error.message, {
+        type: "danger",
+        placement: "bottom",
+        duration: 4000,
+        offset: 30,
+        animationType: "zoom-in",
+      });
     }
   };
-
+  console.log(pickedDocument);
   const handleImportExcelPlayer = async () => {
     try {
       setIsLoading(true);
@@ -61,8 +56,9 @@ const ImportExcelPlayerScreen = () => {
         const formData = new FormData();
         formData.append("file", {
           uri: pickedDocument.uri,
-          type: pickedDocument.type,
-          name: pickedDocument.name,
+          type: pickedDocument.mimeType,
+          name: pickedDocument.name.split(".")[0],
+          size: pickedDocument.size,
         });
         const response = await axiosInstance.post("/player/import/", formData, {
           headers: {
@@ -115,13 +111,17 @@ const ImportExcelPlayerScreen = () => {
           <View style={styles.container}>
             <Text style={styles.title}>Import các cầu thủ từ file excel</Text>
             <TouchableOpacity style={styles.button} onPress={pickDocument}>
-              <Text>Pick a File</Text>
+              <Text style={{ color: "white" }}>Chọn một file excel</Text>
             </TouchableOpacity>
 
             {pickedDocument && (
               <View>
-                <Text>Selected File:</Text>
-                <Text>{pickedDocument.name}</Text>
+                <Text>File đã chọn:</Text>
+                <Text>Tên file: {pickedDocument.name}</Text>
+                <Text>
+                  Kích thước: {(pickedDocument.size / (1024 * 1024)).toFixed(2)}{" "}
+                  MB
+                </Text>
               </View>
             )}
             {formik.errors.file && (
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     borderStyle: "solid",
     borderColor: "black",
     backgroundColor: "green",
-    padding: 4,
+    padding: 10,
     marginRight: 4,
   },
   textButton: {

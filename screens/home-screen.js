@@ -20,6 +20,7 @@ import { ActivityIndicator } from "react-native";
 import axiosInstance from "../lib/axiosClient";
 import { useToast } from "react-native-toast-notifications";
 import { teamIdSelector } from "../atom/Players";
+import NotificationProvider from "../provider/NotificationProvider";
 
 const configDateTime = (datetime) => {
   let dateAndTime = datetime.split("T"); // split date and time
@@ -53,6 +54,7 @@ const HomeScreen = () => {
   const [selected, setSelected] = useState("");
   const [username, setUsername] = useState("");
   const [teamName, setTeamName] = useState("");
+  const [id, setId] = useState(null);
   const [datesEvent, setDatesEvent] = useState([]);
   const [isloading, setIsLoading] = useState(false);
   const toast = useToast();
@@ -82,6 +84,7 @@ const HomeScreen = () => {
         const decoded = jwtDecode(token);
         setUsername(decoded.username);
         setTeamName(decoded.teamName);
+        setId(decoded.id);
         if (recoilEvents.length === 0) {
           const { data } = await axiosInstance.get(`/events/team/${teamid}/`);
 
@@ -139,28 +142,30 @@ const HomeScreen = () => {
     );
   }
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Xin chào {username}</Text>
-        <Text style={styles.title}>Đội bóng của bạn: {teamName}</Text>
+    <NotificationProvider id={id}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Xin chào {username}</Text>
+          <Text style={styles.title}>Đội bóng của bạn: {teamName}</Text>
+        </View>
+        <Calendar
+          onDayPress={(day) => {
+            setSelected(day.dateString);
+          }}
+          markedDates={{
+            ...markedDates,
+            [selected]: {
+              selected: true,
+              marked: datesEvent.some((date) => date === selected),
+              disableTouchEvent: true,
+              selectedDotColor: "orange",
+            },
+          }}
+        />
+        <ScrollView>{renderEvents()}</ScrollView>
+        {/* <Button title="Thêm sự kiện" onPress={handleAddEvent} /> */}
       </View>
-      <Calendar
-        onDayPress={(day) => {
-          setSelected(day.dateString);
-        }}
-        markedDates={{
-          ...markedDates,
-          [selected]: {
-            selected: true,
-            marked: datesEvent.some((date) => date === selected),
-            disableTouchEvent: true,
-            selectedDotColor: "orange",
-          },
-        }}
-      />
-      <ScrollView>{renderEvents()}</ScrollView>
-      {/* <Button title="Thêm sự kiện" onPress={handleAddEvent} /> */}
-    </View>
+    </NotificationProvider>
   );
 };
 const Event = ({ event, teamName }) => {
