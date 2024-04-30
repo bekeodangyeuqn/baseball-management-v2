@@ -18,13 +18,21 @@ import AddIcon from "../../component/AddIcon";
 const UpcomingGameScreen = (props) => {
   const navigation = useNavigation();
   const { games, teamName } = props;
+
+  if (!games) {
+    return (
+      <View style={styles.loadingOverlay}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
   return (
     <View style={styles.container}>
-      {games && (
+      {/* {games && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#0000ff" />
         </View>
-      )}
+      )} */}
       <View>
         {games.map((game) => {
           if (game.status === -1) {

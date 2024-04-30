@@ -8,8 +8,9 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   SafeAreaView,
+  Platform,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { useState } from "react";
 import * as Yup from "yup";
 import { Formik, Field, Form } from "formik";
@@ -19,8 +20,8 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import jwtDecode from "jwt-decode";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
-import { gamesState } from "../atom/Games";
-import { useRecoilState } from "recoil";
+import { gameByIdState, gamesState } from "../atom/Games";
+import { useRecoilState, useRecoilValue } from "recoil";
 import Animated from "react-native-reanimated";
 
 function formatDateToISO(date) {
@@ -31,22 +32,46 @@ function formatDateToISO(date) {
   return `${year}-${month}-${day}`;
 }
 
-const CreateGameScreen = () => {
+const configDateTime = (datetime) => {
+  let dateAndTime = datetime.split("T"); // split date and time
+
+  let date = dateAndTime[0]; // get the date
+
+  let time = dateAndTime[1].split(":"); // split hours and minutes
+  let hoursAndMinutes = `${time[0]}:${time[1]}`;
+  return `${hoursAndMinutes} ${date}`; // get hours and minutes
+};
+
+const EditGameScreen = () => {
+  const route = useRoute();
+  const id = route.params.id;
+  const game = useRecoilValue(gameByIdState(id));
   const [isLoading, setIsLoading] = useState(false);
   const [picker, setPicker] = useState(false);
-  const [date, setDate] = useState(new Date());
+  const [date1, setDate1] = useState(
+    game.timeStart ? new Date(game.timeStart) : new Date()
+  );
+  const [date2, setDate2] = useState(
+    game.timeEnd ? new Date(game.timeEnd) : new Date()
+  );
+  const [dateStart, setDateStart] = useState(game.timeStart);
+  const [dateEnd, setDateEnd] = useState(game.timeEnd);
   const [mode, setMode] = useState("date");
-  const [show, setShow] = useState(false);
+  const [show1, setShow1] = useState(false);
+  const [show2, setShow2] = useState(false);
 
   const [error, setError] = useState("");
   const [teamid, setTeamId] = useState(null);
   const [teamName, setTeamName] = useState("");
-  const [inningERA, setInningERA] = useState(-1);
-  const [leagueId, setLeagueId] = useState(null);
+  const [inningERA, setInningERA] = useState(game.inningERA);
+  const [leagueId, setLeagueId] = useState(game.leagueId);
   const [step, setStep] = useState(1);
   const [games, setGames] = useRecoilState(gamesState);
+  const [isLoadingStart, setIsLoadingStart] = useState(false);
   const toast = useToast();
   const navigation = useNavigation();
+  const [username, setUsername] = useState("");
+  const [tokens, setTokens] = useState([]);
   const validationSchema = Yup.object().shape({
     oppTeam: Yup.string().required("Opponent team name is required"),
     oppTeamShort: Yup.string()
@@ -65,35 +90,53 @@ const CreateGameScreen = () => {
   useEffect(() => {
     const getInfo = async () => {
       try {
+        setIsLoading(true);
         const token = await AsyncStorage.getItem("access_token");
         const decoded = jwtDecode(token);
-        console.log(decoded.id);
+        setUsername(decoded.username);
         setTeamId(decoded.teamid);
-        setTeamName(decoded.teamName);
-      } catch (error) {
-        console.log(error);
+        setTeamName(decoded.teamname);
+        const { data } = await axiosInstance(
+          `/userpushtokens/${decoded.teamid}/`
+        );
+        setTokens(data);
+        setIsLoading(false);
+      } catch (err) {
+        console.log(err);
+        setIsLoading(false);
       }
     };
-    getInfo().catch((error) => console.error(error));
+    getInfo();
   }, []);
 
-  const onChange = (event, selectedDate) => {
+  const onChangeStart = (event, selectedDate) => {
+    console.log(selectedDate);
     const currentDate = selectedDate;
-    setShow(false);
-    setDate(currentDate);
+    setDate1(currentDate);
+    setShow1(!show1);
+    setDateStart(currentDate);
   };
 
-  const showMode = (currentMode) => {
-    setShow(true);
+  const onChangeEnd = (event, selectedDate) => {
+    console.log(selectedDate);
+    const currentDate = selectedDate;
+    setDate2(currentDate);
+    setShow2(!show2);
+    setDateEnd(currentDate);
+  };
+
+  const showMode = (currentMode, number) => {
+    if (number == 1) setShow1(!show1);
+    else setShow2(!show2);
     setMode(currentMode);
   };
 
-  const showDatepicker = () => {
-    showMode("date");
+  const showDatepicker = (number) => {
+    showMode("date", number);
   };
 
-  const showTimepicker = () => {
-    showMode("time");
+  const showTimepicker = (number) => {
+    showMode("time", number);
   };
 
   const fadeAnim = useRef(new Animated.Value(0)).current; // Initial value for opacity: 0
@@ -135,24 +178,28 @@ const CreateGameScreen = () => {
     }
   };
 
-  const handleCreateGame = async (values) => {
+  const handleEditGame = async (values) => {
     try {
       setIsLoading(true);
-      const response = await axiosInstance.post("/game/create/", {
+      const req = {
         oppTeam: values.oppTeam,
         oppTeamShort: values.oppTeamShort,
         description: values.description,
-        timeStart: values.timeStart,
-        league_id: leagueId,
+        timeStart: date1,
+        timeEnd: date2,
+        league_id: leagueId <= 0 ? null : leagueId,
         stadium: values.stadium,
         inningERA: inningERA,
         team_id: teamid,
-        status: -1,
-        timeEnd: null,
-      });
+      };
+      console.log(req);
+      const response = await axiosInstance.patch(`/game/updates/${id}/`, req);
 
       if (games.length > 0) {
-        setGames((oldGames) => [...oldGames, response.data]);
+        setGames((oldGames) => [
+          ...oldGames.filter((g) => g.id !== id),
+          response.data,
+        ]);
       } else {
         const { data } = await axiosInstance.get(`/games/team/${teamid}/`);
         setGames(data);
@@ -182,20 +229,22 @@ const CreateGameScreen = () => {
       });
     }
   };
+  console.log(dateStart, dateEnd, date1, date2);
   return (
     <Formik
       initialValues={{
-        oppTeam: "",
-        oppTeamShort: "",
-        leagueId: leagueId,
-        timeStart: date,
-        description: "",
-        stadium: "",
-        inningERA: inningERA,
+        oppTeam: game.oppTeam,
+        oppTeamShort: game.oppTeamShort,
+        leagueId: game.leagueId,
+        timeStart: game.timeStart ? configDateTime(game.timeStart) : new Date(),
+        timeEnd: game.timeEnd ? configDateTime(game.timeEnd) : new Date(),
+        description: game.description ? game.description : "",
+        stadium: game.stadium ? game.stadium : "",
+        inningERA: game.inningERA,
       }}
       validationSchema={validationSchema}
       onSubmit={(values) => {
-        handleCreateGame(values);
+        handleEditGame(values);
       }}
     >
       {(formik) => {
@@ -222,7 +271,7 @@ const CreateGameScreen = () => {
                     : step === 2
                     ? "Mô tả"
                     : step === 3
-                    ? "Thời gian bắt đầu"
+                    ? "Thời gian"
                     : step === 4
                     ? "Địa điểm"
                     : step === 5
@@ -292,41 +341,106 @@ const CreateGameScreen = () => {
                 )}
                 {step === 3 && (
                   <View>
-                    <SafeAreaView style={styles.formRow}>
-                      <View>
-                        <Button onPress={showDatepicker} title="Ngày dự định" />
-                      </View>
-                      <View style={{ marginLeft: 10 }}>
-                        <Button
-                          onPress={showTimepicker}
-                          title="Thời gian dự định"
-                        />
-                      </View>
-                    </SafeAreaView>
-                    <TextInput
-                      style={styles.input}
-                      name="timeStart"
-                      placeholder="Thời gian bắt đầu"
-                      onChangeText={setDate}
-                      value={date
-                        .toLocaleString("en-US", options)
-                        .replace(",", "")}
-                      editable={false}
-                    />
-                    {show && (
-                      <DateTimePicker
-                        testID="dateTimePicker"
-                        value={date}
-                        mode={mode}
-                        is24Hour={true}
-                        onChange={onChange}
-                      />
-                    )}
-                    {formik.errors.timeStart && (
-                      <Text style={{ color: "red" }}>
-                        {formik.errors.timeStart}
+                    <View>
+                      <Text
+                        style={{
+                          fontSize: 18,
+                          fontWeight: "bold",
+                          alignItems: "center",
+                        }}
+                      >
+                        Thời gian bắt đầu
                       </Text>
-                    )}
+                      <SafeAreaView style={styles.formRow}>
+                        <View>
+                          <Button
+                            onPress={() => showDatepicker(1)}
+                            title="Ngày bắt đầu"
+                          />
+                        </View>
+                        <View style={{ marginLeft: 10 }}>
+                          <Button
+                            onPress={() => showTimepicker(1)}
+                            title="Thời gian bắt đầu"
+                          />
+                        </View>
+                      </SafeAreaView>
+                      <TextInput
+                        style={styles.input}
+                        name="timeStart"
+                        placeholder="Thời gian bắt đầu"
+                        onChangeText={setDate1}
+                        value={date1
+                          .toLocaleString("en-US", options)
+                          .replace(",", "")}
+                        // value={dateStart ? dateStart : new Date()}
+                        editable={false}
+                      />
+                      {show1 && (
+                        <DateTimePicker
+                          testID="dateTimePickerStart"
+                          value={date1}
+                          mode={mode}
+                          is24Hour={true}
+                          onChange={onChangeStart}
+                        />
+                      )}
+                      {formik.errors.timeStart && (
+                        <Text style={{ color: "red" }}>
+                          {formik.errors.timeStart}
+                        </Text>
+                      )}
+                    </View>
+                    <View>
+                      <Text
+                        style={{
+                          fontSize: 18,
+                          fontWeight: "bold",
+                          alignItems: "center",
+                        }}
+                      >
+                        Thời gian kết thúc
+                      </Text>
+                      <SafeAreaView style={styles.formRow}>
+                        <View>
+                          <Button
+                            onPress={() => showDatepicker(2)}
+                            title="Ngày kết thúc"
+                          />
+                        </View>
+                        <View style={{ marginLeft: 10 }}>
+                          <Button
+                            onPress={() => showTimepicker(2)}
+                            title="Thời gian kết thúc"
+                          />
+                        </View>
+                      </SafeAreaView>
+                      <TextInput
+                        style={styles.input}
+                        name="timeEnd"
+                        placeholder="Thời gian kết thúc"
+                        onChangeText={setDate2}
+                        value={date2
+                          .toLocaleString("en-US", options)
+                          .replace(",", "")}
+                        // value={dateEnd ? dateEnd : new Date()}
+                        editable={false}
+                      />
+                      {show2 && (
+                        <DateTimePicker
+                          testID="dateTimePickerEnd"
+                          value={date2}
+                          mode={mode}
+                          is24Hour={true}
+                          onChange={onChangeEnd}
+                        />
+                      )}
+                      {formik.errors.timeStart && (
+                        <Text style={{ color: "red" }}>
+                          {formik.errors.timeStart}
+                        </Text>
+                      )}
+                    </View>
                   </View>
                 )}
                 {step === 4 && (
@@ -389,11 +503,6 @@ const CreateGameScreen = () => {
                       <Picker.Item label="9" value={9} />
                     </Picker>
                     {error && <Text style={{ color: "red" }}>{error}</Text>}
-                    {isLoading && (
-                      <View style={styles.loadingOverlay}>
-                        <ActivityIndicator size="large" color="#0000ff" />
-                      </View>
-                    )}
                   </View>
                 )}
                 <View
@@ -418,6 +527,11 @@ const CreateGameScreen = () => {
                 </View>
               </View>
             </View>
+            {isLoading && (
+              <View style={styles.loadingOverlay}>
+                <ActivityIndicator size="large" color="#0000ff" />
+              </View>
+            )}
           </View>
         );
       }}
@@ -491,4 +605,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CreateGameScreen;
+export default EditGameScreen;

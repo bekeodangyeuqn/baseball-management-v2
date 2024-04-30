@@ -35,20 +35,16 @@ const GameTopNav = () => {
   const route = useRoute();
   const teamid = route.params.teamid;
   const teamName = route.params.teamName;
-  const fetchGames = useRecoilValueLoadable(fetchGamesState(teamid));
-  const setRecoilGame = useSetRecoilState(gamesState);
 
   useEffect(() => {
     const fetchAndSetGames = async () => {
       setIsLoading(true);
       try {
-        if (fetchGames.state === "hasValue") {
-          setGames(fetchGames.contents);
-          setRecoilGame(fetchGames.contents);
-          console.log("Load game successfully");
-        } else if (fetchGames.state === "hasError") {
-          throw fetchGames.contents; // Throw the error to be caught in the catch block
+        if (games.length < 0) {
+          const { data } = await axiosInstance.get(`/games/team/${teamid}/`);
+          setGames(data);
         }
+        setIsLoading(false);
       } catch (error) {
         toast.show(error.message, {
           type: "danger",
@@ -57,6 +53,7 @@ const GameTopNav = () => {
           offset: 30,
           animationType: "zoom-in",
         });
+        setIsLoading(false);
       } finally {
         setIsLoading(false);
         console.log("Load game completed");
@@ -64,7 +61,7 @@ const GameTopNav = () => {
     };
 
     fetchAndSetGames();
-  }, [fetchGames, setGames, toast]);
+  }, []);
   return (
     <Tab.Navigator initialRouteName="Upcoming">
       <Tab.Screen

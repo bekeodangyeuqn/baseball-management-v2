@@ -278,6 +278,27 @@ const GameDetailScreen = () => {
             });
             isRunnerThird = isRunnerThird ? isRunnerThird : null;
 
+            let pitcherResponseFirst = myBatting.find((player) => {
+              return obj.pitcherResponseFirst_id == player.id;
+            });
+            pitcherResponseFirst = pitcherResponseFirst
+              ? pitcherResponseFirst
+              : null;
+
+            let pitcherResponseSecond = myBatting.find((player) => {
+              return obj.pitcherResponseSecond_id == player.id;
+            });
+            pitcherResponseSecond = pitcherResponseSecond
+              ? pitcherResponseSecond
+              : null;
+
+            let pitcherResponseThird = myBatting.find((player) => {
+              return obj.pitcherResponseThird_id == player.id;
+            });
+            pitcherResponseThird = pitcherResponseThird
+              ? pitcherResponseThird
+              : null;
+
             let currentPitcher = myBatting.find((player) => {
               return obj.currentPitcher_id == player.id;
             });
@@ -291,6 +312,12 @@ const GameDetailScreen = () => {
               isRunnerThird:
                 obj.isOffense == 1 ? isRunnerThird : obj.isRunnerThirdDef,
               currentPitcher: currentPitcher,
+              pitcherResponseFirst:
+                obj.isOffense == 0 ? pitcherResponseFirst : null,
+              pitcherResponseSecond:
+                obj.isOffense == 0 ? pitcherResponseSecond : null,
+              pitcherResponseThird:
+                obj.isOffense == 0 ? pitcherResponseThird : null,
               gameid: obj.game_id,
             };
           })
@@ -348,27 +375,45 @@ const GameDetailScreen = () => {
         </Text>
         <Text style={styles.resultText}>{oppTeamShort}</Text>
       </View>
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => {
-          if (status === -1)
-            navigation.navigate("GamePlayerSelect", {
-              teamid: teamid,
-              gameid: gameid,
-            });
-          else {
-            handleContinueGame();
-          }
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        <Text style={styles.textButton}>
-          {status === -1
-            ? "Play ball"
-            : status === 0
-            ? "Tiếp tục"
-            : "Đã kết thúc"}
-        </Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.button, { marginRight: 10 }]}
+          onPress={() => {
+            if (status === -1)
+              navigation.navigate("GamePlayerSelect", {
+                teamid: teamid,
+                gameid: gameid,
+              });
+            else {
+              handleContinueGame();
+            }
+          }}
+        >
+          <Text style={styles.textButton}>
+            {status === -1
+              ? "Play ball"
+              : status === 0
+              ? "Tiếp tục"
+              : "Đã kết thúc"}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => {
+            navigation.navigate("EditGame", {
+              id: gameid,
+            });
+          }}
+        >
+          <Text style={styles.textButton}>Chỉnh sửa</Text>
+        </TouchableOpacity>
+      </View>
       <View style={{ borderTop: "1px solid green" }}>
         <HorizontalTable data={gameData} />
       </View>

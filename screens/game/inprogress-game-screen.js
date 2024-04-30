@@ -12,6 +12,7 @@ import jwtDecode from "jwt-decode";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useToast } from "react-native-toast-notifications";
 import axiosInstance from "../../lib/axiosClient";
+import AddIcon from "../../component/AddIcon";
 
 const InprogressGameScreen = (props) => {
   const navigation = useNavigation();

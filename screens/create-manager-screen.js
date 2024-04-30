@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
 import jwtDecode from "jwt-decode";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Animated from "react-native-reanimated";
 
 function formatDateToISO(date) {
   const year = date.getFullYear();
@@ -39,6 +40,7 @@ const CreateManagerScreen = () => {
   });
   const [dob, setDob] = useState("");
   const [error, setError] = useState("");
+  const [step, setStep] = useState(1);
   const [id, setId] = useState(null);
   const toast = useToast();
   const navigation = useNavigation();
@@ -277,7 +279,7 @@ const CreateManagerScreen = () => {
                           name="birthDate"
                           placeholder="Ngày sinh"
                           onChangeText={setDob}
-                          value={dob ? dob : player.birthDate}
+                          value={dob}
                           editable={false}
                         />
                       </Pressable>
@@ -294,7 +296,7 @@ const CreateManagerScreen = () => {
                       autoCapitalize="none"
                       keyboardType="numeric"
                       onChangeText={formik.handleChange("jerseyNumber")}
-                      value={formik.values.jerseyNumber.toString()}
+                      value={formik.values.jerseyNumber}
                     />
                     {formik.errors.jerseyNumber && (
                       <Text style={{ color: "red" }}>
@@ -359,7 +361,14 @@ const CreateManagerScreen = () => {
                     {image && image.uri && (
                       <Image
                         source={{ uri: image.uri }}
-                        style={{ width: 200, height: 200 }}
+                        style={{
+                          width: 200,
+                          height: 200,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          alignSelf: "center",
+                          marginTop: 10,
+                        }}
                       />
                     )}
                     {formik.errors.avatar && (
@@ -410,6 +419,17 @@ const styles = StyleSheet.create({
   },
   input: {
     width: 300,
+    height: 40,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    padding: 10,
+    marginTop: 10,
+    marginBottom: 10,
+    borderRadius: 10,
+    backgroundColor: "white",
+  },
+  inputLong: {
+    width: "100%",
     height: 40,
     borderColor: "#ccc",
     borderWidth: 1,

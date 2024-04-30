@@ -10,6 +10,9 @@ const ChoosePlayerItem = (props) => {
 
   const [myBatting, setMyBatting] = ingame ? props.functions : useState(null);
   const [atBat, setAtBat] = ingame ? props.functionsAB : useState(null);
+  const [atBatStatus, setAtBatStatus] = ingame
+    ? props.functionABS
+    : useState(null);
   const position = ["DH", "P", "C", "1B", "2B", "3B", "SS", "OF", "None"];
   const splitAvatarURI = (str) => {
     const arr = str.split("?");
@@ -18,55 +21,53 @@ const ChoosePlayerItem = (props) => {
   const [myPlayers, setMyPlayers] = useRecoilState(myGamePlayers);
 
   const onPress = (pos) => {
+    const samePosPLayer = myBatting.find((obj) => obj.position === pos);
+    const samePosPlayerId = myBatting.findIndex((obj) => obj.position === pos);
+    let newPlayer = {
+      player: player,
+      position: pos,
+      gameid: gameid,
+      battingOrder: samePosPLayer.battingOrder,
+      plateApperance: 0,
+      runBattedIn: 0,
+      single: 0,
+      double: 0,
+      triple: 0,
+      homeRun: 0,
+      baseOnBall: 0,
+      intentionalBB: 0,
+      hitByPitch: 0,
+      strikeOut: 0,
+      fielderChoice: 0,
+      sacrificeFly: 0,
+      sacrificeBunt: 0,
+      stolenBase: 0,
+      leftOnBase: 0,
+      doublePlay: 0,
+      triplePlay: 0,
+      run: 0,
+      onBaseByError: 0,
+      putOut: 0,
+      assist: 0,
+      error: 0,
+      playedPos: [pos],
+      pitchBall: 0,
+      pitchStrike: 0,
+      totalBatterFaced: 0,
+      totalInGameOut: 0,
+      oppHit: 0,
+      oppRun: 0,
+      earnedRun: 0,
+      oppBaseOnBall: 0,
+      oppStrikeOut: 0,
+      hitBatter: 0,
+      balk: 0,
+      wildPitch: 0,
+      oppHomeRun: 0,
+      firstPitchStrike: 0,
+      pickOff: 0,
+    };
     if (ingame) {
-      const samePosPLayer = myBatting.find((obj) => obj.position === pos);
-      const samePosPlayerId = myBatting.findIndex(
-        (obj) => obj.position === pos
-      );
-      let newPlayer = {
-        player: player,
-        position: pos,
-        gameid: gameid,
-        battingOrder: samePosPLayer.battingOrder,
-        plateApperance: 0,
-        runBattedIn: 0,
-        single: 0,
-        double: 0,
-        triple: 0,
-        homeRun: 0,
-        baseOnBall: 0,
-        intentionalBB: 0,
-        hitByPitch: 0,
-        strikeOut: 0,
-        fielderChoice: 0,
-        sacrificeFly: 0,
-        sacrificeBunt: 0,
-        stolenBase: 0,
-        leftOnBase: 0,
-        doublePlay: 0,
-        triplePlay: 0,
-        run: 0,
-        onBaseByError: 0,
-        putOut: 0,
-        assist: 0,
-        error: 0,
-        playedPos: [pos],
-        pitchBall: 0,
-        pitchStrike: 0,
-        totalBatterFaced: 0,
-        totalInGameOut: 0,
-        oppHit: 0,
-        oppRun: 0,
-        earnedRun: 0,
-        oppBaseOnBall: 0,
-        oppStrikeOut: 0,
-        hitBatter: 0,
-        balk: 0,
-        wildPitch: 0,
-        oppHomeRun: 0,
-        firstPitchStrike: 0,
-        pickOff: 0,
-      };
       setMyBatting((prev) => {
         if (!prev.some((obj) => obj.player.id === player.id)) {
           let newBatting = [...prev];
@@ -111,19 +112,50 @@ const ChoosePlayerItem = (props) => {
           } else return myBatting;
         }
       });
+      if (pos == 1) {
+        setAtBat((prev) => {
+          return {
+            ...prev,
+            currentPitcher: newPlayer,
+          };
+        });
+        setAtBatStatus((prev) => {
+          return {
+            atBat: {
+              ...prev.atBat,
+              currentPitcher: newPlayer,
+            },
+            myBatting: prev.myBatting,
+          };
+        });
+      }
     }
 
     if (posRun && ingame) {
-      setAtBat((prev) => {
-        if (!myBatting.some((obj) => obj.player.id === player.id))
+      if (!myBatting.some((obj) => obj.player.id === player.id)) {
+        setAtBat((prev) => {
           return {
             ...prev,
             isRunnerFirst: posRun === 11 ? newPlayer : prev.isRunnerFirst,
             isRunnerSecond: posRun === 12 ? newPlayer : prev.isRunnerSecond,
             isRunnerThird: posRun === 13 ? newPlayer : prev.isRunnerThird,
           };
-        else return { ...prev };
-      });
+        });
+        setAtBatStatus((prev) => {
+          return {
+            atBat: {
+              ...prev.atBat,
+              isRunnerFirst:
+                posRun === 11 ? newPlayer : prev.atBat.isRunnerFirst,
+              isRunnerSecond:
+                posRun === 12 ? newPlayer : prev.atBat.isRunnerSecond,
+              isRunnerThird:
+                posRun === 13 ? newPlayer : prev.atBat.isRunnerThird,
+            },
+            myBatting: prev.myBatting,
+          };
+        });
+      }
     }
 
     setMyPlayers((curPlayers) => {

@@ -7,6 +7,7 @@ import {
   FlatList,
   TouchableOpacity,
   TextInput,
+  ActivityIndicator,
 } from "react-native";
 import { useRecoilState, useRecoilValueLoadable } from "recoil";
 import { fetchTeamsState, teamsState } from "../atom/Teams";
@@ -47,11 +48,11 @@ const JoinTeamListScreen = () => {
 
   const searchFilter = (item) => {
     const query = searchQuery.toLowerCase();
-    return item.name.toLowerCase().includes(query);
+    if (item.name) return item.name.toLowerCase().includes(query);
   };
 
   const handleSendJoinTeamRequest = async (teamid) => {
-    console.log("Manager: " + managerId, id);
+    console.log("Manager: " + managerId, teamid);
     try {
       setIsLoading(true);
       const { data } = await axiosInstance.post("/request_jointeam/", {
@@ -86,7 +87,8 @@ const JoinTeamListScreen = () => {
     try {
       setIsLoading(true);
       const { data } = await axiosInstance.get(`/teams?page=${p}`);
-      setTeams([...teams, ...data]);
+      console.log(data.results);
+      setTeams([...data.results]);
       setPage(page + 1);
       setIsLoading(false);
     } catch (error) {
@@ -103,6 +105,11 @@ const JoinTeamListScreen = () => {
 
   return (
     <View style={styles.container}>
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#0000ff" />
+        </View>
+      )}
       <Text style={styles.title}>Danh sách các đội</Text>
       <TextInput
         style={styles.searchInput}
@@ -135,7 +142,7 @@ const JoinTeamListScreen = () => {
           </View>
         )}
         keyExtractor={(item) => item.id}
-        onEndReached={loadMoreTeams(page)}
+        onEndReached={() => loadMoreTeams(page)}
         onEndReachedThreshold={0.5}
       />
     </View>

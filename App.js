@@ -48,6 +48,7 @@ import PitchingStatScreen from "./screens/pitching-stat-screen";
 import PlayByPlayListScreen from "./screens/play-by-play-list-screen";
 import NotificationProvider from "./provider/NotificationProvider";
 import EditPlayerScreen from "./screens/edit-player-screen";
+import EditGameScreen from "./screens/edit-game-screen";
 
 export default function App() {
   const Stack = createStackNavigator();
@@ -116,7 +117,7 @@ export default function App() {
                   <Stack.Screen
                     name="CreateManager"
                     component={CreateManagerScreen}
-                    options={{ headerShown: false }}
+                    options={{ title: "Tạo profile nhà quản lý" }}
                   />
                   <Stack.Screen
                     name="Home"
@@ -152,7 +153,12 @@ export default function App() {
                   <Stack.Screen
                     name="CreateGame"
                     component={CreateGameScreen}
-                    options={{ headerShown: false }}
+                    options={{ title: "Tạo trận đấu" }}
+                  />
+                  <Stack.Screen
+                    name="EditGame"
+                    component={EditGameScreen}
+                    options={{ title: "Chỉnh sửa trận đấu" }}
                   />
                   <Stack.Screen
                     name="CreateEvent"
