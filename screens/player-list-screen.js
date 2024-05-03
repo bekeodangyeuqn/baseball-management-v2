@@ -1,4 +1,4 @@
-import React, { Component, useEffect, useState } from "react";
+import React, { Component, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Dimensions,
   SafeAreaView,
   TouchableOpacity,
+  FlatList,
 } from "react-native";
 import { Card } from "@rneui/themed";
 import axiosInstance from "../lib/axiosClient";
@@ -23,12 +24,7 @@ import {
   playersState,
 } from "../atom/Players";
 import { myGamePlayers } from "../atom/GamePlayers";
-import {
-  useRecoilState,
-  useRecoilValue,
-  useRecoilValueLoadable,
-  useSetRecoilState,
-} from "recoil";
+import { useRecoilState } from "recoil";
 import SearchBox from "../component/SearchBox";
 import filter from "lodash.filter";
 import EmptyList from "../component/EmptyList";
@@ -39,6 +35,9 @@ import {
   MenuOptions,
   MenuTrigger,
 } from "react-native-popup-menu";
+import Animated, { FadeIn, Layout } from "react-native-reanimated";
+import { Skeleton } from "moti/skeleton";
+import { SkeletonCommonProps, placeholderList } from "../lib/skeleton";
 
 const { width } = Dimensions.get("window");
 const gap = 4;
@@ -55,26 +54,30 @@ const PlayerListScreen = () => {
   const teamid = route.params.teamid;
   // const players = useRecoilValue(playersAsyncSelector(teamid));
   // const managers = useRecoilValue(managersAsyncSelector(teamid));
-  const [players, setPlayers] = useState([]);
+  const [players, setPlayers] = useState();
   const [fullPlayers, setFullPlayers] = useRecoilState(playersState);
 
-  const [managers, setManagers] = useState([]);
+  const [managers, setManagers] = useState();
   const [fullManagers, setFullManagers] = useRecoilState(managersState);
 
   const navigation = useNavigation();
   const [fullData, setFullData] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [numColumns, setNumColumns] = useState(3);
 
   useEffect(() => {
     const getInfo = async () => {
       setIsLoading(true);
+      // setPlayers(undefined);
       try {
+        let dataPlayers = [];
         if (fullPlayers.length === 0) {
           const { data } = await axiosInstance.get(`/players/team/${teamid}/`);
-
+          dataPlayers = data;
           setFullPlayers(data);
           setPlayers(data);
         } else {
+          dataPlayers = fullPlayers;
           setPlayers(fullPlayers);
         }
 
@@ -82,10 +85,10 @@ const PlayerListScreen = () => {
           const { data } = await axiosInstance.get(`/managers/team/${teamid}/`);
           setFullManagers(data);
           setManagers(data);
-          setFullData([...players, ...data]);
+          setFullData([...dataPlayers, ...data]);
         } else {
           setManagers(fullManagers);
-          setFullData([...players, ...fullManagers]);
+          setFullData([...dataPlayers, ...fullManagers]);
         }
         setIsLoading(false);
       } catch (error) {
@@ -128,16 +131,9 @@ const PlayerListScreen = () => {
       query.lastName.toLowerCase().includes(fomartedQuery)
     );
   };
-  if (isLoading) {
-    return (
-      <View style={styles.loadingOverlay}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
   return (
     <View>
-      <ScrollView style={{ marginVertical: 20 }}>
+      <View style={{ marginVertical: 20 }}>
         <SearchBox
           searchQuery={searchQuery}
           handleSearch={(query) => handleSearch(query)}
@@ -145,80 +141,180 @@ const PlayerListScreen = () => {
         <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 8 }}>
           Danh sách cầu thủ
         </Text>
-        {players.length === 0 ? (
-          <EmptyList />
-        ) : (
-          <View style={styles.itemsWrap}>
-            {players.map((player) => (
+
+        <FlatList
+          data={players ?? placeholderList}
+          key={numColumns}
+          ListEmptyComponent={<EmptyList />}
+          numColumns={numColumns}
+          scrollEnabled={true}
+          renderItem={({ item, index }) => {
+            return (
               <TouchableOpacity
                 style={styles.singleItem}
-                key={player.id}
+                key={index}
                 onPress={() => {
-                  navigation.navigate("PlayerProfile", { id: player.id });
+                  if (item)
+                    navigation.navigate("PlayerProfile", { id: item.id });
                 }}
               >
                 <Card>
                   <View style={{ position: "relative", alignItems: "center" }}>
-                    <Image
-                      style={{ height: 40, width: 40 }}
-                      resizeMode="contain"
-                      source={{
-                        uri: splitAvatarURI(player.avatar),
-                      }}
-                    />
-                    <Text>{player.lastName}</Text>
-                    <Text>{player.jerseyNumber}</Text>
-                    <Text>{position[player.firstPos]}</Text>
+                    <Skeleton.Group show={isLoading}>
+                      <View style={{ alignItems: "center" }}>
+                        <Skeleton
+                          height={40}
+                          width={40}
+                          {...SkeletonCommonProps}
+                        >
+                          {item && (
+                            <Animated.Image
+                              layout={Layout}
+                              style={{
+                                height: 40,
+                                width: 40,
+                                alignSelf: "center",
+                              }}
+                              resizeMode="contain"
+                              source={{
+                                uri: splitAvatarURI(item.avatar),
+                              }}
+                            />
+                          )}
+                        </Skeleton>
+                        <Skeleton {...SkeletonCommonProps}>
+                          <Animated.Text
+                            layout={Layout}
+                            entering={FadeIn.duration(1500)}
+                          >
+                            {item && item.lastName}
+                          </Animated.Text>
+                        </Skeleton>
+                        <Skeleton {...SkeletonCommonProps}>
+                          <Animated.Text
+                            layout={Layout}
+                            entering={FadeIn.duration(1500)}
+                          >
+                            {item && item.jerseyNumber}
+                          </Animated.Text>
+                        </Skeleton>
+                        <Skeleton {...SkeletonCommonProps}>
+                          <Animated.Text
+                            layout={Layout}
+                            entering={FadeIn.duration(1500)}
+                          >
+                            {item && position[item.firstPos]}
+                          </Animated.Text>
+                        </Skeleton>
+                      </View>
+                    </Skeleton.Group>
                   </View>
                 </Card>
               </TouchableOpacity>
-            ))}
-          </View>
-        )}
-        <Text
-          style={{
-            fontWeight: "bold",
-            fontSize: 16,
-            marginBottom: 8,
-            marginTop: 8,
+            );
           }}
-        >
-          Danh sách quản lý
-        </Text>
-        {managers.length === 0 ? (
-          <EmptyList />
-        ) : (
-          <View style={styles.itemsWrap}>
-            {managers.map((manager) => (
-              <TouchableOpacity
-                style={styles.singleItem}
-                key={manager.id}
-                onPress={() => {
-                  navigation.navigate("ManagerProfile", { id: manager.id });
+          ListFooterComponent={() => (
+            <>
+              <Text
+                style={{
+                  fontWeight: "bold",
+                  fontSize: 16,
+                  marginBottom: 8,
+                  marginTop: 8,
                 }}
               >
-                <Card>
-                  <View style={{ position: "relative", alignItems: "center" }}>
-                    <Image
-                      style={{ height: 40, width: 40 }}
-                      resizeMode="contain"
-                      source={{
-                        uri: manager.avatar
-                          ? splitAvatarURI(manager.avatar)
-                          : "https://cdn0.iconfinder.com/data/icons/baseball-filledoutline/64/baseball_player-user-boy-sports-avatar-profile-man-people-coach-512.png",
+                Danh sách quản lý
+              </Text>
+              <FlatList
+                data={managers ?? placeholderList}
+                key={numColumns}
+                ListEmptyComponent={() => <EmptyList />}
+                numColumns={numColumns}
+                scrollEnabled={true}
+                renderItem={({ item, index }) => {
+                  return (
+                    <TouchableOpacity
+                      style={styles.singleItem}
+                      key={index}
+                      onPress={() => {
+                        if (item)
+                          navigation.navigate("ManagerProfile", {
+                            id: item.id,
+                          });
                       }}
-                    />
-                    <Text>{manager.lastName}</Text>
-                    <Text></Text>
-                    <Text></Text>
-                  </View>
-                </Card>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-      </ScrollView>
-      <View style={{ position: "absolute", right: 20, bottom: 50, zIndex: 4 }}>
+                    >
+                      <Card>
+                        <View
+                          style={{ position: "relative", alignItems: "center" }}
+                        >
+                          <Skeleton.Group show={isLoading}>
+                            <View style={{ alignItems: "center" }}>
+                              <Skeleton
+                                height={40}
+                                width={40}
+                                {...SkeletonCommonProps}
+                              >
+                                {item && (
+                                  <Animated.Image
+                                    layout={Layout}
+                                    style={{
+                                      height: 40,
+                                      width: 40,
+                                      alignSelf: "center",
+                                    }}
+                                    resizeMode="contain"
+                                    source={{
+                                      uri: item.avatar
+                                        ? splitAvatarURI(item.avatar)
+                                        : "https://cdn0.iconfinder.com/data/icons/baseball-filledoutline/64/baseball_player-user-boy-sports-avatar-profile-man-people-coach-512.png",
+                                    }}
+                                  />
+                                )}
+                              </Skeleton>
+                              <Skeleton {...SkeletonCommonProps}>
+                                <Animated.Text
+                                  layout={Layout}
+                                  entering={FadeIn.duration(1500)}
+                                >
+                                  {item && item.lastName}
+                                </Animated.Text>
+                              </Skeleton>
+                              <Skeleton {...SkeletonCommonProps}>
+                                <Animated.Text
+                                  layout={Layout}
+                                  entering={FadeIn.duration(1500)}
+                                >
+                                  {item && item.jerseyNumber}
+                                </Animated.Text>
+                              </Skeleton>
+                              <Skeleton {...SkeletonCommonProps}>
+                                <Animated.Text
+                                  layout={Layout}
+                                  entering={FadeIn.duration(1500)}
+                                >
+                                  {item && "Manager"}
+                                </Animated.Text>
+                              </Skeleton>
+                            </View>
+                          </Skeleton.Group>
+                        </View>
+                      </Card>
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            </>
+          )}
+        />
+      </View>
+      <View
+        style={{
+          position: "absolute",
+          right: 20,
+          bottom: isLoading ? 50 : 100,
+          zIndex: 4,
+        }}
+      >
         <Menu>
           <MenuTrigger>
             <AddIcon />
@@ -290,7 +386,6 @@ const styles = StyleSheet.create({
   itemsWrap: {
     display: "flex",
     flexDirection: "row",
-    flexWrap: "wrap",
     marginVertical: -(gap / 2),
     marginHorizontal: -(gap / 2),
   },

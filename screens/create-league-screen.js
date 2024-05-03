@@ -20,31 +20,27 @@ import jwtDecode from "jwt-decode";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRecoilState } from "recoil";
 import { eventsState } from "../atom/Events";
-const CreateEventScreen = () => {
+import { leaguesState } from "../atom/League";
+const CreateLeagueScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [date, setDate] = useState(new Date());
-  const [mode, setMode] = useState("date");
-  const [show, setShow] = useState(false);
+  const [date1, setDate1] = useState(new Date());
+  const [date2, setDate2] = useState(new Date());
+  const [picker1, setPicker1] = useState(false);
+  const [picker2, setPicker2] = useState(false);
 
   const [error, setError] = useState("");
   const [teamid, setTeamId] = useState(null);
   const [teamName, setTeamName] = useState("");
-  const [events, setEvents] = useRecoilState(eventsState);
+  const [leagues, setLeagues] = useRecoilState(leaguesState);
+  const [dob, setDob] = useState(null);
+  const [doe, setDoe] = useState(null);
 
   const toast = useToast();
   const navigation = useNavigation();
   const validationSchema = Yup.object().shape({
-    title: Yup.string().required("Title of the event is required"),
+    title: Yup.string().required("Title of the league is required"),
   });
-  let options = {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false, // Use 24-hour format
-  };
+
   useEffect(() => {
     const getInfo = async () => {
       try {
@@ -60,68 +56,35 @@ const CreateEventScreen = () => {
     getInfo().catch((error) => console.error(error));
   }, []);
 
-  const onChange = (event, selectedDate) => {
-    const currentDate = selectedDate;
-    setShow(false);
-    setDate(currentDate);
-  };
-
-  const showMode = (currentMode) => {
-    setShow(true);
-    setMode(currentMode);
-  };
-
-  const showDatepicker = () => {
-    showMode("date");
-  };
-
-  const showTimepicker = () => {
-    showMode("time");
+  const toggleDatePicker = (number) => {
+    if (number == 1) setPicker1(!picker1);
+    else setPicker2(!picker2);
   };
 
   const handleCreateEvent = async (values) => {
     try {
       setIsLoading(true);
-      const response = await axiosInstance.post("/event/create/", {
+      const response = await axiosInstance.post("/league/create/", {
         title: values.title,
         description: values.description,
         timeStart: values.timeStart,
+        timeEnd: values.timeEnd,
         location: values.location,
         team_id: teamid,
         timeEnd: null,
         status: -1,
+        achieve: 0,
       });
-      setEvents((oldEvents) => [...oldEvents, response.data]);
-      const storedEvents = await AsyncStorage.getItem("events");
-      if (storedEvents) {
-        const storedEventsArr = JSON.parse(storedEvents);
-        const data = [...storedEventsArr, response.data];
-        AsyncStorage.setItem("events", JSON.stringify(data), (error) => {
-          if (error) {
-            console.error(error);
-          } else {
-            console.log("Events stored successfully.");
-          }
-        });
-      } else {
-        const { data } = await axiosInstance.get(`/events/team/${teamid}/`);
-        AsyncStorage.setItem("events", JSON.stringify(data), (error) => {
-          if (error) {
-            console.error(error);
-          } else {
-            console.log("Events stored successfully.");
-          }
-        });
-      }
+      setLeagues((oldLeagues) => [...oldLeagues, response.data]);
       setIsLoading(false);
-      toast.show(" Tạo sự kiện thành công", {
+      toast.show("Tạo giải đấu thành công", {
         type: "success",
         placement: "bottom",
         duration: 4000,
         offset: 30,
         animationType: "zoom-in",
       });
-      navigation.navigate("Events", {
+      navigation.navigate("Leagues", {
         teamid: teamid,
         teamName: teamName,
       });
@@ -143,7 +106,8 @@ const CreateEventScreen = () => {
     <Formik
       initialValues={{
         title: "",
-        timeStart: date,
+        timeStart: date1,
+        timeEnd: date2,
         description: "",
         location: "",
       }}
@@ -155,12 +119,12 @@ const CreateEventScreen = () => {
       {(formik) => {
         return (
           <View style={styles.container}>
-            <Text style={styles.title}>Tạo sự kiện</Text>
+            <Text style={styles.title}>Tạo giải đấu</Text>
 
             <TextInput
               style={styles.input}
               name="title"
-              placeholder="Tiêu đề sự kiện"
+              placeholder="Tên giải đấu"
               keyboardType="default"
               onChangeText={formik.handleChange("title")}
               value={formik.values.title}
@@ -181,33 +145,77 @@ const CreateEventScreen = () => {
             {formik.errors.description && (
               <Text style={{ color: "red" }}>{formik.errors.description}</Text>
             )}
-            <SafeAreaView style={styles.formRow}>
-              <View>
-                <Button onPress={showDatepicker} title="Ngày dự định" />
-              </View>
-              <View style={{ marginLeft: 10 }}>
-                <Button onPress={showTimepicker} title="Thời gian dự định" />
-              </View>
-            </SafeAreaView>
-            <TextInput
-              style={styles.input}
-              name="timeStart"
-              placeholder="Thời gian bắt đầu"
-              onChangeText={setDate}
-              value={date.toLocaleString("en-US", options).replace(",", "")}
-              editable={false}
-            />
-            {show && (
+            {picker1 && (
               <DateTimePicker
-                testID="dateTimePicker"
-                value={date}
-                mode={mode}
-                is24Hour={true}
-                onChange={onChange}
+                mode="date"
+                display="calendar"
+                value={date1}
+                onChange={({ type }, selectedDate) => {
+                  if (type === "set") {
+                    const currentDate = selectedDate;
+                    setDate1(currentDate);
+
+                    if ((Platform.OS = "android")) {
+                      toggleDatePicker(1);
+                      //formik.values.dateOfBirth = currentDate.toDateString();
+                      setDob(formatDateToISO(currentDate));
+                    }
+                  } else {
+                    toggleDatePicker(1);
+                  }
+                }}
               />
+            )}
+            {!picker1 && (
+              <Pressable onPress={() => toggleDatePicker(1)}>
+                <TextInput
+                  style={styles.input}
+                  name="timeStart"
+                  placeholder="Ngày bắt đầu"
+                  onChangeText={setDob}
+                  value={dob}
+                  editable={false}
+                />
+              </Pressable>
             )}
             {formik.errors.timeStart && (
               <Text style={{ color: "red" }}>{formik.errors.timeStart}</Text>
+            )}
+            {picker2 && (
+              <DateTimePicker
+                mode="date"
+                display="calendar"
+                value={date2}
+                onChange={({ type }, selectedDate) => {
+                  if (type === "set") {
+                    const currentDate = selectedDate;
+                    setDate2(currentDate);
+
+                    if ((Platform.OS = "android")) {
+                      toggleDatePicker(2);
+                      //formik.values.dateOfBirth = currentDate.toDateString();
+                      setDoe(formatDateToISO(currentDate));
+                    }
+                  } else {
+                    toggleDatePicker(2);
+                  }
+                }}
+              />
+            )}
+            {!picker1 && (
+              <Pressable onPress={() => toggleDatePicker(2)}>
+                <TextInput
+                  style={styles.input}
+                  name="timeEnd"
+                  placeholder="Ngày kết thúc"
+                  onChangeText={setDoe}
+                  value={dob}
+                  editable={false}
+                />
+              </Pressable>
+            )}
+            {formik.errors.birthDate && (
+              <Text style={{ color: "red" }}>{formik.errors.birthDate}</Text>
             )}
             <TextInput
               style={styles.input}
@@ -304,4 +312,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CreateEventScreen;
+export default CreateLeagueScreen;

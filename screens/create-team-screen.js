@@ -348,23 +348,6 @@ const CreateTeamScreen = () => {
                 )}
                 {step === 4 && (
                   <View>
-                    {!picker && (
-                      <Pressable onPress={toggleDatePicker}>
-                        <TextInput
-                          style={styles.input}
-                          name="foundedDate"
-                          placeholder="Ngày thành lập đội"
-                          onChangeText={setFounddate}
-                          value={foundDate}
-                          editable={false}
-                        />
-                      </Pressable>
-                    )}
-                    {formik.errors.foundedDate && (
-                      <Text style={{ color: "red" }}>
-                        {formik.errors.foundedDate}
-                      </Text>
-                    )}
                     <Button
                       title="Chọn logo"
                       onPress={pickImage}

@@ -29,6 +29,11 @@ export const playersState = atom({
   default: [],
 });
 
+export const statsState = atom({
+  key: "StatsState",
+  default: [],
+});
+
 export const managersState = atom({
   key: "ManagersState",
   default: [],
@@ -103,4 +108,12 @@ export const playerByIdState = selectorFamily({
     (id) =>
     ({ get }) =>
       get(playersState).find((player) => player.id === id),
+});
+
+export const statByIdState = selectorFamily({
+  key: "statByIdState",
+  get:
+    (id) =>
+    ({ get }) =>
+      get(statsState).find((player) => player.id === id),
 });

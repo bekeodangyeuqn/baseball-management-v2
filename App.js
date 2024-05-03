@@ -49,6 +49,10 @@ import PlayByPlayListScreen from "./screens/play-by-play-list-screen";
 import NotificationProvider from "./provider/NotificationProvider";
 import EditPlayerScreen from "./screens/edit-player-screen";
 import EditGameScreen from "./screens/edit-game-screen";
+import LeagueTopNav from "./navigation/leagueTopNav";
+import CreateLeagueScreen from "./screens/edit-league-screen";
+import EditLeagueScreen from "./screens/edit-league-screen";
+import StatsTopNav from "./navigation/statsTopNav";
 
 export default function App() {
   const Stack = createStackNavigator();
@@ -136,6 +140,16 @@ export default function App() {
                     options={{ title: "Sự kiện" }}
                   />
                   <Stack.Screen
+                    name="Leagues"
+                    component={LeagueTopNav}
+                    options={{ title: "Giải đấu" }}
+                  />
+                  <Stack.Screen
+                    name="Stats"
+                    component={StatsTopNav}
+                    options={{ title: "Thông số" }}
+                  />
+                  <Stack.Screen
                     name="PlayerList"
                     component={PlayerListScreen}
                     options={{ title: "Danh sách player" }}
@@ -144,6 +158,11 @@ export default function App() {
                     name="CreatePlayer"
                     component={CreatePlayerScreen}
                     options={{ title: "Thêm cầu thủ" }}
+                  />
+                  <Stack.Screen
+                    name="CreateLeague"
+                    component={CreateLeagueScreen}
+                    options={{ headerShown: false }}
                   />
                   <Stack.Screen
                     name="UpdatePlayerAvatar"
@@ -159,6 +178,11 @@ export default function App() {
                     name="EditGame"
                     component={EditGameScreen}
                     options={{ title: "Chỉnh sửa trận đấu" }}
+                  />
+                  <Stack.Screen
+                    name="EditLeague"
+                    component={EditLeagueScreen}
+                    options={{ title: "Chỉnh sửa giải đấu" }}
                   />
                   <Stack.Screen
                     name="CreateEvent"

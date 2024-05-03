@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, Button, TouchableOpacity } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import jwtDecode from "jwt-decode";
+import { logout } from "../lib/logout";
 const CreateOrJoinTeamScreen = () => {
   const navigaton = useNavigation();
   const [username, setUsername] = useState("");
@@ -58,7 +59,10 @@ const CreateOrJoinTeamScreen = () => {
           </Text>
         </TouchableOpacity>
       </View>
-      <TouchableOpacity style={styles.lgbutton}>
+      <TouchableOpacity
+        style={styles.lgbutton}
+        onPress={() => logout(navigaton)}
+      >
         <Text style={styles.lgbuttonText}>Đăng xuất</Text>
       </TouchableOpacity>
     </View>

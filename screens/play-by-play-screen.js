@@ -420,6 +420,7 @@ const PlayByPlayScreen = () => {
 
   const saveNotSavedAtBats = async () => {
     setIsLoading(true);
+    if (notSavedAtBats.length == 0) return;
     try {
       const promises = notSavedAtBats
         .filter((obj) => !obj.inTheAtBat)
@@ -1071,6 +1072,8 @@ const PlayByPlayScreen = () => {
     }
   };
 
+  console.log(myBatting[0]);
+
   const saveMyBatting = async () => {
     setIsLoading(true);
     try {
@@ -1123,7 +1126,7 @@ const PlayByPlayScreen = () => {
               pickOff: obj.pickOff,
             });
           } else {
-            response = await axiosInstance.put(
+            response = await axiosInstance.patch(
               `/playergame/updates/${obj.id}/`,
               {
                 game_id: gameid,
@@ -6803,7 +6806,7 @@ const PlayByPlayScreen = () => {
             </MenuOption>
             <MenuOption
               onSelect={() => {
-                saveNotSavedAtBats();
+                if (notSavedAtBats.length > 0) saveNotSavedAtBats();
                 saveMyBatting();
               }}
             >

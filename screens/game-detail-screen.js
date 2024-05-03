@@ -88,30 +88,66 @@ const GameDetailScreen = () => {
             tableData: [
               [
                 `${decoded.shortName}`,
-                data.team_inning_score[0] ? data.team_inning_score[0] : "",
-                data.team_inning_score[1] ? data.team_inning_score[1] : "",
-                data.team_inning_score[2] ? data.team_inning_score[2] : "",
-                data.team_inning_score[3] ? data.team_inning_score[3] : "",
-                data.team_inning_score[4] ? data.team_inning_score[4] : "",
-                data.team_inning_score[5] ? data.team_inning_score[5] : "",
-                data.team_inning_score[6] ? data.team_inning_score[6] : "",
-                data.team_inning_score[7] ? data.team_inning_score[7] : "",
-                data.team_inning_score[8] ? data.team_inning_score[8] : "",
+                data.team_inning_score[0] || data.team_inning_score[0] == 0
+                  ? data.team_inning_score[0]
+                  : "",
+                data.team_inning_score[1] || data.team_inning_score[1] == 0
+                  ? data.team_inning_score[1]
+                  : "",
+                data.team_inning_score[2] || data.team_inning_score[2] == 0
+                  ? data.team_inning_score[2]
+                  : "",
+                data.team_inning_score[3] || data.team_inning_score[3] == 0
+                  ? data.team_inning_score[3]
+                  : "",
+                data.team_inning_score[4] || data.team_inning_score[4] == 0
+                  ? data.team_inning_score[4]
+                  : "",
+                data.team_inning_score[5] || data.team_inning_score[5] == 0
+                  ? data.team_inning_score[5]
+                  : "",
+                data.team_inning_score[6] || data.team_inning_score[6] == 0
+                  ? data.team_inning_score[6]
+                  : "",
+                data.team_inning_score[7] || data.team_inning_score[7] == 0
+                  ? data.team_inning_score[7]
+                  : "",
+                data.team_inning_score[8] || data.team_inning_score[8] == 0
+                  ? data.team_inning_score[8]
+                  : "",
                 data.team_score,
                 data.team_hit,
                 data.team_error,
               ],
               [
                 `${oppTeamShort}`,
-                data.opp_inning_score[0] ? data.opp_inning_score[0] : "",
-                data.opp_inning_score[1] ? data.opp_inning_score[1] : "",
-                data.opp_inning_score[2] ? data.opp_inning_score[2] : "",
-                data.opp_inning_score[3] ? data.opp_inning_score[3] : "",
-                data.opp_inning_score[4] ? data.opp_inning_score[4] : "",
-                data.opp_inning_score[5] ? data.opp_inning_score[5] : "",
-                data.opp_inning_score[6] ? data.opp_inning_score[6] : "",
-                data.opp_inning_score[7] ? data.opp_inning_score[7] : "",
-                data.opp_inning_score[8] ? data.opp_inning_score[8] : "",
+                data.opp_inning_score[0] || data.opp_inning_score[0] == 0
+                  ? data.opp_inning_score[0]
+                  : "",
+                data.opp_inning_score[1] || data.opp_inning_score[1] == 0
+                  ? data.opp_inning_score[1]
+                  : "",
+                data.opp_inning_score[2] || data.opp_inning_score[2] == 0
+                  ? data.opp_inning_score[2]
+                  : "",
+                data.opp_inning_score[3] || data.opp_inning_score[3] == 0
+                  ? data.opp_inning_score[3]
+                  : "",
+                data.opp_inning_score[4] || data.opp_inning_score[4] == 0
+                  ? data.opp_inning_score[4]
+                  : "",
+                data.opp_inning_score[5] || data.opp_inning_score[5] == 0
+                  ? data.opp_inning_score[5]
+                  : "",
+                data.opp_inning_score[6] || data.opp_inning_score[6] == 0
+                  ? data.opp_inning_score[6]
+                  : "",
+                data.opp_inning_score[7] || data.opp_inning_score[7] == 0
+                  ? data.opp_inning_score[7]
+                  : "",
+                data.opp_inning_score[8] || data.opp_inning_score[8] == 0
+                  ? data.opp_inning_score[8]
+                  : "",
                 data.opp_score,
                 data.opp_hit,
                 data.opp_error,
@@ -257,7 +293,6 @@ const GameDetailScreen = () => {
         myBatting = [...gamePlayersByGameId];
       }
       console.log("My batting complete!");
-      console.log(myBatting.find((m) => m.id == 93));
       if (atBatsByGameId.length == 0) {
         const response2 = await axiosInstance.get(`/atbats/game/${gameid}/`);
         const data2 = response2.data;

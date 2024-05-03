@@ -2,35 +2,34 @@ import React, { useEffect, useState } from "react";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useToast } from "react-native-toast-notifications";
-import UpcomingEventScreen from "../screens/event/upcoming-event-screen";
-import InprogressEventScreen from "../screens/event/inprogress-event-screen";
-import CompletedEventScreen from "../screens/event/completed-event-screen";
 import { useRecoilState, useRecoilValueLoadable } from "recoil";
-import { eventsState, fetchEventsState } from "../atom/Events";
+import { leaguesState } from "../atom/League";
+import axiosInstance from "../lib/axiosClient";
+import UpcomingLeagueScreen from "../screens/league/upcoming-league-screen";
+import InprogressLeagueScreen from "../screens/league/inprogress-league-screen";
+import CompletedLeagueScreen from "../screens/league/completed-league-screen";
 
-const EventTopNav = () => {
+const LeagueTopNav = () => {
   const Tab = createMaterialTopTabNavigator();
 
   const navigation = useNavigation();
-  const [events, setEvents] = useRecoilState(eventsState);
+  const [recoilLeagues, setRecoilLeagues] = useRecoilState(leaguesState);
+  const [leagues, setLeagues] = useState();
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
   const route = useRoute();
   const teamid = route.params.teamid;
   const teamName = route.params.teamName;
-  const fetchEvents = useRecoilValueLoadable(fetchEventsState(teamid));
 
   useEffect(() => {
     const fetchAndSetEvents = async () => {
       setIsLoading(true);
       try {
-        console.log(fetchEvents.state);
-        if (fetchEvents.state === "hasValue") {
-          setEvents(fetchEvents.contents);
-          console.log("Load event successfully");
-        } else if (fetchEvents.state === "hasError") {
-          throw fetchEvents.contents; // Throw the error to be caught in the catch block
-        }
+        const { data } = await axiosInstance.get(`/leagues/team/${teamid}/`);
+        setLeagues(data);
+        setRecoilLeagues(data);
+        setIsLoading(false);
+        console.log(data);
       } catch (error) {
         toast.show(error.message, {
           type: "danger",
@@ -46,29 +45,44 @@ const EventTopNav = () => {
     };
 
     fetchAndSetEvents();
-  }, [fetchEvents, setEvents, toast]);
+  }, []);
   return (
     <Tab.Navigator initialRouteName="Upcoming">
       <Tab.Screen
         name="Upcoming"
         children={() => (
-          <UpcomingEventScreen events={events} teamName={teamName} />
+          <UpcomingLeagueScreen
+            leagues={
+              leagues ? leagues.filter((l) => l.status === -1) : undefined
+            }
+            teamName={teamName}
+          />
         )}
       />
       <Tab.Screen
         name="InProgress"
         children={() => (
-          <InprogressEventScreen events={events} teamName={teamName} />
+          <InprogressLeagueScreen
+            leagues={
+              leagues ? leagues.filter((l) => l.status === 0) : undefined
+            }
+            teamName={teamName}
+          />
         )}
       />
       <Tab.Screen
         name="Completed"
         children={() => (
-          <CompletedEventScreen events={events} teamName={teamName} />
+          <CompletedLeagueScreen
+            leagues={
+              leagues ? leagues.filter((l) => l.status === 1) : undefined
+            }
+            teamName={teamName}
+          />
         )}
       />
     </Tab.Navigator>
   );
 };
 
-export default EventTopNav;
+export default LeagueTopNav;

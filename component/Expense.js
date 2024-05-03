@@ -95,7 +95,9 @@ const Expense = ({
               </Animated.View>
               {item.type === 3 ? (
                 <Animated.Text>
-                  {`Người đóng quỹ: #${player.jerseyNumber}.${player.firstName} ${player.lastName}`}{" "}
+                  {player
+                    ? `Người đóng quỹ: #${player.jerseyNumber}.${player.firstName} ${player.lastName}`
+                    : "A"}{" "}
                 </Animated.Text>
               ) : null}
             </View>

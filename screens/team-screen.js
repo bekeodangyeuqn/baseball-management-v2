@@ -33,7 +33,16 @@ const TeamScreen = () => {
         </Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
           <View style={{ flex: 1, padding: 10, alignItems: "center" }}>
-            <Ionicons name="trophy" size={size} />
+            <Ionicons
+              name="trophy"
+              size={size}
+              onPress={() =>
+                navigation.navigate("Leagues", {
+                  teamid: teamId,
+                  teamName: teamName,
+                })
+              }
+            />
             <Text style={{ fontSize: 16 }}>Giải đấu</Text>
           </View>
           <View style={{ flex: 1, padding: 10, alignItems: "center" }}>
@@ -123,7 +132,16 @@ const TeamScreen = () => {
         </View>
         <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
           <View style={{ flex: 1, padding: 10, alignItems: "center" }}>
-            <Ionicons name="person" size={size} />
+            <Ionicons
+              name="person"
+              size={size}
+              onPress={() =>
+                navigation.navigate("Stats", {
+                  teamid: teamId,
+                  teamName: teamName,
+                })
+              }
+            />
             <Text style={{ fontSize: 16 }}> Thông số cầu thủ</Text>
           </View>
           <View style={{ flex: 1, padding: 10, alignItems: "center" }}>

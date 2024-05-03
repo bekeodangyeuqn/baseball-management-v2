@@ -1,9 +1,11 @@
 import { useNavigation } from "@react-navigation/native";
 import React from "react";
 import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
-
+import { Skeleton } from "moti/skeleton";
+import Animated, { FadeIn, Layout } from "react-native-reanimated";
+import { SkeletonCommonProps } from "../lib/skeleton";
 const EventInfo = (props) => {
-  const { key, title, timeStart, timeEnd, location, event } = props;
+  const { key1, title, timeStart, timeEnd, location, event, league } = props;
   const navigation = useNavigation();
   const getDate = (datetime) => {
     let dateAndTime = datetime.split("T"); // split date and time
@@ -16,20 +18,66 @@ const EventInfo = (props) => {
   };
   return (
     <TouchableOpacity
-      key={event.id}
+      key={key1}
       style={styles.event}
-      onPress={() =>
-        navigation.navigate("EventDetail", {
-          event: event,
-        })
-      }
+      onPress={() => {
+        if (league) {
+          navigation.navigate("LeagueDetail", {
+            league: league,
+          });
+        } else {
+          navigation.navigate("EventDetail", {
+            event: event,
+          });
+        }
+      }}
     >
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.time}>
-        {getDate(timeStart.toString())} -{" "}
-        {timeEnd ? getDate(timeEnd.toLocaleString()) : "Chưa rõ"}
-      </Text>
-      <Text style={styles.location}>{location}</Text>
+      <Skeleton.Group>
+        <Skeleton {...SkeletonCommonProps} width="100%">
+          {(league || event) && (
+            <Animated.Text
+              layout={Layout}
+              entering={FadeIn.duration(1500)}
+              style={styles.title}
+            >
+              {title}
+            </Animated.Text>
+          )}
+        </Skeleton>
+        <Skeleton {...SkeletonCommonProps} width="100%">
+          {event && (
+            <Animated.Text
+              layout={Layout}
+              entering={FadeIn.duration(1500)}
+              style={styles.time}
+            >
+              Thời gian: {getDate(timeStart.toString())} -{" "}
+              {timeEnd ? getDate(timeEnd.toLocaleString()) : "Chưa rõ"}
+            </Animated.Text>
+          )}
+          {league && (
+            <Animated.Text
+              layout={Layout}
+              entering={FadeIn.duration(1500)}
+              style={styles.time}
+            >
+              Thời gian: {timeStart ? timeStart : "Chưa rõ"} -{" "}
+              {timeEnd ? timeEnd : "Chưa rõ"}
+            </Animated.Text>
+          )}
+        </Skeleton>
+        <Skeleton {...SkeletonCommonProps} width="100%">
+          {(league || event) && (
+            <Animated.Text
+              layout={Layout}
+              entering={FadeIn.duration(1500)}
+              style={styles.location}
+            >
+              Đại điểm: {location ? location : "Chưa rõ"}
+            </Animated.Text>
+          )}
+        </Skeleton>
+      </Skeleton.Group>
     </TouchableOpacity>
   );
 };

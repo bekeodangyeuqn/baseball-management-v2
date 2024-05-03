@@ -55,7 +55,7 @@ const TransactionsScreen = () => {
         } else if (recoilTransactions.length > 0) {
           setTransactions(recoilTransactions);
         }
-        if (fullPlayers.length === 0) {
+        if (fullPlayers.length == 0) {
           const { data } = await axiosInstance.get(`/players/team/${teamid}/`);
           setFullPlayers(data);
         }

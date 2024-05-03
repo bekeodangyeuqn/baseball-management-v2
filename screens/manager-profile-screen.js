@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRoute } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import jwtDecode from "jwt-decode";
 import React, { useEffect, useState } from "react";
 import {
@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import axiosInstance from "../lib/axiosClient";
 import { useToast } from "react-native-toast-notifications";
+import { logout } from "../lib/logout";
 
 const ManagerProfileScreen = () => {
   const route = useRoute();
@@ -21,11 +22,13 @@ const ManagerProfileScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentId, setCurrentId] = useState(null);
   const toast = useToast();
+  const navigation = useNavigation();
 
   const splitAvatarURI = (str) => {
     const arr = str.split("?");
     return arr[0];
   };
+  console.log(id, currentId);
 
   useEffect(() => {
     const getInfo = async () => {
@@ -120,7 +123,10 @@ const ManagerProfileScreen = () => {
             </Text>
           </View>
           {currentId == id ? (
-            <TouchableOpacity style={styles.button}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => logout(navigation)}
+            >
               <Text style={styles.buttonText}>Đăng xuất</Text>
             </TouchableOpacity>
           ) : null}
