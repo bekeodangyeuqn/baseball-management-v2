@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import axiosInstance from "../lib/axiosClient";
 import { useToast } from "react-native-toast-notifications";
-import { logout } from "../lib/logout";
+import { useLogout } from "../lib/logout";
 
 const ManagerProfileScreen = () => {
   const route = useRoute();
@@ -23,6 +23,7 @@ const ManagerProfileScreen = () => {
   const [currentId, setCurrentId] = useState(null);
   const toast = useToast();
   const navigation = useNavigation();
+  const logout = useLogout();
 
   const splitAvatarURI = (str) => {
     const arr = str.split("?");

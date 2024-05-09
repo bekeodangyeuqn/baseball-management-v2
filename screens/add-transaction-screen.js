@@ -6,6 +6,7 @@ import {
   View,
   Text,
   ActivityIndicator,
+  Pressable,
 } from "react-native";
 import {
   BorderlessButton,
@@ -16,6 +17,7 @@ import {
   useNavigation,
   useRoute,
 } from "@react-navigation/native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { Picker } from "@react-native-picker/picker";
 import { useRecoilState, useRecoilValueLoadable } from "recoil";
@@ -29,6 +31,13 @@ import axiosInstance from "../lib/axiosClient";
 
 /* Dimension */
 const { width, height } = Dimensions.get("window");
+function formatDateToISO(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
 
 const AddTransactionScreen = () => {
   const [transactions, setTransactions] = useRecoilState(transactionsState);
@@ -54,6 +63,13 @@ const AddTransactionScreen = () => {
     { title: "Tặng quà cho thành viên", value: -3 },
     { title: "Khoảng chi khác", value: -4 },
   ];
+  const [dob, setDob] = useState(null);
+  const [date, setDate] = useState(new Date());
+  const [picker, setPicker] = useState(false);
+  const toggleDatePicker = () => {
+    setPicker(!picker);
+    console.log("function called");
+  };
   useEffect(() => {
     const getInfo = async () => {
       setIsLoading(true);
@@ -95,10 +111,9 @@ const AddTransactionScreen = () => {
       description,
       team_id: teamid,
       player_id: playerid < 0 ? null : playerid,
-      time: formattedDate,
+      time: dob ? dob : formattedDate,
     };
     console.log(transaction);
-
     if (!price || !type)
       return toast.show("Thiếu thông tin cần thiết", {
         type: "danger",
@@ -141,7 +156,7 @@ const AddTransactionScreen = () => {
       </View>
     );
   }
-
+  console.log(picker, Platform.OS);
   return (
     <View style={{ padding: 24, flex: 1 }}>
       <View style={{ flexDirection: "column", marginTop: 16 }}>
@@ -225,7 +240,47 @@ const AddTransactionScreen = () => {
             onChangeText={(description) => setDescription(description)}
           />
         </View>
+        <View>
+          {picker && (
+            <DateTimePicker
+              mode="date"
+              display="calendar"
+              value={date}
+              onChange={({ type }, selectedDate) => {
+                if (type === "set") {
+                  const currentDate = selectedDate;
+                  console.log(type);
+                  setDate(currentDate);
 
+                  if (Platform.OS == "android") {
+                    console.log("in if");
+                    toggleDatePicker();
+                    //formik.values.dateOfBirth = currentDate.toDateString();
+                    setDob(formatDateToISO(currentDate));
+                  }
+                } else {
+                  toggleDatePicker();
+                }
+              }}
+            />
+          )}
+          {!picker && (
+            <Pressable onPress={toggleDatePicker}>
+              <TextInput
+                name="time"
+                placeholder="Ngày giao dịch"
+                onChangeText={setDob}
+                value={dob}
+                editable={false}
+                style={{
+                  padding: 10,
+                  fontSize: 30,
+                  width: "80%",
+                }}
+              />
+            </Pressable>
+          )}
+        </View>
         {type === 3 ? (
           <Picker
             style={styles.inputLong}

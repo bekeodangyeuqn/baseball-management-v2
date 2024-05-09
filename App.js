@@ -53,6 +53,7 @@ import LeagueTopNav from "./navigation/leagueTopNav";
 import CreateLeagueScreen from "./screens/edit-league-screen";
 import EditLeagueScreen from "./screens/edit-league-screen";
 import StatsTopNav from "./navigation/statsTopNav";
+import PlayerFundScreen from "./screens/player-fund-screen";
 
 export default function App() {
   const Stack = createStackNavigator();
@@ -258,6 +259,11 @@ export default function App() {
                     name="Transactions"
                     component={TransactionsScreen}
                     options={{ title: "Quản lý thu chi" }}
+                  />
+                  <Stack.Screen
+                    name="PlayerFund"
+                    component={PlayerFundScreen}
+                    options={{ title: "Danh sách đóng quỹ" }}
                   />
                   <Stack.Screen
                     name="AddTransaction"

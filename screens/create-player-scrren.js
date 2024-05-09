@@ -27,6 +27,7 @@ import { Picker } from "@react-native-picker/picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRecoilState } from "recoil";
 import { playersState } from "../atom/Players";
+import { sendPushNotification } from "../lib/notifications";
 
 function formatDateToISO(date) {
   const year = date.getFullYear();
@@ -463,7 +464,7 @@ const CreatePlayerScreen = () => {
                             const currentDate = selectedDate;
                             setDate(currentDate);
 
-                            if ((Platform.OS = "android")) {
+                            if (Platform.OS == "android") {
                               toggleDatePicker();
                               //formik.values.dateOfBirth = currentDate.toDateString();
                               setDob(formatDateToISO(currentDate));

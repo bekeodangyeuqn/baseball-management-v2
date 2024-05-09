@@ -7,6 +7,7 @@ import {
   Animated,
   TouchableOpacity,
   ActivityIndicator,
+  Button,
 } from "react-native";
 import { useRecoilState } from "recoil";
 import { transactionsState } from "../atom/Transactions";
@@ -169,6 +170,15 @@ const TransactionsScreen = () => {
   return (
     <View style={styles.container}>
       <Top transactions={transactions} />
+      <View>
+        <Button
+          title="Danh sách đóng quỹ"
+          color="green"
+          onPress={() => {
+            navigation.navigate("PlayerFund", { teamid: teamid });
+          }}
+        />
+      </View>
       <Box
         flex={1}
         paddingLeft="l"
