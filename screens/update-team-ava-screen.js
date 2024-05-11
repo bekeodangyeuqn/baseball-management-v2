@@ -16,38 +16,36 @@ import { Formik, Field, Form } from "formik";
 import { useToast } from "react-native-toast-notifications";
 import axiosInstance from "../lib/axiosClient";
 import * as ImagePicker from "expo-image-picker";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRecoilState, useRecoilValue } from "recoil";
-import { playerByIdState, playersState } from "../atom/Players";
+import { teamByIdState, teamsState } from "../atom/Teams";
 
-const UpdatePlayerAvaScreen = () => {
+const UpdateTeamAvaScreen = () => {
   const [image, setImage] = useState({
     uri: null,
     base64: "",
   });
-  const [fullPlayers, setFullPlayers] = useRecoilState(playersState);
+  const [fullTeams, setFullTeams] = useRecoilState(teamsState);
   const toast = useToast();
   const navigation = useNavigation();
   const route = useRoute();
-  const playerid = route.params.playerid;
   const teamid = route.params.teamid;
-  const player = useRecoilValue(playerByIdState(playerid));
+  const team = useRecoilValue(teamByIdState(teamid));
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  console.log(image.uri);
   const handleUpdateAvatar = async (values) => {
     try {
       setIsLoading(true);
       if (image.uri) {
-        const response = await axiosInstance.patch(
-          `/player/update-avatar/${playerid}/`,
-          {
-            avatar_str: image.base64
-              ? "data:image/jpeg;base64," + image.base64
-              : null,
-          }
-        );
-        const { data } = await axiosInstance.get(`/players/team/${teamid}/`);
-        setFullPlayers(data);
+        const response = await axiosInstance.patch(`/team/updates/${teamid}/`, {
+          logo_str: image.base64
+            ? "data:image/jpeg;base64," + image.base64
+            : null,
+        });
+        setFullTeams((prev) => [
+          ...prev.filter((t) => t.id != response.data.id),
+          response.data,
+        ]);
       }
       setIsLoading(false);
       toast.show("Cập nhật thông tin thành công", {
@@ -57,9 +55,7 @@ const UpdatePlayerAvaScreen = () => {
         offset: 30,
         animationType: "zoom-in",
       });
-      navigation.navigate("PlayerList", {
-        teamid: teamid,
-      });
+      navigation.navigate("Home", { screen: "Đội" });
     } catch (error) {
       //Toast.show(error.message);
       setIsLoading(false);
@@ -107,7 +103,7 @@ const UpdatePlayerAvaScreen = () => {
         };
         return (
           <View style={styles.container}>
-            <Text style={styles.title}>Cập nhật ảnh đại diện Player</Text>
+            <Text style={styles.title}>Cập nhật logo của đội</Text>
             <Button
               title="Chọn avatar"
               onPress={pickImage}
@@ -118,17 +114,17 @@ const UpdatePlayerAvaScreen = () => {
                 source={{ uri: image.uri }}
                 style={{ width: 200, height: 200 }}
               />
-            ) : player.avatar ? (
+            ) : team.logo ? (
               <Image
                 source={{
-                  uri: splitAvatarURI(player.avatar),
+                  uri: splitAvatarURI(team.logo),
                 }}
                 style={{ width: 200, height: 200 }}
               />
             ) : (
               <Image
                 source={{
-                  uri: "https://baseballmanagement.s3.amazonaws.com/avatars/avatar.png",
+                  uri: "https://baseballmanagement.s3.amazonaws.com/logos/logo.png",
                 }}
                 style={{ width: 200, height: 200 }}
               />
@@ -137,7 +133,7 @@ const UpdatePlayerAvaScreen = () => {
               <Text style={{ color: "red" }}>{formik.errors.avatar}</Text>
             )}
             <Button
-              title="Cập nhật ảnh đại diện"
+              title="Cập nhật logo"
               onPress={formik.handleSubmit}
               style={{ marginTop: 10, marginBottom: 10 }}
             />
@@ -145,7 +141,7 @@ const UpdatePlayerAvaScreen = () => {
               title="Hủy"
               color="grey"
               onPress={() =>
-                navigation.navigate("PlayerList", {
+                navigation.navigate("TeamScreen", {
                   teamid: teamid,
                 })
               }
@@ -208,4 +204,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default UpdatePlayerAvaScreen;
+export default UpdateTeamAvaScreen;

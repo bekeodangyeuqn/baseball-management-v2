@@ -10,7 +10,10 @@ export const myGamePlayersByGameId = selectorFamily({
   get: (gameid) => {
     return ({ get }) => {
       const players = get(myGamePlayers);
-      return players.filter((obj) => obj.gameid === gameid);
+      return players.filter((obj) => {
+        if (obj.gameid) return obj.gameid === gameid;
+        else return obj.game_id === gameid;
+      });
     };
   },
 });

@@ -54,6 +54,12 @@ import CreateLeagueScreen from "./screens/edit-league-screen";
 import EditLeagueScreen from "./screens/edit-league-screen";
 import StatsTopNav from "./navigation/statsTopNav";
 import PlayerFundScreen from "./screens/player-fund-screen";
+import BoxScoreScreen from "./screens/box-score-screen";
+import GameBattingScreen from "./screens/game-batting-screen";
+import GamePitchingScreen from "./screens/game-pitching-screen";
+import GameAtBatScreen from "./screens/game-atbats-screen";
+import EditTeamScreen from "./screens/edit-team-screen";
+import UpdateTeamAvaScreen from "./screens/update-team-ava-screen";
 
 export default function App() {
   const Stack = createStackNavigator();
@@ -171,6 +177,11 @@ export default function App() {
                     options={{ headerShown: false }}
                   />
                   <Stack.Screen
+                    name="UpdateTeamAvatar"
+                    component={UpdateTeamAvaScreen}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
                     name="CreateGame"
                     component={CreateGameScreen}
                     options={{ title: "Tạo trận đấu" }}
@@ -179,6 +190,11 @@ export default function App() {
                     name="EditGame"
                     component={EditGameScreen}
                     options={{ title: "Chỉnh sửa trận đấu" }}
+                  />
+                  <Stack.Screen
+                    name="EditTeam"
+                    component={EditTeamScreen}
+                    options={{ title: "Chỉnh sửa thông tin đội" }}
                   />
                   <Stack.Screen
                     name="EditLeague"
@@ -231,6 +247,11 @@ export default function App() {
                     options={{ title: "Lựa chọn cách cập nhật" }}
                   />
                   <Stack.Screen
+                    name="BoxScore"
+                    component={BoxScoreScreen}
+                    options={{ title: "Cập nhật Box Score" }}
+                  />
+                  <Stack.Screen
                     name="PlayByPlay"
                     component={PlayByPlayScreen}
                     options={{ headerShown: false }}
@@ -239,6 +260,21 @@ export default function App() {
                     name="BattingStat"
                     component={BattingStatScreen}
                     options={{ title: "Thông số tấn công" }}
+                  />
+                  <Stack.Screen
+                    name="GameBatting"
+                    component={GameBattingScreen}
+                    options={{ title: "Thông số batting trong trận" }}
+                  />
+                  <Stack.Screen
+                    name="GamePitching"
+                    component={GamePitchingScreen}
+                    options={{ title: "Thông số pitching trong trận" }}
+                  />
+                  <Stack.Screen
+                    name="GameAtBat"
+                    component={GameAtBatScreen}
+                    options={{ title: "Play By Play" }}
                   />
                   <Stack.Screen
                     name="PitchingStat"

@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "211962015092",
+    "firebase_url": "https://baseball-management-app-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "baseball-management-app",
+    "storage_bucket": "baseball-management-app.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:211962015092:android:b20c2cce461db72dd55021",
+        "android_client_info": {
+          "package_name": "com.example.baseballmanagementapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "211962015092-evurmpd9u2mlrpehklrvqpg93ifth4ed.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDotE3xxmyuiG4DdUdioFyQ3MXDRGBEHJM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "211962015092-evurmpd9u2mlrpehklrvqpg93ifth4ed.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -19,15 +19,19 @@ const ChoosePlayerItem = (props) => {
     return arr[0];
   };
   const [myPlayers, setMyPlayers] = useRecoilState(myGamePlayers);
-
+  console.log(ingame);
   const onPress = (pos) => {
-    const samePosPLayer = myBatting.find((obj) => obj.position === pos);
-    const samePosPlayerId = myBatting.findIndex((obj) => obj.position === pos);
+    let samePosPLayer = ingame
+      ? myBatting.find((obj) => obj.position === pos)
+      : null;
+    let samePosPlayerId = ingame
+      ? myBatting.findIndex((obj) => obj.position === pos)
+      : null;
     let newPlayer = {
       player: player,
       position: pos,
       gameid: gameid,
-      battingOrder: samePosPLayer.battingOrder,
+      battingOrder: ingame ? samePosPLayer.battingOrder : 1,
       plateApperance: 0,
       runBattedIn: 0,
       single: 0,
@@ -68,6 +72,10 @@ const ChoosePlayerItem = (props) => {
       pickOff: 0,
     };
     if (ingame) {
+      // const samePosPLayer = myBatting.find((obj) => obj.position === pos);
+      // const samePosPlayerId = myBatting.findIndex(
+      //   (obj) => obj.position === pos
+      // );
       setMyBatting((prev) => {
         if (!prev.some((obj) => obj.player.id === player.id)) {
           let newBatting = [...prev];

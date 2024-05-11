@@ -55,6 +55,15 @@ const GameDetailScreen = () => {
   const [gameData, setGameData] = useState({});
 
   const [recoilPlayers, setRecoilPlayers] = useRecoilState(playersState);
+  const configDateTime = (datetime) => {
+    let dateAndTime = datetime.split("T"); // split date and time
+
+    let date = dateAndTime[0]; // get the date
+
+    let time = dateAndTime[1].split(":"); // split hours and minutes
+    let hoursAndMinutes = `${time[0]}:${time[1]}`;
+    return `${hoursAndMinutes} ${date}`; // get hours and minutes
+  };
 
   useEffect(() => {
     const getInfo = async () => {
@@ -63,7 +72,9 @@ const GameDetailScreen = () => {
         const token = await AsyncStorage.getItem("access_token");
         const decoded = jwtDecode(token);
         const savedGame = recoilGames.find(
-          (game) => game.id == gameid && game.team_inning_score
+          (game) =>
+            game.id == gameid &&
+            (game.team_inning_score || game.team_inning_score == 0)
         );
         if (!savedGame) {
           const { data } = await axiosInstance.get(`/game/${gameid}`);
@@ -389,7 +400,41 @@ const GameDetailScreen = () => {
     }
   };
 
-  if (isLoading || !gameData) {
+  const handleStartGame = async () => {
+    try {
+      setIsLoading(true);
+      const { data } = await axiosInstance.get(`/playergames/game/${gameid}/`);
+      if (data.length <= 0) {
+        navigation.navigate("GamePlayerSelect", {
+          teamid: teamid,
+          gameid: gameid,
+        });
+      } else {
+        let newPlayers = data.map((obj) => {
+          return {
+            ...obj,
+            player: players.find((p) => p.id === obj.player_id),
+            gameid: obj.game_id,
+          };
+        });
+        navigation.navigate("PlayBall", {
+          gameid: gameid,
+          myBatting: newPlayers,
+        });
+      }
+    } catch (error) {
+      toast.show(error.message, {
+        type: "danger",
+        placement: "bottom",
+        duration: 4000,
+        offset: 30,
+        animationType: "zoom-in",
+      });
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
     return (
       <View style={styles.loadingOverlay}>
         <ActivityIndicator size="large" color="#0000ff" />
@@ -403,10 +448,10 @@ const GameDetailScreen = () => {
         <Text style={styles.resultText}>{teamName}</Text>
         <Text style={styles.resultText}>
           {status === -1
-            ? "Upcoming"
+            ? "Chưa bắt đầu"
             : status === 0
-            ? "In progess"
-            : "Completed"}
+            ? "Đang diễn ra"
+            : "Đã kết thúc"}
         </Text>
         <Text style={styles.resultText}>{oppTeamShort}</Text>
       </View>
@@ -420,11 +465,7 @@ const GameDetailScreen = () => {
         <TouchableOpacity
           style={[styles.button, { marginRight: 10 }]}
           onPress={() => {
-            if (status === -1)
-              navigation.navigate("GamePlayerSelect", {
-                teamid: teamid,
-                gameid: gameid,
-              });
+            if (status === -1) handleStartGame();
             else {
               handleContinueGame();
             }
@@ -455,21 +496,45 @@ const GameDetailScreen = () => {
       <View style={styles.title}>
         <Text style={styles.titleText}>Diễn biến trận đấu</Text>
       </View>
-      <TouchableOpacity style={styles.subTitle}>
+      <TouchableOpacity
+        style={styles.subTitle}
+        onPress={() => {
+          navigation.navigate("GameAtBat", {
+            gameid: gameid,
+            teamName: teamName,
+          });
+        }}
+      >
         <Text style={styles.subTitleText}>Pitch by pitch</Text>
       </TouchableOpacity>
       <View style={styles.title}>
         <Text style={styles.titleText}>Thống kê của đội</Text>
       </View>
-      <TouchableOpacity style={styles.subTitle}>
+      <TouchableOpacity
+        style={styles.subTitle}
+        onPress={() => {
+          navigation.navigate("GameBatting", {
+            gameid: gameid,
+            players: players,
+          });
+        }}
+      >
         <Text style={styles.subTitleText}>Team Batting</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.subTitle}>
+      <TouchableOpacity
+        style={styles.subTitle}
+        onPress={() => {
+          navigation.navigate("GamePitching", {
+            gameid: gameid,
+            players: players,
+          });
+        }}
+      >
         <Text style={styles.subTitleText}>Team Pitching</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.subTitle}>
+      {/* <TouchableOpacity style={styles.subTitle}>
         <Text style={styles.subTitleText}>Team Fielding</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
       <View style={styles.title}>
         <Text style={styles.titleText}>Thông tin trận đấu</Text>
       </View>
@@ -484,7 +549,7 @@ const GameDetailScreen = () => {
         >
           Bắt đầu
         </Text>
-        <Text style={{ color: "white" }}>{timeStart}</Text>
+        <Text style={{ color: "white" }}>{configDateTime(timeStart)}</Text>
       </View>
       <View style={styles.row}>
         <Text
@@ -497,7 +562,9 @@ const GameDetailScreen = () => {
         >
           Kết thúc
         </Text>
-        <Text style={{ color: "white" }}>{timeEnd ? timeEnd : "Chưa có"}</Text>
+        <Text style={{ color: "white" }}>
+          {timeEnd ? configDateTime(timeEnd) : "Chưa có"}
+        </Text>
       </View>
       <View style={styles.row}>
         <Text

@@ -40,6 +40,7 @@ const BottomNav = () => {
           ),
         }}
         component={TeamScreen}
+        initialParams={{ teamid: teamid }}
       ></Tab.Screen>
       <Tab.Screen
         name="Cá nhân"

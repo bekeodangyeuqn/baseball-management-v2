@@ -63,6 +63,7 @@ const BattingOrderSelectScreen = () => {
       });
     }
   };
+  console.log(myPlayers);
   const savePlayerToServer = async () => {
     setIsLoading(true);
     try {
@@ -119,7 +120,7 @@ const BattingOrderSelectScreen = () => {
         }
       });
       const responses = await Promise.all(promises);
-      const haveError = false;
+      let haveError = false;
       for (const response of responses) {
         if (!response.data) {
           haveError = true;
@@ -212,7 +213,7 @@ const BattingOrderSelectScreen = () => {
       <Pressable
         style={{ ...styles.button }}
         onPress={() => {
-          updateGameInProgress();
+          // updateGameInProgress();
           savePlayerToServer();
         }}
       >

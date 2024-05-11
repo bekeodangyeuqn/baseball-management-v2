@@ -9,11 +9,11 @@ export const teamsState = atom({
 });
 
 // Selector to get a game by ID
-export const teamByIdState = selector({
+export const teamByIdState = selectorFamily({
   key: "teamByIdState",
   get:
-    ({ get }) =>
     (id) =>
+    ({ get }) =>
       get(teamsState).find((team) => team.id === id),
 });
 

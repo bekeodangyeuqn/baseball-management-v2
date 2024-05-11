@@ -13,7 +13,7 @@ import { useNavigation } from "@react-navigation/native";
 const BattingStatsScreen = (props) => {
   const { stats, teamName } = props;
   const navigation = useNavigation();
-  const placeholderData = new Array(10).fill([
+  const placeholderData = new Array(20).fill([
     "...",
     "...",
     "...",
@@ -31,23 +31,120 @@ const BattingStatsScreen = (props) => {
     "...",
     "...",
   ]);
+  const [tabCol, setTabCol] = useState("");
   let tableHead = [
-    { title: "PLAYER", onPress: () => sortData(0) },
-    { title: "AB", onPress: () => sortData(1) },
-    { title: "R", onPress: () => sortData(2) },
-    { title: "H", onPress: () => sortData(3) },
-    { title: "1B", onPress: () => sortData(4) },
-    { title: "2B", onPress: () => sortData(5) },
-    { title: "3B", onPress: () => sortData(6) },
-    { title: "HR", onPress: () => sortData(7) },
-    { title: "RBI", onPress: () => sortData(8) },
-    { title: "BB", onPress: () => sortData(9) },
-    { title: "SO", onPress: () => sortData(10) },
-    { title: "SB", onPress: () => sortData(11) },
-    { title: "AVG", onPress: () => sortData(12) },
-    { title: "OBP", onPress: () => sortData(13) },
-    { title: "SLG", onPress: () => sortData(14) },
-    { title: "OPS", onPress: () => sortData(15) },
+    {
+      title: "PLAYER",
+      onPress: () => {
+        sortData(0);
+        setTabCol("PLAYER");
+      },
+    },
+    {
+      title: "AB",
+      onPress: () => {
+        sortData(1);
+        setTabCol("AB");
+      },
+    },
+    {
+      title: "R",
+      onPress: () => {
+        sortData(2);
+        setTabCol("R");
+      },
+    },
+    {
+      title: "H",
+      onPress: () => {
+        sortData(3);
+        setTabCol("H");
+      },
+    },
+    {
+      title: "1B",
+      onPress: () => {
+        sortData(4);
+        setTabCol("1B");
+      },
+    },
+    {
+      title: "2B",
+      onPress: () => {
+        sortData(5);
+        setTabCol("2B");
+      },
+    },
+    {
+      title: "3B",
+      onPress: () => {
+        sortData(6);
+        setTabCol("3B");
+      },
+    },
+    {
+      title: "HR",
+      onPress: () => {
+        sortData(7);
+        setTabCol("HR");
+      },
+    },
+    {
+      title: "RBI",
+      onPress: () => {
+        sortData(8);
+        setTabCol("RBI");
+      },
+    },
+    {
+      title: "BB",
+      onPress: () => {
+        sortData(9);
+        setTabCol("BB");
+      },
+    },
+    {
+      title: "SO",
+      onPress: () => {
+        sortData(10);
+        setTabCol("SO");
+      },
+    },
+    {
+      title: "SB",
+      onPress: () => {
+        sortData(11);
+        setTabCol("SB");
+      },
+    },
+    {
+      title: "AVG",
+      onPress: () => {
+        sortData(12);
+        setTabCol("AVG");
+      },
+    },
+    {
+      title: "OBP",
+      onPress: () => {
+        sortData(13);
+        setTabCol("OBP");
+      },
+    },
+    {
+      title: "SLG",
+      onPress: () => {
+        sortData(14);
+        setTabCol("SLG");
+      },
+    },
+    {
+      title: "OPS",
+      onPress: () => {
+        sortData(15);
+        setTabCol("OPS");
+      },
+    },
   ];
   let widthArr = [
     150, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 80, 80, 80, 80,
@@ -120,7 +217,14 @@ const BattingStatsScreen = (props) => {
             <Row
               data={tableHead.map((column) => (
                 <TouchableOpacity onPress={column.onPress}>
-                  <Text style={{ textAlign: "center" }}>{column.title}</Text>
+                  <Text
+                    style={{
+                      textAlign: "center",
+                      fontWeight: tabCol === column.title ? "bold" : null,
+                    }}
+                  >
+                    {column.title}
+                  </Text>
                 </TouchableOpacity>
               ))}
               widthArr={widthArr}
@@ -135,11 +239,6 @@ const BattingStatsScreen = (props) => {
           </Table>
         </ScrollView>
       </ScrollView>
-      {/* <View>
-        <TouchableOpacity style={styles.button} onPress={savePDF}>
-          <Text style={{ color: "white" }}>Lưu file PDF</Text>
-        </TouchableOpacity>
-      </View> */}
     </View>
   );
 };

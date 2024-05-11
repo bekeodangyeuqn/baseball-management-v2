@@ -11,6 +11,9 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import RadioGroup from "react-native-radio-buttons-group";
 import { atBatsState } from "../atom/AtBats";
 import { useToast } from "react-native-toast-notifications";
+import { useRecoilState } from "recoil";
+import axiosInstance from "../lib/axiosClient";
+import { gamesState } from "../atom/Games";
 
 const PlayBallTypeScreen = () => {
   const navigaton = useNavigation();
@@ -21,6 +24,30 @@ const PlayBallTypeScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [recoilAtBat, setRecoilAtBat] = useRecoilState(atBatsState);
   const toast = useToast();
+  const [recoilGames, setRecoilGames] = useRecoilState(gamesState);
+  const updateGameInProgress = async () => {
+    try {
+      setIsLoading(true);
+      const response = await axiosInstance.patch(`/game/updates/${gameid}/`, {
+        status: 0,
+      });
+      console.log("Game updated:", response.data);
+      setRecoilGames((prev) => [
+        ...prev.filter((game) => game.id != gameid),
+        response.data,
+      ]);
+      setIsLoading(false);
+    } catch (error) {
+      setIsLoading(false);
+      toast.show(`Lỗi khi gửi dữ liệu lên server: ${error.message}`, {
+        type: "danger",
+        placement: "bottom",
+        duration: 4000,
+        offset: 30,
+        animationType: "zoom-in",
+      });
+    }
+  };
 
   const addInitAtBat = async () => {
     try {
@@ -88,7 +115,13 @@ const PlayBallTypeScreen = () => {
       <Text style={styles.header}>Play ball</Text>
       <Text style={styles.body}>Hãy lựa chọn cách thức cập nhật trận đấu</Text>
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.button} onPress={() => addInitAtBat()}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => {
+            updateGameInProgress();
+            addInitAtBat();
+          }}
+        >
           <Text style={styles.textButton}>Play by play</Text>
           <Text style={styles.subTextButton}>
             Cập nhật theo thời gian thực diễn biến trên sân của trận đấu
