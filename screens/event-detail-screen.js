@@ -1,10 +1,28 @@
-import { useRoute } from "@react-navigation/native";
-import React from "react";
-import { View, StyleSheet, Text, Button } from "react-native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  StyleSheet,
+  Text,
+  Button,
+  FlatList,
+  ActivityIndicator,
+  TouchableOpacity,
+} from "react-native";
+import axiosInstance from "../lib/axiosClient";
+import { useToast } from "react-native-toast-notifications";
+import { useRecoilState } from "recoil";
+import { personsEventsState } from "../atom/Events";
+import PersonEventItem from "../component/PersonEventItem";
+import { managersState, playersState } from "../atom/Players";
 
 const EventDetailScreen = () => {
   const route = useRoute();
   const event = route.params.event;
+  const [persons, setPersons] = useRecoilState(personsEventsState);
+  const [managers, setManagers] = useRecoilState(managersState);
+  const [players, setPlayers] = useRecoilState(playersState);
+  const navigation = useNavigation();
   const getDate = (datetime) => {
     let dateAndTime = datetime.split("T"); // split date and time
 
@@ -14,6 +32,86 @@ const EventDetailScreen = () => {
     let hoursAndMinutes = `${time[0]}:${time[1]}`;
     return `${hoursAndMinutes} ${date}`; // get hours and minutes
   };
+  const [isLoading, setIsLoading] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
+  const toast = useToast(true);
+
+  useEffect(() => {
+    const getInfo = async () => {
+      setIsLoading(true);
+      try {
+        const { data } = await axiosInstance.get(`event/players/${event.id}/`);
+        const players = data;
+        const { data: data2 } = await axiosInstance.get(
+          `event/managers/${event.id}/`
+        );
+        const managers = data2;
+        setPersons([...players, ...managers]);
+        if (players.length <= 0) {
+          const { data } = await axiosInstance.get(
+            `/players/team/${event.team_id}`
+          );
+          setPlayers(data);
+        }
+        if (managers.length <= 0) {
+          const { data } = await axiosInstance.get(
+            `/managers/team/${event.team_id}`
+          );
+          setManagers(data);
+        }
+      } catch (error) {
+        console.log(error);
+        setIsLoading(false);
+        toast.show(error.message, {
+          type: "danger",
+          placement: "bottom",
+          duration: 4000,
+          offset: 30,
+          animationType: "zoom-in",
+        });
+      }
+    };
+    getInfo();
+  }, []);
+
+  const handleSendJoinEvent = async () => {
+    try {
+      setEmailLoading(true);
+      await axiosInstance.post(`request_joinevent/${event.id}`);
+      const { data } = await axiosInstance.get(`event/players/${event.id}/`);
+      const players = data;
+      const { data: data2 } = await axiosInstance.get(
+        `event/managers/${event.id}/`
+      );
+      const managers = data2;
+      setPersons([...players, ...managers]);
+      setEmailLoading(false);
+      toast.show("Gửi lời mời thành công", {
+        type: "success",
+        placement: "bottom",
+        duration: 4000,
+        offset: 30,
+        animationType: "zoom-in",
+      });
+    } catch (error) {
+      toast.show(error.message, {
+        type: "danger",
+        placement: "bottom",
+        duration: 4000,
+        offset: 30,
+        animationType: "zoom-in",
+      });
+      setEmailLoading(false);
+    }
+  };
+
+  if (isLoading === 0) {
+    return (
+      <View style={styles.loadingOverlay}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
   return (
     <View style={styles.container}>
       <View style={styles.card}>
@@ -42,7 +140,23 @@ const EventDetailScreen = () => {
             <Text>{event.description}</Text>
           </View>
           <View style={{ marginTop: 10 }}>
-            <Button title="Gửi lời mời" />
+            <Button
+              disabled={persons.length <= 0 ? false : true}
+              title={persons.length <= 0 ? "Gửi lời mời" : "Đã gửi lời mời"}
+              onPress={handleSendJoinEvent}
+            />
+          </View>
+          <View style={{ marginTop: 10 }}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => {
+                navigation.navigate("EditEvent", {
+                  id: event.id,
+                });
+              }}
+            >
+              <Text style={styles.textButton}>Chỉnh sửa</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -50,7 +164,19 @@ const EventDetailScreen = () => {
         <Text style={{ fontSize: 16, fontWeight: "bold" }}>
           Danh sách tham gia:
         </Text>
+        {persons.length > 0 && (
+          <FlatList
+            data={persons}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => <PersonEventItem person={item} />}
+          />
+        )}
       </View>
+      {emailLoading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#0000ff" />
+        </View>
+      )}
     </View>
   );
 };
@@ -79,7 +205,32 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
   },
-  bodyComponent: {},
+  button: {
+    marginBottom: 5,
+    marginTop: 5,
+    borderStyle: "solid",
+    borderColor: "black",
+    backgroundColor: "green",
+    padding: 4,
+    marginRight: 4,
+    alignItems: "center",
+    justifyContent: "center",
+    marginEnd: "auto",
+    marginStart: "auto",
+    width: "100%",
+  },
+  textButton: {
+    padding: 4,
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "white",
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });
 
 export default EventDetailScreen;

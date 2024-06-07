@@ -2,17 +2,16 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Button,
   Image,
   ImageBackground,
   Modal,
-  Pressable,
-  SafeAreaView,
   StyleSheet,
 } from "react-native";
-import { useRecoilCallback, useRecoilState, useRecoilValue } from "recoil";
+import { useRecoilState, useRecoilValue } from "recoil";
 import field from "../assets/image/field.jpg";
-import { gameByIdState, gamesState } from "../atom/Games";
+import { gameByIdState, gameBygameIdState, gamesState } from "../atom/Games";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import jwtDecode from "jwt-decode";
 import {
@@ -21,14 +20,11 @@ import {
   Entypo,
   FontAwesome5,
 } from "@expo/vector-icons";
-import { filteredPlayers } from "../atom/Players";
+import { filteredPlayers, playersState } from "../atom/Players";
 import { myBattingOrder, myGamePlayersByGameId } from "../atom/GamePlayers";
 import { Text, View, TouchableOpacity } from "react-native";
 import PlayerListItem from "../component/PlayerListItem";
 import { useToast } from "react-native-toast-notifications";
-import Filter from "../component/Filter";
-import { TabView, SceneMap } from "react-native-tab-view";
-import MenuIcon from "../component/MenuIcon";
 import {
   Menu,
   MenuOptions,
@@ -136,7 +132,7 @@ const PlayByPlayScreen = () => {
   const beforeId = route.params.beforeId;
   let myFirstBatting = route.params.myBatting;
   const [isLoading, setIsLoading] = useState(false);
-  const game = useRecoilValue(gameByIdState(gameid));
+  const game = useRecoilValue(gameBygameIdState(gameid));
   const navigation = useNavigation();
   let myPlayers = useRecoilValue(myGamePlayersByGameId(gameid));
   // const myFirstBatting = useRecoilValue(myBattingOrder(gameid));
@@ -149,7 +145,7 @@ const PlayByPlayScreen = () => {
   const [teamName, setTeamName] = useState("");
   const [teamNameLong, setTeamNameLong] = useState("");
   const [teamId, setTeamId] = useState(null);
-  const players = useRecoilValue(filteredPlayers(teamId));
+  const [players, setPlayers] = useRecoilState(playersState);
   const [atBatsList, setAtBatsList] = useRecoilState(atBatsState);
 
   const [teamScore, setTeamScore] = useState(0);
@@ -351,6 +347,10 @@ const PlayByPlayScreen = () => {
         setTeamName(decoded.shortName);
         setTeamId(decoded.teamid);
         setTeamNameLong(decoded.teamName);
+        if (players.length <= 0) {
+          const { data } = await axiosInstance.get(`/players/team/${teamId}`);
+          setPlayers(data);
+        }
       } catch (error) {
         console.log(error);
       }
@@ -426,7 +426,7 @@ const PlayByPlayScreen = () => {
         .filter((obj) => !obj.inTheAtBat)
         .map(async (obj, index) => {
           try {
-            const response = await axiosInstance.post(`/atbat/create/`, {
+            const re = {
               game_id: gameid,
               isLastState: false,
               teamScore: obj.teamScore,
@@ -487,22 +487,23 @@ const PlayByPlayScreen = () => {
               pitcherResponseFirst_id:
                 obj.isOffense == 0
                   ? obj.isRunnerFirst
-                    ? obj.pitcherResponseFirst.id
+                    ? obj.pitcherResponseFirst.player.id
                     : null
                   : null,
               pitcherResponseSecond_id:
                 obj.isOffense == 0
                   ? obj.isRunnerSecond
-                    ? obj.pitcherResponseSecond.id
+                    ? obj.pitcherResponseSecond.player.id
                     : null
                   : null,
               pitcherResponseThird_id:
                 obj.isOffense == 0
                   ? obj.isRunnerThird
-                    ? obj.pitcherResponseThird.id
+                    ? obj.pitcherResponseThird.player.id
                     : null
                   : null,
-            });
+            };
+            const response = await axiosInstance.post(`/atbat/create/`, re);
             return response;
           } catch (error) {
             console.error(`Error with player ${index}:`, error);
@@ -511,7 +512,7 @@ const PlayByPlayScreen = () => {
         });
 
       const responses = await Promise.all(promises);
-      const oneMore = await axiosInstance.post(`/atbat/create/`, {
+      const req = {
         game_id: gameid,
         isLastState: true,
         teamScore: atBat.teamScore,
@@ -548,7 +549,26 @@ const PlayByPlayScreen = () => {
         oppCurPlayer: atBat.oppCurPlayer,
         outcomeType: atBat.outcomeType,
         description: "",
-      });
+        pitcherResponseFirst_id:
+          atBat.isOffense == 0
+            ? atBat.pitcherResponseFirst
+              ? atBat.pitcherResponseFirst.player.id
+              : null
+            : null,
+        pitcherResponseSecond_id:
+          atBat.isOffense == 0
+            ? atBat.pitcherResponseSecond
+              ? atBat.pitcherResponseSecond.player.id
+              : null
+            : null,
+        pitcherResponseThird_id:
+          atBat.isOffense == 0
+            ? atBat.pitcherResponseThird
+              ? atBat.pitcherResponseThird.player.id
+              : null
+            : null,
+      };
+      const oneMore = await axiosInstance.post(`/atbat/create/`, req);
       let haveError = false;
       for (const response of responses) {
         if (!response.data) {
@@ -589,7 +609,10 @@ const PlayByPlayScreen = () => {
       setIsLoading(false);
     }
   };
-
+  console.log(
+    "My pitching",
+    myBatting.filter((m) => m.position == 1)
+  );
   const updatePitcherStat = (
     pitcher,
     type,
@@ -1072,8 +1095,6 @@ const PlayByPlayScreen = () => {
     }
   };
 
-  console.log(myBatting[0]);
-
   const saveMyBatting = async () => {
     setIsLoading(true);
     try {
@@ -1261,7 +1282,7 @@ const PlayByPlayScreen = () => {
                       endTheAtBat(description, true);
                       // handleOut(true, myBatting[atBat.currentPlayer - 1]);
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -1318,7 +1339,7 @@ const PlayByPlayScreen = () => {
                       endTheAtBat(description, true);
                       // handleOut(true, myBatting[atBat.currentPlayer - 1]);
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -1477,7 +1498,7 @@ const PlayByPlayScreen = () => {
                         myBatting[atBat.currentPlayer - 1].player.lastName
                       } đã fly hi sinh`;
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -1526,7 +1547,7 @@ const PlayByPlayScreen = () => {
                         myBatting[atBat.currentPlayer - 1].player.lastName
                       } đã bunt hi sinh`;
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -1582,7 +1603,7 @@ const PlayByPlayScreen = () => {
                         myBatting[atBat.currentPlayer - 1].player.lastName
                       } bị infield fly`;
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -1632,7 +1653,7 @@ const PlayByPlayScreen = () => {
                         } bị strike thứ 3 nhưng catcher drop`
                       );
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -1675,7 +1696,7 @@ const PlayByPlayScreen = () => {
                         } bị ground into double play`
                       );
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -1721,7 +1742,7 @@ const PlayByPlayScreen = () => {
                         } bị grounded into triple play`
                       );
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -1845,27 +1866,30 @@ const PlayByPlayScreen = () => {
                       )
                         description += `#${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} ghi điểm.`;
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      if (
-                        atBat.pitcherResponseThird.player.id !=
-                        pitcher.player.id
-                      ) {
-                        newBatting = updatePitcherStat(
-                          atBat.pitcherResponseThird,
-                          null,
-                          0,
-                          0,
-                          0,
-                          run,
-                          earnRun,
-                          0,
-                          0,
-                          0,
-                          0
-                        );
+                      console.log(pitcher);
+                      if (atBat.pitcherResponseThird) {
+                        if (
+                          atBat.pitcherResponseThird.player.id !=
+                          pitcher.player.id
+                        ) {
+                          newBatting = updatePitcherStat(
+                            atBat.pitcherResponseThird,
+                            null,
+                            0,
+                            0,
+                            0,
+                            run,
+                            earnRun,
+                            0,
+                            0,
+                            0,
+                            0
+                          );
+                        }
                       }
                       newBatting = updatePitcherStat(
                         pitcher,
@@ -1873,13 +1897,17 @@ const PlayByPlayScreen = () => {
                         4 - atBat.ball,
                         0,
                         0,
-                        atBat.pitcherResponseThird.player.id ==
-                          pitcher.player.id
-                          ? run
+                        atBat.pitcherResponseThird
+                          ? atBat.pitcherResponseThird.player.id ==
+                            pitcher.player.id
+                            ? run
+                            : 0
                           : 0,
-                        atBat.pitcherResponseThird.player.id ==
-                          pitcher.player.id
-                          ? earnRun
+                        atBat.pitcherResponseThird
+                          ? atBat.pitcherResponseThird.player.id ==
+                            pitcher.player.id
+                            ? earnRun
+                            : 0
                           : 0,
                         0,
                         0,
@@ -2047,27 +2075,29 @@ const PlayByPlayScreen = () => {
                       )
                         description += `#${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} ghi điểm.`;
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      if (
-                        atBat.pitcherResponseThird.player.id !=
-                        pitcher.player.id
-                      ) {
-                        newBatting = updatePitcherStat(
-                          atBat.pitcherResponseThird,
-                          null,
-                          0,
-                          0,
-                          0,
-                          run,
-                          earnRun,
-                          0,
-                          0,
-                          0,
-                          0
-                        );
+                      if (atBat.pitcherResponseThird) {
+                        if (
+                          atBat.pitcherResponseThird.player.id !=
+                          pitcher.player.id
+                        ) {
+                          newBatting = updatePitcherStat(
+                            atBat.pitcherResponseThird,
+                            null,
+                            0,
+                            0,
+                            0,
+                            run,
+                            earnRun,
+                            0,
+                            0,
+                            0,
+                            0
+                          );
+                        }
                       }
                       newBatting = updatePitcherStat(
                         pitcher,
@@ -2208,7 +2238,7 @@ const PlayByPlayScreen = () => {
                       addDescription(
                         `Batter ${atBat.oppCurPlayer} đối phương hit single`
                       );
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -2259,7 +2289,7 @@ const PlayByPlayScreen = () => {
                       addDescription(
                         `Batter ${atBat.oppCurPlayer} đối phương hit double`
                       );
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -2313,7 +2343,7 @@ const PlayByPlayScreen = () => {
                       addDescription(
                         `Batter ${atBat.oppCurPlayer} đối phương hit triple`
                       );
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -2406,7 +2436,7 @@ const PlayByPlayScreen = () => {
                       if (atBat.isRunnerThird)
                         description += `#${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} ghi điểm. `;
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -2611,27 +2641,29 @@ const PlayByPlayScreen = () => {
                       )
                         description += `#${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} ghi điểm.`;
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      if (
-                        atBat.pitcherResponseThird.player.id !=
-                        pitcher.player.id
-                      ) {
-                        newBatting = updatePitcherStat(
-                          atBat.pitcherResponseThird,
-                          null,
-                          0,
-                          0,
-                          0,
-                          run,
-                          earnRun,
-                          0,
-                          0,
-                          0,
-                          0
-                        );
+                      if (atBat.pitcherResponseThird) {
+                        if (
+                          atBat.pitcherResponseThird.player.id !=
+                          pitcher.player.id
+                        ) {
+                          newBatting = updatePitcherStat(
+                            atBat.pitcherResponseThird,
+                            null,
+                            0,
+                            0,
+                            0,
+                            run,
+                            earnRun,
+                            0,
+                            0,
+                            0,
+                            0
+                          );
+                        }
                       }
                       newBatting = updatePitcherStat(
                         pitcher,
@@ -2863,27 +2895,29 @@ const PlayByPlayScreen = () => {
                       )
                         description += `#${atBat.isRunnerThird.player.jerseyNumber}.${atBat.isRunnerThird.player.firstName} ${atBat.isRunnerThird.player.lastName} ghi điểm.`;
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
-                      if (
-                        atBat.pitcherResponseThird.player.id !=
-                        pitcher.player.id
-                      ) {
-                        newBatting = updatePitcherStat(
-                          atBat.pitcherResponseThird,
-                          null,
-                          0,
-                          0,
-                          0,
-                          run,
-                          earnRun,
-                          0,
-                          0,
-                          0,
-                          0
-                        );
+                      if (atBat.pitcherResponseThird) {
+                        if (
+                          atBat.pitcherResponseThird.player.id !=
+                          pitcher.player.id
+                        ) {
+                          newBatting = updatePitcherStat(
+                            atBat.pitcherResponseThird,
+                            null,
+                            0,
+                            0,
+                            0,
+                            run,
+                            earnRun,
+                            0,
+                            0,
+                            0,
+                            0
+                          );
+                        }
                       }
                       newBatting = updatePitcherStat(
                         pitcher,
@@ -3034,7 +3068,7 @@ const PlayByPlayScreen = () => {
                           ? [atBat.oppCurPlayer, "error"]
                           : atBat.oppCurPlayer
                       );
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -3146,7 +3180,7 @@ const PlayByPlayScreen = () => {
                           ? [atBat.oppCurPlayer, "error"]
                           : atBat.oppCurPlayer
                       );
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -3258,7 +3292,7 @@ const PlayByPlayScreen = () => {
                           ? [atBat.oppCurPlayer, "error"]
                           : atBat.oppCurPlayer
                       );
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -3358,7 +3392,7 @@ const PlayByPlayScreen = () => {
                         myBatting[atBat.currentPlayer - 1].player.lastName
                       } ghi điểm.`;
                     } else if (atBat.isOffense == 0) {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -3438,7 +3472,7 @@ const PlayByPlayScreen = () => {
                       handleOut(true, myBatting[atBat.currentPlayer - 1]);
                       endTheAtBat(des, true);
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -3481,7 +3515,7 @@ const PlayByPlayScreen = () => {
                       handleOut(true, myBatting[atBat.currentPlayer - 1]);
                       endTheAtBat(des, true);
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -3524,7 +3558,7 @@ const PlayByPlayScreen = () => {
                       handleOut(true, myBatting[atBat.currentPlayer - 1]);
                       endTheAtBat(des, true);
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -3567,7 +3601,7 @@ const PlayByPlayScreen = () => {
                       handleOut(true, myBatting[atBat.currentPlayer - 1]);
                       endTheAtBat(des, true);
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -3610,7 +3644,7 @@ const PlayByPlayScreen = () => {
                       handleOut(true, myBatting[atBat.currentPlayer - 1]);
                       endTheAtBat(des, true);
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -3799,7 +3833,7 @@ const PlayByPlayScreen = () => {
                       );
                       handleOut(1, atBat.isRunnerFirst);
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -3837,7 +3871,7 @@ const PlayByPlayScreen = () => {
                       );
                       handleOut(1, atBat.isRunnerFirst);
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -3874,7 +3908,7 @@ const PlayByPlayScreen = () => {
                       );
                       handleOut(1, atBat.isRunnerFirst);
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -3908,7 +3942,7 @@ const PlayByPlayScreen = () => {
                       );
                       handleOut(1, atBat.isRunnerFirst);
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -3943,7 +3977,7 @@ const PlayByPlayScreen = () => {
                       );
                       handleOut(1, atBat.isRunnerFirst);
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -4068,7 +4102,7 @@ const PlayByPlayScreen = () => {
                         `#${atBat.isRunnerSecond.player.jerseyNumber}.${atBat.isRunnerSecond.player.firstName} ${atBat.isRunnerSecond.player.lastName} ghi điểm`
                       );
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -4138,7 +4172,7 @@ const PlayByPlayScreen = () => {
                       );
                       handleOut(2, atBat.isRunnerSecond);
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -4177,7 +4211,7 @@ const PlayByPlayScreen = () => {
                       );
                       handleOut(2, atBat.isRunnerSecond);
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -4214,7 +4248,7 @@ const PlayByPlayScreen = () => {
                       );
                       handleOut(2, atBat.isRunnerSecond);
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -4251,7 +4285,7 @@ const PlayByPlayScreen = () => {
                       );
                       handleOut(2, atBat.isRunnerSecond);
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -4346,7 +4380,7 @@ const PlayByPlayScreen = () => {
                         true
                       );
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -4422,7 +4456,7 @@ const PlayByPlayScreen = () => {
                       );
                       handleOut(3, atBat.isRunnerThird);
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -4461,7 +4495,7 @@ const PlayByPlayScreen = () => {
                       );
                       handleOut(3, atBat.isRunnerThird);
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -4500,7 +4534,7 @@ const PlayByPlayScreen = () => {
                       );
                       handleOut(3, atBat.isRunnerThird);
                     } else {
-                      let reversedBatting = [...myBatting].reverse().reverse();
+                      let reversedBatting = [...myBatting];
                       let pitcher = reversedBatting.find(
                         (p) => p.position === 1
                       );
@@ -6423,29 +6457,23 @@ const PlayByPlayScreen = () => {
           <View>
             <Text style={styles.title}>ERA</Text>
             <Text style={styles.content}>
-              {[...myBatting].reverse().find((p) => p.position === 1)
-                .totalInGameOut === 0
-                ? [...myBatting].reverse().find((p) => p.position === 1)
-                    .earnedRun !== 0
+              {[...myBatting].find((p) => p.position === 1).totalInGameOut === 0
+                ? [...myBatting].find((p) => p.position === 1).earnedRun !== 0
                   ? "INF"
                   : "-"
                 : (
-                    ([...myBatting].reverse().find((p) => p.position === 1)
-                      .earnedRun *
+                    ([...myBatting].find((p) => p.position === 1).earnedRun *
                       game.inningERA *
                       3) /
-                    [...myBatting].reverse().find((p) => p.position === 1)
-                      .totalInGameOut
+                    [...myBatting].find((p) => p.position === 1).totalInGameOut
                   ).toFixed(2)}
             </Text>
           </View>
           <View>
             <Text style={styles.title}>Count</Text>
             <Text style={styles.content}>
-              {[...myBatting].reverse().find((p) => p.position === 1)
-                .pitchStrike +
-                [...myBatting].reverse().find((p) => p.position === 1)
-                  .pitchBall}
+              {[...myBatting].find((p) => p.position === 1).pitchStrike +
+                [...myBatting].find((p) => p.position === 1).pitchBall}
             </Text>
           </View>
         </View>
@@ -6759,9 +6787,6 @@ const PlayByPlayScreen = () => {
             >
               <Text>Thống kê Batting</Text>
             </MenuOption>
-            <MenuOption onSelect={() => console.log("Option 3 clicked")}>
-              <Text>Thống kê Fielding</Text>
-            </MenuOption>
             <MenuOption
               onSelect={() => {
                 let pitchData = [];
@@ -6797,7 +6822,7 @@ const PlayByPlayScreen = () => {
                   ]);
                 });
                 navigation.navigate("PitchingStat", {
-                  pitchData: pitchData,
+                  pitchData: pitchData.reverse(),
                   game: game,
                 });
               }}
@@ -6806,17 +6831,50 @@ const PlayByPlayScreen = () => {
             </MenuOption>
             <MenuOption
               onSelect={() => {
-                if (notSavedAtBats.length > 0) saveNotSavedAtBats();
-                saveMyBatting();
+                Alert.alert(
+                  "Lưu dữ liệu",
+                  "Bạn có chắc chắn muốn lưu dữ liệu lên server? Sau khi lưu bạn sẽ không thể hoàn tác lại các trạng thái trước đó.",
+                  [
+                    {
+                      text: "No",
+                      style: "cancel",
+                    },
+                    {
+                      text: "Yes",
+                      onPress: () => {
+                        console.log("Yes Pressed");
+                        if (notSavedAtBats.length > 0) saveNotSavedAtBats();
+                        saveMyBatting();
+                      },
+                    },
+                  ],
+                  { cancelable: false }
+                );
               }}
             >
               <Text>Lưu trạng thái lên server</Text>
             </MenuOption>
             <MenuOption
               onSelect={() => {
-                saveNotSavedAtBats();
-                saveMyBatting();
-                makeEndGame();
+                Alert.alert(
+                  "Kết thúc trận đấu",
+                  "Bạn có chắc chắn muốn kết thúc trận đấu? Sau khi kết thúc dữ liệu sẽ được lưu lên server và bạn sẽ không thể hoàn tác lại các trạng thái trước đó.",
+                  [
+                    {
+                      text: "No",
+                      style: "cancel",
+                    },
+                    {
+                      text: "Yes",
+                      onPress: () => {
+                        saveNotSavedAtBats();
+                        saveMyBatting();
+                        makeEndGame();
+                      },
+                    },
+                  ],
+                  { cancelable: false }
+                );
               }}
             >
               <Text>Kết thúc trận đấu</Text>
@@ -6842,6 +6900,7 @@ const PlayByPlayScreen = () => {
               functionsAB={[atBat, setAtBat]}
               functionABS={[atBatStatus, setAtBatStatus]}
               posRun={posRun}
+              isOffense={atBat.isOffense}
             />
           )}
         />

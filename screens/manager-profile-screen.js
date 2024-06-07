@@ -29,21 +29,19 @@ const ManagerProfileScreen = () => {
     const arr = str.split("?");
     return arr[0];
   };
-  console.log(id, currentId);
 
   useEffect(() => {
     const getInfo = async () => {
       setIsLoading(true);
       try {
-        const { data } = await axiosInstance.get(`/manager/profile/${id}/`);
-        setMyInfo(data);
-        AsyncStorage.setItem("my_info", JSON.stringify(data), (error) => {
-          if (error) {
-            console.error(error);
-          } else {
-            console.log("My info stored successfully.");
-          }
-        });
+        const myInfoFromStorage = await AsyncStorage.getItem("my_info");
+        if (myInfoFromStorage !== null) {
+          setMyInfo(JSON.parse(myInfoFromStorage));
+        } else {
+          const { data } = await axiosInstance.get(`/manager/profile/${id}/`);
+          setMyInfo(data);
+          AsyncStorage.setItem("my_info", JSON.stringify(data));
+        }
         const token = await AsyncStorage.getItem("access_token");
         const decoded = jwtDecode(token);
         setCurrentId(decoded.id);

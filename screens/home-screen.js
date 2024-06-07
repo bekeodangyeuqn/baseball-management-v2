@@ -10,7 +10,11 @@ import {
   TouchableOpacity,
 } from "react-native";
 import Header from "../component/header";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import {
+  useIsFocused,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
 import jwtDecode from "jwt-decode";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchGamesState, gamesState } from "../atom/Games";
@@ -21,6 +25,8 @@ import axiosInstance from "../lib/axiosClient";
 import { useToast } from "react-native-toast-notifications";
 import { teamIdSelector } from "../atom/Players";
 import NotificationProvider from "../provider/NotificationProvider";
+import * as Notifications from "expo-notifications";
+import { Entypo } from "@expo/vector-icons";
 
 const configDateTime = (datetime) => {
   let dateAndTime = datetime.split("T"); // split date and time
@@ -55,9 +61,11 @@ const HomeScreen = () => {
   const [username, setUsername] = useState("");
   const [teamName, setTeamName] = useState("");
   const [id, setId] = useState(null);
+  const [myInfo, setMyInfo] = useState(null);
   const [datesEvent, setDatesEvent] = useState([]);
   const [isloading, setIsLoading] = useState(false);
   const toast = useToast();
+  const isFocus = useIsFocused();
 
   const getDatesHaveEvent = (events, games) => {
     let dates = [];
@@ -77,6 +85,7 @@ const HomeScreen = () => {
   }, {});
 
   useEffect(() => {
+    const today = new Date().toISOString().split("T")[0];
     const getInfo = async () => {
       try {
         setIsLoading(true);
@@ -85,31 +94,71 @@ const HomeScreen = () => {
         setUsername(decoded.username);
         setTeamName(decoded.teamName);
         setId(decoded.id);
-        if (recoilEvents.length === 0) {
-          const { data } = await axiosInstance.get(`/events/team/${teamid}/`);
 
-          setEvents(data);
-          setRecoilEvent(data);
+        const myInfoFromStorage = await AsyncStorage.getItem("my_info");
+        if (myInfoFromStorage !== null) {
+          setMyInfo(JSON.parse(myInfoFromStorage));
         } else {
-          setEvents(recoilEvents);
+          const { data } = await axiosInstance.get(
+            `/manager/profile/${decoded.id}/`
+          );
+          setMyInfo(data);
+          AsyncStorage.setItem("my_info", JSON.stringify(data));
         }
+        if (isFocus) {
+          if (recoilEvents.length === 0) {
+            const { data } = await axiosInstance.get(`/events/team/${teamid}/`);
 
-        if (recoilGames.length === 0) {
-          const { data } = await axiosInstance.get(`/games/team/${teamid}/`);
-          setGames(data);
-          setRecoilGame(data);
-          setEvents((prev) => [...prev, ...data]);
-          setDatesEvent((prev) => [
-            ...prev,
-            ...getDatesHaveEvent(events, data),
-          ]);
-        } else {
-          setGames(recoilGames);
-          setEvents((prev) => [...prev, ...recoilGames]);
-          setDatesEvent((prev) => [
-            ...prev,
-            ...getDatesHaveEvent(events, recoilGames),
-          ]);
+            setEvents(data);
+            setRecoilEvent(data);
+          } else {
+            setEvents(recoilEvents);
+          }
+
+          if (recoilGames.length === 0) {
+            const { data } = await axiosInstance.get(`/games/team/${teamid}/`);
+            setGames(data);
+            setRecoilGame(data);
+            setEvents((prev) => [...prev, ...data]);
+            setDatesEvent((prev) => [
+              ...prev,
+              ...getDatesHaveEvent(events, data),
+            ]);
+            const eventToday = [...events, ...data].filter(
+              (e) => getDate(e.timeStart) == today
+            );
+            console.log("Event today", eventToday);
+            if (eventToday.length > 0) {
+              Notifications.scheduleNotificationAsync({
+                content: {
+                  title: `Hôm nay có ${eventToday.length} sự kiện hoặc trận đấu`,
+                  body: "Hãy kiểm tra lịch để biết thêm chi tiết",
+                },
+                trigger: null,
+              });
+            }
+          } else {
+            setGames(recoilGames);
+            setEvents((prev) => [...prev, ...recoilGames]);
+            setDatesEvent((prev) => [
+              ...prev,
+              ...getDatesHaveEvent(events, recoilGames),
+            ]);
+            const gameAndEvents = [...events, ...recoilGames];
+            const eventToday = gameAndEvents.filter(
+              (e) => getDate(e.timeStart) == today
+            );
+            console.log("Event today", eventToday);
+            if (eventToday.length > 0) {
+              Notifications.scheduleNotificationAsync({
+                content: {
+                  title: `Hôm nay có ${eventToday.length} sự kiện hoặc trận đấu`,
+                  body: "Hãy kiểm tra lịch để biết thêm chi tiết",
+                },
+                trigger: null,
+              });
+            }
+          }
         }
         setIsLoading(false);
       } catch (error) {
@@ -123,9 +172,10 @@ const HomeScreen = () => {
         setIsLoading(false);
       }
     };
-    getInfo();
-  }, []);
-  console.log(datesEvent);
+    if (isFocus) getInfo();
+  }, [isFocus]);
+
+  console.log("Date event: ", datesEvent);
   console.log(teamid);
   const renderEvents = () => {
     return events.map((event) => {
@@ -164,6 +214,21 @@ const HomeScreen = () => {
         />
         <ScrollView>{renderEvents()}</ScrollView>
         {/* <Button title="Thêm sự kiện" onPress={handleAddEvent} /> */}
+        <View
+          style={{ position: "absolute", right: 20, bottom: 50, zIndex: 4 }}
+        >
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("Chatbot", {
+                username: username,
+                avatar: myInfo.avatar,
+              })
+            }
+            style={{ padding: 20, backgroundColor: "green", borderRadius: 50 }}
+          >
+            <Entypo name="chat" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
       </View>
     </NotificationProvider>
   );

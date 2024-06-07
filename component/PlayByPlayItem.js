@@ -2,11 +2,11 @@ import React, { memo } from "react";
 import { View, StyleSheet, Text } from "react-native";
 import { Entypo, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRecoilValue } from "recoil";
-import { gameByIdState } from "../atom/Games";
+import { gameByIdState, gameBygameIdState } from "../atom/Games";
 
 const PlayByPlayItem = ({ atBat, teamName }) => {
   const game = useRecoilValue(
-    gameByIdState(atBat.game_id ? atBat.game_id : atBat.gameid)
+    gameBygameIdState(atBat.game_id ? atBat.game_id : atBat.gameid)
   );
 
   return (
@@ -22,6 +22,7 @@ const PlayByPlayItem = ({ atBat, teamName }) => {
       }}
     >
       <View style={styles.scoreBoard}>
+        <Text>{atBat.id}</Text>
         <View style={styles.scoreBoardTeam}>
           <Text style={{ fontWeight: "bold" }}>{teamName}</Text>
           <Text>{atBat.teamScore}</Text>
@@ -121,7 +122,9 @@ const PlayByPlayItem = ({ atBat, teamName }) => {
         <View
           style={{ flex: 1, flexDirection: "row", border: "1px solid black" }}
         >
-          {atBat.isRunnerThird ? (
+          {atBat.isRunnerThird ||
+          atBat.isRunnerThirdOff_id ||
+          atBat.isRunnerThirdDef ? (
             <MaterialCommunityIcons
               name="rhombus"
               size={18}
@@ -136,12 +139,16 @@ const PlayByPlayItem = ({ atBat, teamName }) => {
               style={{ position: "relative", top: 12 }}
             />
           )}
-          {atBat.isRunnerSecond ? (
+          {atBat.isRunnerSecond ||
+          atBat.isRunnerSecondOff_id ||
+          atBat.isRunnerSecondDef ? (
             <MaterialCommunityIcons name="rhombus" size={18} color="green" />
           ) : (
             <MaterialCommunityIcons name="rhombus" size={18} color="grey" />
           )}
-          {atBat.isRunnerFirst ? (
+          {atBat.isRunnerFirst ||
+          atBat.isRunnerFirstOff_id ||
+          atBat.isRunnerFirstDef ? (
             <MaterialCommunityIcons
               name="rhombus"
               size={18}

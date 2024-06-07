@@ -110,6 +110,14 @@ export const playerByIdState = selectorFamily({
       get(playersState).find((player) => player.id === id),
 });
 
+export const managerByIdState = selectorFamily({
+  key: "managerByIdState",
+  get:
+    (id) =>
+    ({ get }) =>
+      get(managersState).find((manager) => manager.id === id),
+});
+
 export const statByIdState = selectorFamily({
   key: "statByIdState",
   get:

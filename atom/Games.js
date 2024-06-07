@@ -4,13 +4,21 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Atom to store the games
 export const gamesState = atom({
-  key: "gamesState",
+  key: "GamesState",
   default: [],
 });
 
 // Selector to get a game by ID
 export const gameByIdState = selectorFamily({
-  key: "gameByIdState",
+  key: "GameByIdState",
+  get:
+    (id) =>
+    ({ get }) =>
+      get(gamesState).filter((game) => game.team_id === id),
+});
+
+export const gameBygameIdState = selectorFamily({
+  key: "GameBygameIdState",
   get:
     (id) =>
     ({ get }) =>

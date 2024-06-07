@@ -1,36 +1,25 @@
-import React, { useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  Button,
-  ActivityIndicator,
-  TouchableOpacity,
-  SafeAreaView,
-  Platform,
-} from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { useState } from "react";
-import * as Yup from "yup";
-import { Formik, Field, Form } from "formik";
-import { useToast } from "react-native-toast-notifications";
-import axiosInstance from "../lib/axiosClient";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import jwtDecode from "jwt-decode";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Picker } from "@react-native-picker/picker";
-import { gameByIdState, gamesState } from "../atom/Games";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Button,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useRecoilState, useRecoilValue } from "recoil";
+import { eventByIdState, eventsState } from "../atom/Events";
+import axiosInstance from "../lib/axiosClient";
+import { Picker } from "@react-native-picker/picker";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { useToast } from "react-native-toast-notifications";
+import { Formik } from "formik";
 import Animated from "react-native-reanimated";
-
-function formatDateToISO(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Yup from "yup";
+import jwtDecode from "jwt-decode";
 
 const configDateTime = (datetime) => {
   let dateAndTime = datetime.split("T"); // split date and time
@@ -42,20 +31,21 @@ const configDateTime = (datetime) => {
   return `${hoursAndMinutes} ${date}`; // get hours and minutes
 };
 
-const EditGameScreen = () => {
+const EditEventScreen = () => {
   const route = useRoute();
   const id = route.params.id;
-  const game = useRecoilValue(gameByIdState(id));
+  const event = useRecoilValue(eventByIdState(id));
+  const [status, setStatus] = useState(event.status);
   const [isLoading, setIsLoading] = useState(false);
   const [picker, setPicker] = useState(false);
   const [date1, setDate1] = useState(
-    game.timeStart ? new Date(game.timeStart) : new Date()
+    event.timeStart ? new Date(event.timeStart) : new Date()
   );
   const [date2, setDate2] = useState(
-    game.timeEnd ? new Date(game.timeEnd) : new Date()
+    event.timeEnd ? new Date(event.timeEnd) : new Date()
   );
-  const [dateStart, setDateStart] = useState(game.timeStart);
-  const [dateEnd, setDateEnd] = useState(game.timeEnd);
+  const [dateStart, setDateStart] = useState(event.timeStart);
+  const [dateEnd, setDateEnd] = useState(event.timeEnd);
   const [mode, setMode] = useState("date");
   const [show1, setShow1] = useState(false);
   const [show2, setShow2] = useState(false);
@@ -63,20 +53,15 @@ const EditGameScreen = () => {
   const [error, setError] = useState("");
   const [teamid, setTeamId] = useState(null);
   const [teamName, setTeamName] = useState("");
-  const [inningERA, setInningERA] = useState(game.inningERA);
-  const [leagueId, setLeagueId] = useState(game.leagueId);
   const [step, setStep] = useState(1);
-  const [games, setGames] = useRecoilState(gamesState);
+  const [events, setEvents] = useRecoilState(eventsState);
   const [isLoadingStart, setIsLoadingStart] = useState(false);
   const toast = useToast();
   const navigation = useNavigation();
   const [username, setUsername] = useState("");
   const [tokens, setTokens] = useState([]);
   const validationSchema = Yup.object().shape({
-    oppTeam: Yup.string().required("Opponent team name is required"),
-    oppTeamShort: Yup.string()
-      .max(4)
-      .required("Opponent team short name is required"),
+    title: Yup.string().required("Event title is required"),
   });
   let options = {
     year: "numeric",
@@ -159,7 +144,7 @@ const EditGameScreen = () => {
   };
 
   const nextStep = () => {
-    if (step < 6) {
+    if (step < 5) {
       fadeOut();
       setTimeout(() => {
         setStep(step + 1);
@@ -177,42 +162,39 @@ const EditGameScreen = () => {
       }, 500);
     }
   };
-
-  const handleEditGame = async (values) => {
+  const handleEditEvent = async (values) => {
     try {
       setIsLoading(true);
       const req = {
-        oppTeam: values.oppTeam,
-        oppTeamShort: values.oppTeamShort,
+        title: values.title,
         description: values.description,
         timeStart: date1,
         timeEnd: date2,
-        league_id: leagueId <= 0 ? null : leagueId,
-        stadium: values.stadium,
-        inningERA: inningERA,
+        location: values.location,
+        status: status,
         team_id: teamid,
       };
       console.log(req);
-      const response = await axiosInstance.patch(`/game/updates/${id}/`, req);
+      const response = await axiosInstance.patch(`/event/updates/${id}/`, req);
 
-      if (games.length > 0) {
-        setGames((oldGames) => [
+      if (events.length > 0) {
+        setEvents((oldGames) => [
           ...oldGames.filter((g) => g.id !== id),
           response.data,
         ]);
       } else {
-        const { data } = await axiosInstance.get(`/games/team/${teamid}/`);
+        const { data } = await axiosInstance.get(`/events/team/${teamid}/`);
         setGames(data);
       }
       setIsLoading(false);
-      toast.show(" Tạo trận đấu thành công", {
+      toast.show("Cập nhật sự kiện thành công", {
         type: "success",
         placement: "bottom",
         duration: 4000,
         offset: 30,
         animationType: "zoom-in",
       });
-      navigation.navigate("Games", {
+      navigation.navigate("Events", {
         teamid: teamid,
         teamName: teamName,
       });
@@ -229,22 +211,21 @@ const EditGameScreen = () => {
       });
     }
   };
-  console.log(dateStart, dateEnd, date1, date2);
   return (
     <Formik
       initialValues={{
-        oppTeam: game.oppTeam,
-        oppTeamShort: game.oppTeamShort,
-        leagueId: game.leagueId,
-        timeStart: game.timeStart ? configDateTime(game.timeStart) : new Date(),
-        timeEnd: game.timeEnd ? configDateTime(game.timeEnd) : new Date(),
-        description: game.description ? game.description : "",
-        stadium: game.stadium ? game.stadium : "",
-        inningERA: game.inningERA,
+        title: event.title,
+        status: status,
+        timeStart: event.timeStart
+          ? configDateTime(event.timeStart)
+          : new Date(),
+        timeEnd: event.timeEnd ? configDateTime(event.timeEnd) : new Date(),
+        description: event.description ? event.description : "",
+        location: event.location ? event.location : "",
       }}
       validationSchema={validationSchema}
       onSubmit={(values) => {
-        handleEditGame(values);
+        handleEditEvent(values);
       }}
     >
       {(formik) => {
@@ -267,16 +248,14 @@ const EditGameScreen = () => {
                   }}
                 >
                   {step === 1
-                    ? "Thông tin đối thủ"
+                    ? "Tiêu đề sự kiện"
                     : step === 2
                     ? "Mô tả"
                     : step === 3
                     ? "Thời gian"
                     : step === 4
                     ? "Địa điểm"
-                    : step === 5
-                    ? "Giải đấu"
-                    : "Số hiệp tiêu chuẩn"}
+                    : "Trạng thái sự kiện"}
                 </Text>
               </View>
               <View
@@ -289,31 +268,16 @@ const EditGameScreen = () => {
                     <View>
                       <TextInput
                         style={styles.input}
-                        name="oppTeam"
-                        placeholder="Tên đối thủ"
+                        name="title"
+                        placeholder="Tiêu đề sự kiện"
                         autoCapitalize="none"
                         keyboardType="default"
-                        onChangeText={formik.handleChange("oppTeam")}
-                        value={formik.values.oppTeam}
+                        onChangeText={formik.handleChange("title")}
+                        value={formik.values.title}
                       />
-                      {formik.errors.oppTeam && (
+                      {formik.errors.title && (
                         <Text style={{ color: "red" }}>
-                          {formik.errors.oppTeam}
-                        </Text>
-                      )}
-
-                      <TextInput
-                        style={styles.input}
-                        name="oppTeamShort"
-                        placeholder="Tên viết tắt đối thủ (tối đa 4 ký tự)"
-                        autoCapitalize="characters"
-                        keyboardType="default"
-                        onChangeText={formik.handleChange("oppTeamShort")}
-                        value={formik.values.oppTeamShort}
-                      />
-                      {formik.errors.oppTeamShort && (
-                        <Text style={{ color: "red" }}>
-                          {formik.errors.oppTeamShort}
+                          {formik.errors.title}
                         </Text>
                       )}
                     </View>
@@ -447,16 +411,16 @@ const EditGameScreen = () => {
                   <View style={styles.formRow}>
                     <TextInput
                       style={styles.input}
-                      name="stadium"
+                      name="location"
                       placeholder="Sân vận động"
                       autoCapitalize="none"
                       keyboardType="default"
-                      onChangeText={formik.handleChange("stadium")}
-                      value={formik.values.stadium}
+                      onChangeText={formik.handleChange("location")}
+                      value={formik.values.location}
                     />
-                    {formik.errors.stadium && (
+                    {formik.errors.location && (
                       <Text style={{ color: "red" }}>
-                        {formik.errors.stadium}
+                        {formik.errors.location}
                       </Text>
                     )}
                   </View>
@@ -465,45 +429,23 @@ const EditGameScreen = () => {
                   <SafeAreaView style={styles.formRow}>
                     <Picker
                       style={{ ...styles.input, flex: 3 }}
-                      selectedValue={leagueId}
+                      selectedValue={status}
                       onValueChange={(itemValue, itemIndex) => {
-                        if (itemValue != "label") setLeagueId(itemValue);
+                        if (itemValue != "label") setStatus(itemValue);
                       }}
                       dropdownIconColor="#00fc08"
                     >
-                      <Picker.Item label="Chọn giải đấu" value={-1} />
-                      <Picker.Item label="Giao hữu" value={1} />
+                      <Picker.Item label="Trạng thái sự kiện" value={-2} />
+                      <Picker.Item label="Chưa diễn ra" value={-1} />
+                      <Picker.Item label="Đang tiến hành" value={0} />
+                      <Picker.Item label="Đã hoàn thành" value={1} />
                     </Picker>
-                    <TouchableOpacity
-                      style={styles.buttonShort}
-                      // onPress={handleButtonPress}
-                    >
-                      <Text style={styles.buttonText}> Thêm giải đấu</Text>
-                    </TouchableOpacity>
-                    {formik.errors.leagueId && (
+                    {formik.errors.status && (
                       <Text style={{ color: "red" }}>
-                        {formik.errors.leagueId}
+                        {formik.errors.status}
                       </Text>
                     )}
                   </SafeAreaView>
-                )}
-                {step === 6 && (
-                  <View>
-                    <Picker
-                      style={styles.input}
-                      selectedValue={inningERA}
-                      onValueChange={(itemValue, itemIndex) => {
-                        if (itemValue != "label") setInningERA(itemValue);
-                      }}
-                      dropdownIconColor="#00fc08"
-                    >
-                      <Picker.Item label="Chọn số hiệp tiêu chuẩn" value={-1} />
-                      <Picker.Item label="5" value={5} />
-                      <Picker.Item label="7" value={7} />
-                      <Picker.Item label="9" value={9} />
-                    </Picker>
-                    {error && <Text style={{ color: "red" }}>{error}</Text>}
-                  </View>
                 )}
                 <View
                   style={{
@@ -515,7 +457,7 @@ const EditGameScreen = () => {
                   {step > 1 ? (
                     <Button title="< Trước" onPress={previousStep} />
                   ) : null}
-                  {step < 6 ? (
+                  {step < 5 ? (
                     <Button title="Tiếp >" onPress={nextStep} />
                   ) : (
                     <Button
@@ -605,4 +547,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default EditGameScreen;
+export default EditEventScreen;

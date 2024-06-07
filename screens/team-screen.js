@@ -19,6 +19,7 @@ import axiosInstance from "../lib/axiosClient";
 import { useToast } from "react-native-toast-notifications";
 import { useRecoilState, useRecoilValue } from "recoil";
 import { teamByIdState, teamsState } from "../atom/Teams";
+import { gameByIdState } from "../atom/Games";
 
 const splitAvatarURI = (str) => {
   const arr = str.split("?");
@@ -36,6 +37,10 @@ const TeamScreen = () => {
   const toast = useToast();
   const recoilTeam = useRecoilValue(teamByIdState(teamid));
   const [fullTeams, setFullTeams] = useRecoilState(teamsState);
+  const games = useRecoilValue(gameByIdState(teamid));
+  const win = games.filter((g) => g.team_score > g.opp_score).length;
+  const lose = games.filter((g) => g.team_score < g.opp_score).length;
+  const draw = games.filter((g) => g.team_score == g.opp_score).length;
   useEffect(() => {
     const getInfo = async () => {
       setIsLoading(true);
@@ -167,10 +172,10 @@ const TeamScreen = () => {
             />
             <Text style={{ fontSize: 16 }}>Trận đấu</Text>
           </View>
-          <View style={{ flex: 1, padding: 10, alignItems: "center" }}>
+          {/* <View style={{ flex: 1, padding: 10, alignItems: "center" }}>
             <Ionicons name="barbell" size={size} />
             <Text style={{ fontSize: 16 }}>Buổi tập</Text>
-          </View>
+          </View> */}
           <View style={{ flex: 1, padding: 10, alignItems: "center" }}>
             <Ionicons
               name="wine"
@@ -227,15 +232,27 @@ const TeamScreen = () => {
         </Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
           <View style={{ flex: 1, padding: 10, alignItems: "center" }}>
-            <PieChartComponent game={20} total={50} color="green" />
+            <PieChartComponent
+              game={win}
+              total={win + draw + lose}
+              color="green"
+            />
             <Text style={{ fontSize: 16 }}>Thắng</Text>
           </View>
           <View style={{ flex: 1, padding: 10, alignItems: "center" }}>
-            <PieChartComponent game={2} total={50} color="yellow" />
+            <PieChartComponent
+              game={draw}
+              total={win + draw + lose}
+              color="yellow"
+            />
             <Text style={{ fontSize: 16, marginTop: 5 }}>Hòa</Text>
           </View>
           <View style={{ flex: 1, padding: 10, alignItems: "center" }}>
-            <PieChartComponent game={28} total={50} color="red" />
+            <PieChartComponent
+              game={lose}
+              total={win + draw + lose}
+              color="red"
+            />
             <Text style={{ fontSize: 16 }}>Thua</Text>
           </View>
         </View>
@@ -254,7 +271,15 @@ const TeamScreen = () => {
             <Text style={{ fontSize: 16 }}> Thông số cầu thủ</Text>
           </View>
           <View style={{ flex: 1, padding: 10, alignItems: "center" }}>
-            <Ionicons name="medal" size={size} />
+            <Ionicons
+              name="medal"
+              size={size}
+              onPress={() =>
+                navigation.navigate("TeamStats", {
+                  teamid: teamid,
+                })
+              }
+            />
             <Text style={{ fontSize: 16 }}>Thành tích đội</Text>
           </View>
         </View>

@@ -27,6 +27,7 @@ const EditPlayerScreen = () => {
   const id = route.params.id;
   const player = useRecoilValue(playerByIdState(id));
   const [isLoading, setIsLoading] = useState(null);
+  const [isEditLoading, setIsEditLoading] = useState(false);
   const [picker, setPicker] = useState(false);
   const [date, setDate] = useState(new Date());
   const [dob, setDob] = useState(player.birthDate);
@@ -148,7 +149,7 @@ const EditPlayerScreen = () => {
   console.log(tokens[0]);
   const handleEditPlayer = async (values) => {
     try {
-      setIsLoading(true);
+      setIsEditLoading(true);
       // console.log(image.base64, id);
       const updateData = {
         firstName: values.firstName,
@@ -185,9 +186,9 @@ const EditPlayerScreen = () => {
           if (tokens[i].push_token)
             sendPushNotification(tokens[i].push_token, response.data);
         }
-        setIsLoading(false);
+        setIsEditLoading(false);
       } catch (error) {
-        setIsLoading(false);
+        setIsEditLoading(false);
         toast.show(error.message, {
           type: "danger",
           placement: "bottom",
@@ -594,6 +595,11 @@ const EditPlayerScreen = () => {
                 </View>
               </View>
             </View>
+            {isEditLoading && (
+              <View style={styles.loadingOverlay}>
+                <ActivityIndicator size="large" color="#0000ff" />
+              </View>
+            )}
           </View>
         );
       }}

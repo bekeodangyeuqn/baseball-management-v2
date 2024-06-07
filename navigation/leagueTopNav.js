@@ -25,11 +25,14 @@ const LeagueTopNav = () => {
     const fetchAndSetEvents = async () => {
       setIsLoading(true);
       try {
-        const { data } = await axiosInstance.get(`/leagues/team/${teamid}/`);
-        setLeagues(data);
-        setRecoilLeagues(data);
+        if (recoilLeagues.length <= 0) {
+          const { data } = await axiosInstance.get(`/leagues/team/${teamid}/`);
+          setLeagues(data);
+          setRecoilLeagues(data);
+        } else {
+          setLeagues(recoilLeagues);
+        }
         setIsLoading(false);
-        console.log(data);
       } catch (error) {
         toast.show(error.message, {
           type: "danger",
@@ -53,7 +56,9 @@ const LeagueTopNav = () => {
         children={() => (
           <UpcomingLeagueScreen
             leagues={
-              leagues ? leagues.filter((l) => l.status === -1) : undefined
+              leagues
+                ? leagues.filter((l) => l.status === -1 && l.id != 1)
+                : undefined
             }
             teamName={teamName}
           />
@@ -64,7 +69,9 @@ const LeagueTopNav = () => {
         children={() => (
           <InprogressLeagueScreen
             leagues={
-              leagues ? leagues.filter((l) => l.status === 0) : undefined
+              leagues
+                ? leagues.filter((l) => l.status === 0 && l.id != 1)
+                : undefined
             }
             teamName={teamName}
           />
@@ -75,7 +82,9 @@ const LeagueTopNav = () => {
         children={() => (
           <CompletedLeagueScreen
             leagues={
-              leagues ? leagues.filter((l) => l.status === 1) : undefined
+              leagues
+                ? leagues.filter((l) => l.status === 1 && l.id != 1)
+                : undefined
             }
             teamName={teamName}
           />

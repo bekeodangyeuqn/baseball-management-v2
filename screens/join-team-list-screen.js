@@ -136,7 +136,7 @@ const JoinTeamListScreen = () => {
                 style={styles.button}
                 onPress={() => handleSendJoinTeamRequest(item.id)}
               >
-                <Text style={styles.buttonText}>Gửi lời mời</Text>
+                <Text style={styles.buttonText}>Gửi yêu cầu</Text>
               </TouchableOpacity>
             </View>
           </View>

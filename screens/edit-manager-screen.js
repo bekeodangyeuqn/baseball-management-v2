@@ -409,6 +409,11 @@ const EditManagerScreen = () => {
                 </View>
               </View>
             </View>
+            {isLoading && (
+              <View style={styles.loadingOverlay}>
+                <ActivityIndicator size="large" color="#0000ff" />
+              </View>
+            )}
           </View>
         );
       }}

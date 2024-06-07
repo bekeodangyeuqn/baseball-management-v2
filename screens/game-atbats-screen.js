@@ -1,5 +1,5 @@
 import { useRoute } from "@react-navigation/native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -18,7 +18,8 @@ const GameAtBatScreen = () => {
   const route = useRoute();
   const gameid = route.params.gameid;
   const teamName = route.params.teamName;
-  const atBats = useRecoilValue(atBatsSelectorByGameId(gameid));
+  let atBats = useRecoilValue(atBatsSelectorByGameId(gameid));
+  atBats = atBats.sort((a, b) => a.id - b.id);
   const [gameAtBats, setGameAtBats] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
@@ -30,9 +31,12 @@ const GameAtBatScreen = () => {
         if (atBats.length > 0) {
           setGameAtBats(atBats);
         } else {
-          const { data } = await axiosInstance.get(`/atbats/game/${gameid}/`);
+          let { data } = await axiosInstance.get(`/atbats/game/${gameid}/`);
+          data = data.sort((a, b) => a.id - b.id);
           setGameAtBats(data);
+          console.log(data[1]);
         }
+        setIsLoading(false);
       } catch (error) {
         toast.show(error.message, {
           type: "danger",
@@ -44,7 +48,8 @@ const GameAtBatScreen = () => {
         setIsLoading(false);
       }
     };
-  });
+    getInfo();
+  }, []);
 
   if (isLoading) {
     return (

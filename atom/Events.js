@@ -8,12 +8,17 @@ export const eventsState = atom({
   default: [],
 });
 
+export const personsEventsState = atom({
+  key: "PersonsEventsState",
+  default: [],
+});
+
 // Selector to get a game by ID
-export const eventByIdState = selector({
+export const eventByIdState = selectorFamily({
   key: "eventByIdState",
   get:
-    ({ get }) =>
     (id) =>
+    ({ get }) =>
       get(eventsState).find((event) => event.id === id),
 });
 

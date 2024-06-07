@@ -6,7 +6,7 @@ import { useRecoilState } from "recoil";
 import { myGamePlayers } from "../atom/GamePlayers";
 
 const ChoosePlayerItem = (props) => {
-  const { player, pos, gameid, ingame, posRun } = props;
+  const { player, pos, gameid, ingame, posRun, isOffense } = props;
 
   const [myBatting, setMyBatting] = ingame ? props.functions : useState(null);
   const [atBat, setAtBat] = ingame ? props.functionsAB : useState(null);
@@ -142,26 +142,36 @@ const ChoosePlayerItem = (props) => {
     if (posRun && ingame) {
       if (!myBatting.some((obj) => obj.player.id === player.id)) {
         setAtBat((prev) => {
-          return {
-            ...prev,
-            isRunnerFirst: posRun === 11 ? newPlayer : prev.isRunnerFirst,
-            isRunnerSecond: posRun === 12 ? newPlayer : prev.isRunnerSecond,
-            isRunnerThird: posRun === 13 ? newPlayer : prev.isRunnerThird,
-          };
+          if (isOffense == 1) {
+            return {
+              ...prev,
+              isRunnerFirst: posRun === 11 ? newPlayer : prev.isRunnerFirst,
+              isRunnerSecond: posRun === 12 ? newPlayer : prev.isRunnerSecond,
+              isRunnerThird: posRun === 13 ? newPlayer : prev.isRunnerThird,
+            };
+          } else {
+            return {
+              ...prev,
+            };
+          }
         });
         setAtBatStatus((prev) => {
-          return {
-            atBat: {
-              ...prev.atBat,
-              isRunnerFirst:
-                posRun === 11 ? newPlayer : prev.atBat.isRunnerFirst,
-              isRunnerSecond:
-                posRun === 12 ? newPlayer : prev.atBat.isRunnerSecond,
-              isRunnerThird:
-                posRun === 13 ? newPlayer : prev.atBat.isRunnerThird,
-            },
-            myBatting: prev.myBatting,
-          };
+          if (isOffense == 1) {
+            return {
+              atBat: {
+                ...prev.atBat,
+                isRunnerFirst:
+                  posRun === 11 ? newPlayer : prev.atBat.isRunnerFirst,
+                isRunnerSecond:
+                  posRun === 12 ? newPlayer : prev.atBat.isRunnerSecond,
+                isRunnerThird:
+                  posRun === 13 ? newPlayer : prev.atBat.isRunnerThird,
+              },
+              myBatting: prev.myBatting,
+            };
+          } else {
+            return prev;
+          }
         });
       }
     }

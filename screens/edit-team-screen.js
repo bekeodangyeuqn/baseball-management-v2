@@ -28,7 +28,8 @@ const EditTeamScreen = () => {
   const id = route.params.id;
   const team = useRecoilValue(teamByIdState(id));
   console.log(team);
-  const [isLoading, setIsLoading] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isEditLoading, setIsEditLoading] = useState(false);
   const [picker, setPicker] = useState(false);
   const [date, setDate] = useState(new Date());
   const [dob, setDob] = useState(team.foundedDate);
@@ -140,7 +141,7 @@ const EditTeamScreen = () => {
 
   const handleEditTeam = async (values) => {
     try {
-      setIsLoading(true);
+      setIsEditLoading(true);
       // console.log(image.base64, id);
       const updateData = {
         name: values.name,
@@ -171,9 +172,9 @@ const EditTeamScreen = () => {
           if (tokens[i].push_token)
             sendPushNotification(tokens[i].push_token, response.data);
         }
-        setIsLoading(false);
+        setIsEditLoading(false);
       } catch (error) {
-        setIsLoading(false);
+        setIsEditLoading(false);
         toast.show(error.message, {
           type: "danger",
           placement: "bottom",
@@ -182,7 +183,7 @@ const EditTeamScreen = () => {
           animationType: "zoom-in",
         });
       }
-      setIsLoading(false);
+      setIsEditLoading(false);
       toast.show("Cập nhật thông tin thành công", {
         type: "success",
         placement: "bottom",
@@ -194,7 +195,7 @@ const EditTeamScreen = () => {
       return response;
     } catch (error) {
       //Toast.show(error.message);
-      setIsLoading(false);
+      setIsEditLoading(false);
       toast.show(error.message, {
         type: "danger",
         placement: "bottom",
@@ -405,6 +406,11 @@ const EditTeamScreen = () => {
                 </View>
               </View>
             </View>
+            {isEditLoading && (
+              <View style={styles.loadingOverlay}>
+                <ActivityIndicator size="large" color="#0000ff" />
+              </View>
+            )}
           </View>
         );
       }}

@@ -22,6 +22,7 @@ import { Picker } from "@react-native-picker/picker";
 import { gamesState } from "../atom/Games";
 import { useRecoilState } from "recoil";
 import Animated from "react-native-reanimated";
+import { leaguesState } from "../atom/League";
 
 function formatDateToISO(date) {
   const year = date.getFullYear();
@@ -45,6 +46,7 @@ const CreateGameScreen = () => {
   const [leagueId, setLeagueId] = useState(null);
   const [step, setStep] = useState(1);
   const [games, setGames] = useRecoilState(gamesState);
+  const [leagues, setLeagues] = useRecoilState(leaguesState);
   const toast = useToast();
   const navigation = useNavigation();
   const validationSchema = Yup.object().shape({
@@ -358,11 +360,14 @@ const CreateGameScreen = () => {
                       dropdownIconColor="#00fc08"
                     >
                       <Picker.Item label="Chọn giải đấu" value={-1} />
-                      <Picker.Item label="Giao hữu" value={1} />
+                      {/* <Picker.Item label="Giao hữu" value={1} /> */}
+                      {leagues.map((l) => (
+                        <Picker.Item label={l.title} value={l.id} key={l.id} />
+                      ))}
                     </Picker>
                     <TouchableOpacity
                       style={styles.buttonShort}
-                      // onPress={handleButtonPress}
+                      onPress={() => navigation.navigate("CreateLeague")}
                     >
                       <Text style={styles.buttonText}> Thêm giải đấu</Text>
                     </TouchableOpacity>

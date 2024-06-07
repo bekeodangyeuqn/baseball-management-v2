@@ -15,11 +15,21 @@ import { useToast } from "react-native-toast-notifications";
 import axiosInstance from "../../lib/axiosClient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import jwtDecode from "jwt-decode";
+import { notificationsState } from "../../atom/Notifications";
+import { useRecoilState } from "recoil";
+import { managersState, playersState } from "../../atom/Players";
+import { leaguesState } from "../../atom/League";
+import { equipmentsState } from "../../atom/Equipments";
 
 const LoginScreen = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
+  const [notifications, setNotifications] = useRecoilState(notificationsState);
+  const [players, setPlayers] = useRecoilState(playersState);
+  const [managers, setManagers] = useRecoilState(managersState);
+  const [leagues, setLeagues] = useRecoilState(leaguesState);
+  const [equipments, setEquipments] = useRecoilState(equipmentsState);
   const validationSchema = Yup.object().shape({
     username: Yup.string().required("Username is required"),
     password: Yup.string()
@@ -51,6 +61,49 @@ const LoginScreen = () => {
           console.log("Data stored successfully.");
         }
       });
+      const token = await AsyncStorage.getItem("access_token");
+      const decoded = jwtDecode(token);
+      if (decoded.teamName) {
+        const res1 = await axiosInstance.get(
+          `/players/team/${decoded.teamid}/`
+        );
+        setPlayers(res1.data);
+
+        const res2 = await axiosInstance.get(
+          `/leagues/team/${decoded.teamid}/`
+        );
+        setLeagues(res2.data);
+
+        const res3 = await axiosInstance.get(
+          `equipments/team/${decoded.teamid}/`
+        );
+        setEquipments(res3.data);
+
+        const res4 = await axiosInstance.get(
+          `/managers/team/${decoded.teamid}/`
+        );
+        setManagers(res4.data);
+
+        if (notifications.length <= 0) {
+          const { data } = await axiosInstance.get(
+            `/notifications/team/${decoded.id}/`
+          );
+          setNotifications(data);
+          navigation.navigate("Home", { id: decoded.id, notifications: data });
+          console.log("Notifications: ", data);
+        } else {
+          navigation.navigate("Home", {
+            id: decoded.id,
+            notifications: notifications,
+          });
+          console.log("Notifications: ", notifications);
+        }
+      } else if (decoded.id)
+        navigation.navigate("CreateJoinTeam", {
+          id: decoded.id,
+        });
+      else navigation.navigate("CreateManager");
+
       setIsLoading(false);
       toast.show("Đăng nhập thành công", {
         type: "success",
@@ -59,14 +112,6 @@ const LoginScreen = () => {
         offset: 30,
         animationType: "zoom-in",
       });
-      const token = await AsyncStorage.getItem("access_token");
-      const decoded = jwtDecode(token);
-      if (decoded.teamName) navigation.navigate("Home", { id: decoded.id });
-      else if (decoded.id)
-        navigation.navigate("CreateJoinTeam", {
-          id: decoded.id,
-        });
-      else navigation.navigate("CreateManager");
       return response;
     } catch (error) {
       // Toast.show(error.message);
@@ -82,6 +127,9 @@ const LoginScreen = () => {
   };
   const changeToSignUp = () => {
     navigation.navigate("SignUp");
+  };
+  const changeToForgot = () => {
+    navigation.navigate("ForgotPassword");
   };
   return (
     <Formik
@@ -125,6 +173,16 @@ const LoginScreen = () => {
             )}
             <Button title="Đăng nhập" onPress={formik.handleSubmit} />
             {error && <Text style={{ color: "red" }}>{error}</Text>}
+            <Text
+              style={{
+                textDecorationLine: "underline",
+                textDecorationColor: "blue",
+                margin: 10,
+              }}
+              onPress={changeToForgot}
+            >
+              Quên mật khẩu
+            </Text>
             <Text>
               Bạn chưa có tài khoản?
               <Text

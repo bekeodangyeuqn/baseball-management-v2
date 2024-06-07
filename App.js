@@ -50,7 +50,7 @@ import NotificationProvider from "./provider/NotificationProvider";
 import EditPlayerScreen from "./screens/edit-player-screen";
 import EditGameScreen from "./screens/edit-game-screen";
 import LeagueTopNav from "./navigation/leagueTopNav";
-import CreateLeagueScreen from "./screens/edit-league-screen";
+import CreateLeagueScreen from "./screens/create-league-screen";
 import EditLeagueScreen from "./screens/edit-league-screen";
 import StatsTopNav from "./navigation/statsTopNav";
 import PlayerFundScreen from "./screens/player-fund-screen";
@@ -60,6 +60,13 @@ import GamePitchingScreen from "./screens/game-pitching-screen";
 import GameAtBatScreen from "./screens/game-atbats-screen";
 import EditTeamScreen from "./screens/edit-team-screen";
 import UpdateTeamAvaScreen from "./screens/update-team-ava-screen";
+import TeamStatsScreen from "./screens/team-stats-screen";
+import ChatBotScreen from "./screens/chat-bot-screen";
+import LeagueDetailScreen from "./screens/league-detail-screen";
+import EquipmentDetailScreen from "./screens/equipment-detail-screen";
+import NotificationScreen from "./screens/notification-screen";
+import ForgotPasswordScreen from "./screens/auth/forgot_password_screen";
+import EditEventScreen from "./screens/edit-event-screen";
 
 export default function App() {
   const Stack = createStackNavigator();
@@ -111,6 +118,11 @@ export default function App() {
                     options={{ headerShown: false }}
                   />
                   <Stack.Screen
+                    name="ForgotPassword"
+                    component={ForgotPasswordScreen}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
                     name="CreateJoinTeam"
                     component={CreateOrJoinTeamScreen}
                     options={{ headerShown: false }}
@@ -157,6 +169,11 @@ export default function App() {
                     options={{ title: "Thông số" }}
                   />
                   <Stack.Screen
+                    name="TeamStats"
+                    component={TeamStatsScreen}
+                    options={{ title: "Thành tích đội" }}
+                  />
+                  <Stack.Screen
                     name="PlayerList"
                     component={PlayerListScreen}
                     options={{ title: "Danh sách player" }}
@@ -200,6 +217,11 @@ export default function App() {
                     name="EditLeague"
                     component={EditLeagueScreen}
                     options={{ title: "Chỉnh sửa giải đấu" }}
+                  />
+                  <Stack.Screen
+                    name="EditEvent"
+                    component={EditEventScreen}
+                    options={{ title: "Chỉnh sửa sự kiện" }}
                   />
                   <Stack.Screen
                     name="CreateEvent"
@@ -335,6 +357,26 @@ export default function App() {
                     name="Others"
                     component={OthersScreen}
                     options={{ title: "Khác" }}
+                  />
+                  <Stack.Screen
+                    name="Chatbot"
+                    component={ChatBotScreen}
+                    options={{ title: "Trợ lý bóng chày" }}
+                  />
+                  <Stack.Screen
+                    name="LeagueDetail"
+                    component={LeagueDetailScreen}
+                    options={{ title: "Chi tiết giải đấu" }}
+                  />
+                  <Stack.Screen
+                    name="EquipmentDetail"
+                    component={EquipmentDetailScreen}
+                    options={{ title: "Chi tiết dụng cụ" }}
+                  />
+                  <Stack.Screen
+                    name="Notifications"
+                    component={NotificationScreen}
+                    options={{ title: "Thông báo" }}
                   />
                 </Stack.Navigator>
               </NavigationContainer>
