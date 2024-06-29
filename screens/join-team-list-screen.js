@@ -26,6 +26,7 @@ const JoinTeamListScreen = () => {
   const route = useRoute();
   const managerId = route.params.managerId;
   const [searchQuery, setSearchQuery] = useState("");
+  const [joinRequest, setJoinRequest] = useState([]);
 
   useEffect(() => {
     const getUserId = async () => {
@@ -69,13 +70,44 @@ const JoinTeamListScreen = () => {
       });
     } catch (error) {
       setIsLoading(false);
-      toast.show(error.message, {
-        type: "danger",
-        placement: "bottom",
-        duration: 4000,
-        offset: 30,
-        animationType: "zoom-in",
-      });
+      if (error.response && error.response.status === 403) {
+        // Check if the specific error message is in the response
+        const errorMessage = error.response.data.message;
+        if (
+          errorMessage ===
+          "Please wait at least 10 minutes before making a new join request."
+        ) {
+          // Handle the specific error message
+          toast.show(errorMessage, {
+            type: "danger",
+            placement: "bottom",
+            duration: 4000,
+            offset: 30,
+            animationType: "zoom-in",
+          });
+        } else {
+          // Handle other 403 errors
+          toast.show("An error occurred. Please try again later.", {
+            type: "danger",
+            placement: "bottom",
+            duration: 4000,
+            offset: 30,
+            animationType: "zoom-in",
+          });
+        }
+      } else {
+        // Handle other types of errors
+        toast.show(
+          error.message || "An error occurred. Please try again later.",
+          {
+            type: "danger",
+            placement: "bottom",
+            duration: 4000,
+            offset: 30,
+            animationType: "zoom-in",
+          }
+        );
+      }
     }
   };
 

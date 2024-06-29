@@ -10,7 +10,7 @@ const EquipmentCard = ({ item }) => {
     return arr[0];
   };
   const players = useRecoilValue(playersState);
-  const player = players.find((player) => (player.id = item.player_id));
+  const player = players.find((player) => player.id == item.player_id);
   return (
     <TouchableOpacity
       style={{
@@ -66,6 +66,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     marginEnd: 4,
+    marginStart: 8,
   },
 });
 

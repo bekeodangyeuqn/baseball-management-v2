@@ -10,6 +10,7 @@ import {
   Image,
   ActivityIndicator,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import axiosInstance from "../lib/axiosClient";
 import { useToast } from "react-native-toast-notifications";
@@ -60,6 +61,33 @@ const ManagerProfileScreen = () => {
     };
     getInfo().catch((error) => console.error(error));
   }, []);
+  const handleLeaveTeam = async () => {
+    try {
+      setIsLoading(true);
+      const { data } = await axiosInstance.post(`/manager/leave_team/${id}`);
+      setIsLoading(false);
+      toast.show("Đã rời đội thành công", {
+        type: "success",
+        placement: "bottom",
+        duration: 4000,
+        offset: 30,
+        animationType: "zoom-in",
+      });
+      navigation.navigate("CreateJoinTeam", {
+        id: id,
+        managerId: id,
+      });
+    } catch (error) {
+      setIsLoading(false);
+      toast.show(error.message, {
+        type: "danger",
+        placement: "bottom",
+        duration: 4000,
+        offset: 30,
+        animationType: "zoom-in",
+      });
+    }
+  };
   return (
     <View style={styles.container}>
       {!myInfo ? (
@@ -122,12 +150,40 @@ const ManagerProfileScreen = () => {
             </Text>
           </View>
           {currentId == id ? (
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => logout(navigation)}
-            >
-              <Text style={styles.buttonText}>Đăng xuất</Text>
-            </TouchableOpacity>
+            <View>
+              <TouchableOpacity
+                style={{ ...styles.button, backgroundColor: "yellow" }}
+                onPress={() => {
+                  Alert.alert(
+                    "Rời đội",
+                    "Bạn có chắc chắn muốn rời khỏi đội hay không?.",
+                    [
+                      {
+                        text: "No",
+                        style: "cancel",
+                      },
+                      {
+                        text: "Yes",
+                        onPress: () => {
+                          handleLeaveTeam();
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+                }}
+              >
+                <Text style={{ ...styles.buttonText, color: "black" }}>
+                  Rời đội
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => logout(navigation)}
+              >
+                <Text style={styles.buttonText}>Đăng xuất</Text>
+              </TouchableOpacity>
+            </View>
           ) : null}
         </View>
       )}

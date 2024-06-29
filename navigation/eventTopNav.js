@@ -24,13 +24,11 @@ const EventTopNav = () => {
     const fetchAndSetEvents = async () => {
       setIsLoading(true);
       try {
-        console.log(fetchEvents.state);
-        if (fetchEvents.state === "hasValue") {
-          setEvents(fetchEvents.contents);
-          console.log("Load event successfully");
-        } else if (fetchEvents.state === "hasError") {
-          throw fetchEvents.contents; // Throw the error to be caught in the catch block
+        if (events.length <= 0) {
+          const { data } = await axiosInstance.get(`/events/team/${teamid}/`);
+          setEvents(data);
         }
+        setIsLoading(false);
       } catch (error) {
         toast.show(error.message, {
           type: "danger",
@@ -39,6 +37,7 @@ const EventTopNav = () => {
           offset: 30,
           animationType: "zoom-in",
         });
+        setIsLoading(false);
       } finally {
         setIsLoading(false);
         console.log("Load game completed");

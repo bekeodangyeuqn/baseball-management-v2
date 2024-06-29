@@ -19,7 +19,7 @@ const GameAtBatScreen = () => {
   const gameid = route.params.gameid;
   const teamName = route.params.teamName;
   let atBats = useRecoilValue(atBatsSelectorByGameId(gameid));
-  atBats = atBats.sort((a, b) => a.id - b.id);
+  let sortedAtBats = [...atBats].sort((a, b) => a.id - b.id);
   const [gameAtBats, setGameAtBats] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
@@ -28,7 +28,7 @@ const GameAtBatScreen = () => {
     const getInfo = async () => {
       try {
         setIsLoading(true);
-        if (atBats.length > 0) {
+        if (sortedAtBats.length > 0) {
           setGameAtBats(atBats);
         } else {
           let { data } = await axiosInstance.get(`/atbats/game/${gameid}/`);

@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { useState } from "react";
 import { Formik, Field, Form } from "formik";
 import * as Yup from "yup";
@@ -23,6 +23,8 @@ const ImportExcelPlayerScreen = () => {
   const navigation = useNavigation();
   const [pickedDocument, setPickedDocument] = useState(null);
   const toast = useToast();
+  const route = useRoute();
+  const teamid = route.params.teamid;
 
   const pickDocument = async () => {
     try {
@@ -73,7 +75,9 @@ const ImportExcelPlayerScreen = () => {
           offset: 30,
           animationType: "zoom-in",
         });
-        navigation.navigate("CreateJoinTeam");
+        navigation.navigate("PlayerList", {
+          teamid: teamid,
+        });
         return response;
       } else {
         toast.show("Vui lòng chọn lại file", {

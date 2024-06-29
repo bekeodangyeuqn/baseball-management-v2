@@ -22,7 +22,6 @@ const PlayByPlayItem = ({ atBat, teamName }) => {
       }}
     >
       <View style={styles.scoreBoard}>
-        <Text>{atBat.id}</Text>
         <View style={styles.scoreBoardTeam}>
           <Text style={{ fontWeight: "bold" }}>{teamName}</Text>
           <Text>{atBat.teamScore}</Text>

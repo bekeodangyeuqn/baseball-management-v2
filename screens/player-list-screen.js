@@ -329,7 +329,7 @@ const PlayerListScreen = () => {
             </MenuOption>
             <MenuOption
               onSelect={() => {
-                navigation.navigate("ImportPlayer");
+                navigation.navigate("ImportPlayer", { teamid: teamid });
               }}
             >
               <Text>Import excel</Text>

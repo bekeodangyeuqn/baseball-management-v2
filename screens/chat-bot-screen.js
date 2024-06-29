@@ -69,8 +69,8 @@ const ChatBotScreen = () => {
       .then((res) => res.json())
       .then((data) => {
         console.log(data);
-        let content = data.messages[1].content.trim();
-        let i = 2;
+        let content = data.messages[0].content.trim();
+        let i = 0;
         while (content.includes("{")) {
           content = data.messages[i].content.trim();
           i++;
