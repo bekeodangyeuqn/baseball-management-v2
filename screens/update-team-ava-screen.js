@@ -104,11 +104,13 @@ const UpdateTeamAvaScreen = () => {
         return (
           <View style={styles.container}>
             <Text style={styles.title}>Cập nhật logo của đội</Text>
-            <Button
-              title="Chọn avatar"
-              onPress={pickImage}
-              style={{ marginBottom: 10 }}
-            />
+            <View style={{ marginTop: 8, marginBottom: 8 }}>
+              <Button
+                title="Chọn avatar"
+                onPress={pickImage}
+                style={{ marginBottom: 10 }}
+              />
+            </View>
             {image && image.uri ? (
               <Image
                 source={{ uri: image.uri }}
@@ -132,19 +134,17 @@ const UpdateTeamAvaScreen = () => {
             {formik.errors.avatar && (
               <Text style={{ color: "red" }}>{formik.errors.avatar}</Text>
             )}
-            <Button
-              title="Cập nhật logo"
-              onPress={formik.handleSubmit}
-              style={{ marginTop: 10, marginBottom: 10 }}
-            />
+            <View style={{ marginTop: 8, marginBottom: 8 }}>
+              <Button
+                title="Cập nhật logo"
+                onPress={formik.handleSubmit}
+                style={{ marginTop: 10, marginBottom: 10 }}
+              />
+            </View>
             <Button
               title="Hủy"
               color="grey"
-              onPress={() =>
-                navigation.navigate("TeamScreen", {
-                  teamid: teamid,
-                })
-              }
+              onPress={() => navigation.navigate("Home", { screen: "Đội" })}
               style={{ marginTop: 10 }}
             />
             {error && <Text style={{ color: "red" }}>{error}</Text>}

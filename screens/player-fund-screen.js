@@ -50,6 +50,14 @@ const PlayerFundScreen = () => {
     const uniqueMonthYear = fundTransactions
       .map((transaction) => getMonthYear(transaction.time))
       .filter((value, index, self) => self.indexOf(value) === index);
+    uniqueMonthYear.sort((a, b) => {
+      const [monthA, yearA] = a.split("/");
+      const [monthB, yearB] = b.split("/");
+      if (yearA !== yearB) {
+        return yearB - yearA; // Descending order for years
+      }
+      return monthB - monthA; // Descending order for months if years are equal
+    });
     tableHead = ["", ...uniqueMonthYear];
     widthArr = new Array(uniqueMonthYear.length + 1).fill(120);
     widthArr[0] = 150;

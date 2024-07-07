@@ -89,12 +89,17 @@ const LoginScreen = () => {
             `/notifications/team/${decoded.id}/`
           );
           setNotifications(data);
-          navigation.navigate("Home", { id: decoded.id, notifications: data });
+          navigation.navigate("Home", {
+            id: decoded.id,
+            notifications: data,
+            teamid: decoded.teamid,
+          });
           console.log("Notifications: ", data);
         } else {
           navigation.navigate("Home", {
             id: decoded.id,
             notifications: notifications,
+            teamid: decoded.teamid,
           });
           console.log("Notifications: ", notifications);
         }

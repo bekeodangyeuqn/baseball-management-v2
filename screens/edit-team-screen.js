@@ -163,16 +163,12 @@ const EditTeamScreen = () => {
             response.data,
           ]);
         } else {
-          setFullTeams((prev) => [
-            ...prev.filter((t) => t.id != id),
-            response.data,
-          ]);
+          setFullTeams((prev) => [response.data]);
         }
         for (i = 0; i < tokens.length; i++) {
           if (tokens[i].push_token)
             sendPushNotification(tokens[i].push_token, response.data);
         }
-        setIsEditLoading(false);
       } catch (error) {
         setIsEditLoading(false);
         toast.show(error.message, {

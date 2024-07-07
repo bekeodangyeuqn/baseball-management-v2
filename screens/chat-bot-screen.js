@@ -71,7 +71,7 @@ const ChatBotScreen = () => {
         console.log(data);
         let content = data.messages[0].content.trim();
         let i = 0;
-        while (content.includes("{")) {
+        while (content[0] === "{") {
           content = data.messages[i].content.trim();
           i++;
         }

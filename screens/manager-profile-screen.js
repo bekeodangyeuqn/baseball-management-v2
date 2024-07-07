@@ -35,13 +35,13 @@ const ManagerProfileScreen = () => {
     const getInfo = async () => {
       setIsLoading(true);
       try {
-        const myInfoFromStorage = await AsyncStorage.getItem("my_info");
+        const myInfoFromStorage = await AsyncStorage.getItem(`my_info_${id}`);
         if (myInfoFromStorage !== null) {
           setMyInfo(JSON.parse(myInfoFromStorage));
         } else {
           const { data } = await axiosInstance.get(`/manager/profile/${id}/`);
           setMyInfo(data);
-          AsyncStorage.setItem("my_info", JSON.stringify(data));
+          AsyncStorage.setItem(`my_info_${id}`, JSON.stringify(data));
         }
         const token = await AsyncStorage.getItem("access_token");
         const decoded = jwtDecode(token);

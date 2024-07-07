@@ -170,7 +170,14 @@ const TransactionsScreen = () => {
   return (
     <View style={styles.container}>
       <Top transactions={transactions} />
-      <View>
+      <View
+        style={{
+          marginBottom: 8,
+          marginTop: 8,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <Button
           title="Danh sách đóng quỹ"
           color="green"

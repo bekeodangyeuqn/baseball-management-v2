@@ -67,6 +67,7 @@ import EquipmentDetailScreen from "./screens/equipment-detail-screen";
 import NotificationScreen from "./screens/notification-screen";
 import ForgotPasswordScreen from "./screens/auth/forgot_password_screen";
 import EditEventScreen from "./screens/edit-event-screen";
+import EditEquipmentScreen from "./screens/edit-equipment-screen";
 
 export default function App() {
   const Stack = createStackNavigator();
@@ -262,6 +263,11 @@ export default function App() {
                     name="EditPlayerScreen"
                     component={EditPlayerScreen}
                     options={{ title: "Cập nhật thông tin cầu thủ" }}
+                  />
+                  <Stack.Screen
+                    name="EditEquipment"
+                    component={EditEquipmentScreen}
+                    options={{ title: "Chỉnh sửa dụng cụ" }}
                   />
                   <Stack.Screen
                     name="PlayBall"

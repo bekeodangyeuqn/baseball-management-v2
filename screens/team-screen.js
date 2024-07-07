@@ -12,7 +12,11 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import PieChart from "../component/PieChart";
 import PieChartComponent from "../component/PieChart";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import {
+  useIsFocused,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
 import jwtDecode from "jwt-decode";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axiosInstance from "../lib/axiosClient";
@@ -41,6 +45,7 @@ const TeamScreen = () => {
   const win = games.filter((g) => g.team_score > g.opp_score).length;
   const lose = games.filter((g) => g.team_score < g.opp_score).length;
   const draw = games.filter((g) => g.team_score == g.opp_score).length;
+  const isFocus = useIsFocused();
   useEffect(() => {
     const getInfo = async () => {
       setIsLoading(true);
@@ -71,7 +76,7 @@ const TeamScreen = () => {
       }
     };
     getInfo();
-  }, []);
+  }, [isFocus]);
 
   if (isLoading || !team) {
     return (

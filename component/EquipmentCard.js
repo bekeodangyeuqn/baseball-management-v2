@@ -3,12 +3,14 @@ import { Image, Text } from "react-native";
 import { View, StyleSheet, Pressable, TouchableOpacity } from "react-native";
 import { useRecoilValue } from "recoil";
 import { playersState } from "../atom/Players";
+import { useNavigation } from "@react-navigation/native";
 
 const EquipmentCard = ({ item }) => {
   const splitAvatarURI = (str) => {
     const arr = str.split("?");
     return arr[0];
   };
+  const navigation = useNavigation();
   const players = useRecoilValue(playersState);
   const player = players.find((player) => player.id == item.player_id);
   return (
@@ -19,6 +21,12 @@ const EquipmentCard = ({ item }) => {
         paddingHorizontal: 8,
         marginBottom: 10,
         borderRadius: 75,
+      }}
+      onPress={() => {
+        navigation.navigate("EquipmentDetail", {
+          id: item.id,
+          teamid: item.team_id,
+        });
       }}
     >
       <View

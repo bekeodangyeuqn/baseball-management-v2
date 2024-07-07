@@ -119,11 +119,14 @@ const HomeScreen = () => {
             const { data } = await axiosInstance.get(`/games/team/${teamid}/`);
             setGames(data);
             setRecoilGame(data);
-            setEvents((prev) => [...prev, ...data]);
-            setDatesEvent((prev) => [
-              ...prev,
-              ...getDatesHaveEvent(events, data),
-            ]);
+            setEvents((prev) => {
+              setDatesEvent((prev) => [
+                ...prev,
+                ...getDatesHaveEvent(events, data),
+              ]);
+              return [...prev, ...data];
+            });
+
             const eventToday = [...events, ...data].filter(
               (e) => getDate(e.timeStart) == today
             );

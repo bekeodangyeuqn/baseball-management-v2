@@ -174,7 +174,7 @@ const JoinTeamListScreen = () => {
           </View>
         )}
         keyExtractor={(item) => item.id}
-        onEndReached={() => loadMoreTeams(page)}
+        // onEndReached={() => loadMoreTeams(page)}
         onEndReachedThreshold={0.5}
       />
     </View>
